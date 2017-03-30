@@ -1,0 +1,5 @@
+etc/unzipped-beatmap
+data/
+
+# python artifacts
+*.pyc
