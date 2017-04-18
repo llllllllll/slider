@@ -7,7 +7,7 @@ from .features import extract_feature_array
 class Regressor(MLPRegressor):
     """A regressor with osu! beatmap specific helpers.
     """
-    def predict(*args, **kwargs):
+    def predict(self, *args, **kwargs):
         return np.clip(super().predict(*args, **kwargs), 0, 1)
 
     def predict_beatmap(self, beatmap):
@@ -23,4 +23,4 @@ class Regressor(MLPRegressor):
         accuracy : float
             The user's expected accuracy in the range [0, 1].
         """
-        return self.predict_beatmap(extract_feature_array([beatmap]))
+        return self.predict(extract_feature_array([beatmap]))[0]
