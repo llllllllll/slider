@@ -27,4 +27,7 @@ setup(
         'Topic :: Games/Entertainment',
     ],
     url='https://github.com/llllllllll/slider',
+    extras_require={
+        'model': ['numpy'],
+    },
 )
