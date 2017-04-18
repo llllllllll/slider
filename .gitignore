@@ -2,6 +2,8 @@ etc/unzipped-beatmap
 data/
 notebooks/
 
+build/
+
 *.egg-info
 
 # python artifacts
