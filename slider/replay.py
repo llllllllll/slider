@@ -245,8 +245,12 @@ class Replay:
     life_bar_graph : list[timedelta, float]
         A list of time points paired with the value of the life bar at that
         time. These appear in sorted order. The values are in the range [0, 1].
+    timestamp : datetime
+        When this replay was created.
     actions : list[Action]
         A sorted list of all of the actions recorded from the player.
+    beatmap : Beatmap or None
+        The beatmap played in this replay if known, otherwise None.
     """
     def __init__(self,
                  mode,
@@ -294,7 +298,9 @@ class Replay:
                  key2,
                  scoreV2,
                  life_bar_graph,
-                 actions):
+                 timestamp,
+                 actions,
+                 beatmap):
         self.mode = mode
         self.version = version
         self.beatmap_md5 = beatmap_md5
@@ -340,10 +346,32 @@ class Replay:
         self.key2 = key2
         self.scoreV2 = scoreV2
         self.life_bar_graph = life_bar_graph
+        self.timestamp = timestamp
         self.actions = actions
+        self.beatmap = beatmap
+
+    @property
+    def accuracy(self):
+        if self.mode != GameMode.standard:
+            raise NotImplementedError(
+                'accuracy for non osu!standard replays is not yet supported',
+            )
+
+        points_of_hits = (
+            self.count_300 * 300 +
+            self.count_100 * 100 +
+            self.count_50 * 50
+        )
+        total_hits = (
+            self.count_300 +
+            self.count_100 +
+            self.count_50 +
+            self.count_miss
+        )
+        return points_of_hits / (total_hits * 300)
 
     @classmethod
-    def from_path(cls, path):
+    def from_path(cls, path, library=None):
         """Read in a ``Replay`` object from a ``.osr`` file on disk.
 
         Parameters
@@ -362,10 +390,10 @@ class Replay:
             Raised when the file cannot be parsed as a ``.osr`` file.
         """
         with open(path, 'rb') as f:
-            return cls.from_file(f)
+            return cls.from_file(f, library=library)
 
     @classmethod
-    def from_file(cls, file):
+    def from_file(cls, file, library=None):
         """Read in a ``Replay`` object from an open file object.
 
         Parameters
@@ -383,10 +411,10 @@ class Replay:
         ValueError
             Raised when the file cannot be parsed as a ``.osr`` file.
         """
-        return cls.parse(file.read())
+        return cls.parse(file.read(), library=library)
 
     @classmethod
-    def parse(cls, data):
+    def parse(cls, data, library=None):
         """Parse a replay from ``.osr`` file data.
 
         Parameters
@@ -430,6 +458,11 @@ class Replay:
         del mod_kwargs['relax2']
         del mod_kwargs['last_mod']
 
+        if library is not None:
+            beatmap = library.lookup_by_md5(beatmap_md5)
+        else:
+            beatmap = None
+
         return cls(
             mode=mode,
             version=version,
@@ -446,12 +479,24 @@ class Replay:
             max_combo=max_combo,
             full_combo=full_combo,
             life_bar_graph=life_bar_graph,
+            timestamp=timestamp,
             actions=actions,
+            beatmap=beatmap,
             **mod_kwargs,
         )
 
     def __repr__(self):
+        try:
+            accuracy = f'{self.accuracy * 100:.2f}'
+        except NotImplementedError:
+            accuracy = '<unknown>'
+
+        beatmap = self.beatmap
+        if beatmap is None:
+            beatmap = '<unknown>'
+
         return (
-            f'<{type(self).__qualname__}: {self.count_300}/{self.count_100}/'
-            f'{self.count_50}/{self.count_miss}>'
+            f'<{type(self).__qualname__}: {accuracy}% ('
+            f'{self.count_300}/{self.count_100}/'
+            f'{self.count_50}/{self.count_miss}) on {beatmap}>'
         )
