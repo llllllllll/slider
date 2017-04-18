@@ -1,5 +1,8 @@
 etc/unzipped-beatmap
 data/
+notebooks/
+
+*.egg-info
 
 # python artifacts
 *.pyc
