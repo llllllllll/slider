@@ -1,9 +1,35 @@
 from datetime import timedelta
 import re
+import warnings
 from zipfile import ZipFile
 
 from .game_mode import GameMode
 from .position import Position
+
+
+class _no_default:
+    """Sentinel type; this should not be instantiated.
+
+    This type is used so functions can tell the difference between no argument
+    passed and an explicit value passed even if ``None`` is a valid value.
+
+    Notes
+    -----
+    This is implemented as a type to make functions which use this as a default
+    argument serializable.
+    """
+    def __new__(cls):
+        raise TypeError('cannot create instances of sentinel type')
+
+
+def _get(cs, ix, default=_no_default):
+    try:
+        return cs[ix]
+    except IndexError:
+        if default is _no_default:
+            raise
+        return default
+
 
 
 class TimingPoint:
@@ -80,23 +106,18 @@ class TimingPoint:
             Raised when ``data`` does not describe a ``TimingPoint`` object.
         """
         try:
-            (offset,
-             ms_per_beat,
-             meter,
-             sample_type,
-             sample_set,
-             volume,
-             inherited,
-             kiai_mode) = data.split(',')
+            offset, ms_per_beat, *rest = data.split(',')
         except ValueError:
             raise ValueError(
                 f'failed to parse {cls.__qualname__} from {data!r}',
             )
 
         try:
-            offset = timedelta(milliseconds=int(offset))
+            offset_float = float(offset)
         except ValueError:
-            raise ValueError(f'offset should be an int, got {offset!r}')
+            raise ValueError(f'offset should be a float, got {offset!r}')
+
+        offset = timedelta(milliseconds=offset_float)
 
         try:
             ms_per_beat = float(ms_per_beat)
@@ -106,36 +127,36 @@ class TimingPoint:
             )
 
         try:
-            meter = int(meter)
+            meter = int(_get(rest, 0, '4'))
         except ValueError:
             raise ValueError(f'meter should be an int, got {meter!r}')
 
         try:
-            sample_type = int(sample_type)
+            sample_type = int(_get(rest, 1, '0'))
         except ValueError:
             raise ValueError(
                 f'sample_type should be an int, got {sample_type!r}',
             )
 
         try:
-            sample_set = int(sample_set)
+            sample_set = int(_get(rest, 2, '0'))
         except ValueError:
             raise ValueError(
                 f'sample_set should be an int, got {sample_set!r}',
             )
 
         try:
-            volume = int(volume)
+            volume = int(_get(rest, 3, '1'))
         except ValueError:
             raise ValueError(f'volume should be an int, got {volume!r}')
 
         try:
-            inherited = not bool(int(inherited))
+            inherited = not bool(int(_get(rest, 4, '1')))
         except ValueError:
             raise ValueError(f'inherited should be a bool, got {inherited!r}')
 
         try:
-            kiai_mode = bool(int(kiai_mode))
+            kiai_mode = bool(int(_get(rest, 5, '0')))
         except ValueError:
             raise ValueError(f'kiai_mode should be a bool, got {kiai_mode!r}')
 
@@ -233,6 +254,8 @@ class HitObject:
             type_ob = Slider
         elif type_ & Spinner.type_code:
             type_ob = Spinner
+        elif type_ & HoldNote.type_code:
+            type_ob = HoldNote
         else:
             raise ValueError(f'unknown type code {type_!r}')
 
@@ -314,7 +337,7 @@ class Slider(HitObject):
     hitsound : int
         The sound played on the tickss of the slider.
     slider_type : {'L', 'B', 'P', 'C'}
-        The type of slider. Linear, Bezier, Pass through, and Catmull.
+        The type of slider. Linear, Bezier, Perfect, and Catmull.
     points : iterable[Position]
         The points that this slider travels through.
     length : int
@@ -414,34 +437,29 @@ class Slider(HitObject):
         try:
             raw_edge_sounds_grouped, *rest = rest
         except ValueError:
-            raise ValueError(f'missing required slider data in {rest!r}')
+            raw_edge_sounds_grouped = ''
 
-        try:
-            raw_edge_sounds = raw_edge_sounds_grouped.split('|')
-        except ValueError:
-            raise ValueError(f'expected edge sounds in {raw_edge_sounds!r}')
-
+        raw_edge_sounds = raw_edge_sounds_grouped.split('|')
         edge_sounds = []
-        for edge_sound in raw_edge_sounds:
-            try:
-                edge_sound = int(edge_sound)
-            except ValueError:
-                raise ValueError(
-                    f'edge_sound should be an int, got {edge_sound!r}',
-                )
-            edge_sounds.append(edge_sound)
+        if raw_edge_sounds != ['']:
+            for edge_sound in raw_edge_sounds:
+                try:
+                    edge_sound = int(edge_sound)
+                except ValueError:
+                    raise ValueError(
+                        f'edge_sound should be an int, got {edge_sound!r}',
+                    )
+                edge_sounds.append(edge_sound)
 
         try:
             edge_additions_grouped, *rest = rest
         except ValueError:
-            raise ValueError(f'missing required slider data in {rest!r}')
+            edge_additions_grouped = ''
 
-        try:
+        if edge_additions_grouped:
             edge_additions = edge_additions_grouped.split('|')
-        except ValueError:
-            raise ValueError(
-                f'expected edge additions in {edge_additions_grouped!r}',
-            )
+        else:
+            edge_additions = []
 
         if len(rest) > 1:
             raise ValueError(f'extra data: {rest!r}')
@@ -460,19 +478,28 @@ class Slider(HitObject):
         )
 
 
-class _no_default:
-    """Sentinel type; this should not be instantiated.
+class HoldNote(HitObject):
+    """A HoldNote hit element.
 
-    This type is used so functions can tell the difference between no argument
-    passed and an explicit value passed even if ``None`` is a valid value.
+    Parameters
+    ----------
+    position : Position
+        Where this HoldNote appears on the screen.
+    time : timedelta
+        When this HoldNote appears in the map.
 
     Notes
     -----
-    This is implemented as a type to make functions which use this as a default
-    argument serializable.
+    A ``HoldNote`` can only appear in an osu!mania map.
     """
-    def __new__(cls):
-        raise TypeError('cannot create instances of sentinel type')
+    type_code = 128
+
+    @classmethod
+    def _parse(cls, position, time, hitsound, rest):
+        if len(rest) > 1:
+            raise ValueError('extra data: {rest!r}')
+
+        return cls(position, time, hitsound, *rest)
 
 
 def _get_as_str(groups, section, field, default=_no_default):
@@ -498,7 +525,9 @@ def _get_as_str(groups, section, field, default=_no_default):
     try:
         mapping = groups[section]
     except KeyError:
-        raise ValueError(f'missing section {section!r}')
+        if default is _no_default:
+            raise ValueError(f'missing section {section!r}')
+        return default
 
     try:
         return mapping[field]
@@ -701,10 +730,12 @@ class Beatmap:
     tags : list[str]
         A collection of words describing the song. This is searchable on the
         osu! website.
-    beatmap_id : int
-        The id of this single beatmap.
-    beatmap_set_id : int
-        The id of this beatmap set.
+    beatmap_id : int or None
+        The id of this single beatmap. Old beatmaps did not store this in the
+        file.
+    beatmap_set_id : int or None
+        The id of this beatmap set. Old beatmaps did not store this in the
+        file.
     hp_drain_rate : float
         The ``HP`` attribute of the beatmap.
     circle_size, : float
@@ -796,6 +827,26 @@ class Beatmap:
         self.timing_points = timing_points
         self.hit_objects = hit_objects
 
+    @property
+    def hp(self):
+        return self.hp_drain_rate
+
+    @property
+    def cs(self):
+        return self.circle_size
+
+    @property
+    def od(self):
+        return self.overall_difficulty
+
+    @property
+    def ar(self):
+        return self.approach_rate
+
+    @property
+    def hit_objects_no_spinners(self):
+        return tuple(e for e in self.hit_objects if not isinstance(e, Spinner))
+
     def __repr__(self):
         return f'<{type(self).__qualname__}: {self.title} [{self.version}]>'
 
@@ -840,7 +891,7 @@ class Beatmap:
         ValueError
             Raised when the file cannot be parsed as a ``.osu`` file.
         """
-        with open(path) as file:
+        with open(path, encoding='utf-8-sig') as file:
             return cls.from_file(file)
 
     @classmethod
@@ -975,11 +1026,12 @@ class Beatmap:
         ValueError
             Raised when the data cannot be parsed in the ``.osu`` format.
         """
+        data = data.lstrip()
         lines = iter(data.splitlines())
         line = next(lines)
         match = cls._version_regex.match(line)
         if match is None:
-            raise ValueError('missing osu file format specifier')
+            raise ValueError(f'missing osu file format specifier in: {line!r}')
 
         format_version = int(match.group(1))
         groups = cls._find_groups(lines)
@@ -1001,7 +1053,7 @@ class Beatmap:
             preview_time=timedelta(
                 milliseconds=_get_as_int(groups, 'General', 'PreviewTime'),
             ),
-            countdown=_get_as_bool(groups, 'General', 'Countdown'),
+            countdown=_get_as_bool(groups, 'General', 'Countdown', False),
             sample_set=_get_as_str(groups, 'General', 'SampleSet'),
             stack_leniency=_get_as_float(
                 groups,
@@ -1014,11 +1066,13 @@ class Beatmap:
                 groups,
                 'General',
                 'LetterboxInBreaks',
+                False,
             ),
             widescreen_storyboard=_get_as_bool(
                 groups,
                 'General',
                 'WidescreenStoryboard',
+                False,
             ),
             bookmarks=[
                 timedelta(milliseconds=ms) for ms in _get_as_int_list(
@@ -1032,10 +1086,11 @@ class Beatmap:
                 groups,
                 'Editor',
                 'DistanceSpacing',
+                1,
             ),
-            beat_divisor=_get_as_int(groups, 'Editor', 'BeatDivisor'),
-            grid_size=_get_as_int(groups, 'Editor', 'GridSize'),
-            timeline_zoom=_get_as_float(groups, 'Editor', 'TimelineZoom'),
+            beat_divisor=_get_as_int(groups, 'Editor', 'BeatDivisor', 4),
+            grid_size=_get_as_int(groups, 'Editor', 'GridSize', 4),
+            timeline_zoom=_get_as_float(groups, 'Editor', 'TimelineZoom', 1.0),
             title=title,
             title_unicode=_get_as_str(
                 groups,
@@ -1052,11 +1107,16 @@ class Beatmap:
             ),
             creator=_get_as_str(groups, 'Metadata', 'Creator'),
             version=_get_as_str(groups, 'Metadata', 'Version'),
-            source=_get_as_str(groups, 'Metadata', 'Source'),
+            source=_get_as_str(groups, 'Metadata', 'Source', None),
             # space delimited list
-            tags=_get_as_str(groups, 'Metadata', 'Tags').split(),
-            beatmap_id=_get_as_int(groups, 'Metadata', 'BeatmapID'),
-            beatmap_set_id=_get_as_int(groups, 'Metadata', 'BeatmapSetID'),
+            tags=_get_as_str(groups, 'Metadata', 'Tags', '').split(),
+            beatmap_id=_get_as_int(groups, 'Metadata', 'BeatmapID', None),
+            beatmap_set_id=_get_as_int(
+                groups,
+                'Metadata',
+                'BeatmapSetID',
+                None,
+            ),
             hp_drain_rate=_get_as_float(groups, 'Difficulty', 'HPDrainRate'),
             circle_size=_get_as_float(groups, 'Difficulty', 'CircleSize'),
             overall_difficulty=_get_as_float(
