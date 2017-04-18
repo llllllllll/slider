@@ -80,6 +80,17 @@ class TimingPoint:
         self.inherited = inherited
         self.kiai_mode = kiai_mode
 
+    @property
+    def bpm(self):
+        """The bpm of this timing point.
+
+        If this is an inherited timing point this value will be None.
+        """
+        ms_per_beat = self.ms_per_beat
+        if ms_per_beat < 0:
+            return None
+        return round(60000 / ms_per_beat)
+
     def __repr__(self):
         return (
             f'<{type(self).__qualname__}:'
@@ -828,23 +839,45 @@ class Beatmap:
         self.hit_objects = hit_objects
 
     @property
+    def bpm_min(self):
+        """The minimum bpm in this beatmap.
+        """
+        return min(filter(None, (p.bpm for p in self.timing_points)))
+
+    @property
+    def bpm_max(self):
+        """The maximum bpm in this beatmap.
+        """
+        return max(filter(None, (p.bpm for p in self.timing_points)))
+
+    @property
     def hp(self):
+        """Alias for ``hp_drain_rate``.
+        """
         return self.hp_drain_rate
 
     @property
     def cs(self):
+        """Alias for ``circle_size``.
+        """
         return self.circle_size
 
     @property
     def od(self):
+        """Alias for ``overall_difficulty``.
+        """
         return self.overall_difficulty
 
     @property
     def ar(self):
+        """Alias for ``approach_rate``.
+        """
         return self.approach_rate
 
     @property
     def hit_objects_no_spinners(self):
+        """The hit objects with spinners filtered out.
+        """
         return tuple(e for e in self.hit_objects if not isinstance(e, Spinner))
 
     def __repr__(self):

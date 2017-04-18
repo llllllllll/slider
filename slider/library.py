@@ -99,3 +99,7 @@ class LocalLibrary(Library):
 
     def lookup_by_md5(self, beatmap_md5):
         return self._by_md5[beatmap_md5]
+
+    @property
+    def beatmaps(self):
+        return self._by_md5.values()

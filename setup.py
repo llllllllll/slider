@@ -28,6 +28,6 @@ setup(
     ],
     url='https://github.com/llllllllll/slider',
     extras_require={
-        'model': ['numpy'],
+        'model': ['numpy', 'sklean'],
     },
 )

@@ -1,8 +1,11 @@
 from collections import namedtuple
+from datetime import datetime
+import os
 
 import numpy as np
 
 from ..beatmap import Circle, Slider
+from ..replay import Replay
 
 
 # axis indices
@@ -145,6 +148,9 @@ def extract_features(beatmap):
         'OD': beatmap.od,
         'AR': beatmap.ar,
 
+        'bpm-min': beatmap.bpm_min,
+        'bpm-max': beatmap.bpm_max,
+
         'circle-count': circles,
         'slider-count': sliders,
         'spinner-count': spinners,
@@ -152,7 +158,7 @@ def extract_features(beatmap):
         'slider-multiplier': beatmap.slider_multiplier,
         'slider-tick-rate': beatmap.slider_tick_rate,
 
-        '-pitch': mean_angles[pitch],
+        'mean-pitch': mean_angles[pitch],
         'mean-roll': mean_angles[roll],
         'mean-yaw': mean_angles[yaw],
         'median-pitch': median_angles[pitch],
@@ -168,7 +174,7 @@ def _fst(tup):
     return tup[0]
 
 
-def extract_feature_array(beatmap):
+def extract_feature_array(beatmaps):
     """Extract all features from a beatmap.
 
     Parameters
@@ -181,6 +187,58 @@ def extract_feature_array(beatmap):
     features : np.ndarray[float64]
         The features as an array.
     """
-    return np.array([
-        snd for fst, snd in sorted(extract_features.items(), key=_fst)
-    ])
+    return np.array(
+        [
+            [
+                snd for
+                fst, snd in sorted(extract_features(beatmap).items(), key=_fst)
+            ]
+            for beatmap in beatmaps
+            if len(beatmap.hit_objects) >= 2
+        ]
+    )
+
+
+def extract_from_replay_directory(path, library, age=None):
+    """Extract a labeled feature set from a path to directory of replays.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        The path to the directory of ``.osr`` files.
+    library : Library
+        The beatmap library to use when parsing the replays.
+    age : datetime.timedelta, optional
+        Only count replays less than this age old.
+
+    Returns
+    -------
+    features : np.ndarray[float]
+        The array of input data with one row per play.
+    accuracies : np.ndarray[float]
+        The array of accuracies achieved on each of the beatmaps in
+        ``features``.
+
+    Notes
+    -----
+    The same beatmap may appear more than once if there are multiple replays
+    for this beatmap.
+    """
+    beatmaps = []
+    accuracies = []
+
+    beatmap_append = beatmaps.append
+    accuracy_append = accuracies.append
+
+    for entry in os.scandir(path):
+        if not entry.name.endswith('.osr'):
+            continue
+
+        replay = Replay.from_path(entry, library=library)
+        if age is not None and datetime.utcnow() - replay.timestamp > age:
+            continue
+
+        beatmap_append(replay.beatmap)
+        accuracy_append(replay.accuracy)
+
+    return extract_feature_array(beatmaps), np.array(accuracies)

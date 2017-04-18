@@ -18,6 +18,12 @@ Replay Parser
 Slider includes an osu! replay parser for reading metadata, 300/100/50/miss
 counts, and input stream data out of ``.osr`` files.
 
+Model
+-----
+
+Slider includes a simple model for predicting future performance based on
+replay data.
+
 Thanks
 ------
 
