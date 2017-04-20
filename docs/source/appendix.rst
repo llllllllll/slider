@@ -22,6 +22,12 @@ Beatmap
 .. autoclass:: slider.beatmap.HoldNote
    :members:
 
+Client
+------
+
+.. autoclass:: slider.client.Client
+   :members:
+
 Library
 -------
 
@@ -29,6 +35,12 @@ Library
    :members:
 
 .. autoclass:: slider.library.LocalLibrary
+   :members:
+
+.. autoclass:: slider.library.ClientLibrary
+   :members:
+
+.. autoclass:: slider.library.ChainedLibrary
    :members:
 
 Replay
@@ -49,6 +61,10 @@ Mods
 
 .. autoclass:: slider.mod.Mod
    :undoc-members:
+
+.. autofunction:: slider.mod.ar_to_ms
+
+.. autofunction:: slider.mod.ms_to_ar
 
 Utilities
 ---------

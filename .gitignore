@@ -8,3 +8,6 @@ build/
 
 # python artifacts
 *.pyc
+
+# osu! API key
+.api-key

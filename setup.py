@@ -27,7 +27,8 @@ setup(
         'Topic :: Games/Entertainment',
     ],
     url='https://github.com/llllllllll/slider',
+    install_requires=['pytz', 'requests'],
     extras_require={
-        'model': ['numpy', 'sklean'],
+        'model': ['numpy', 'sklearn'],
     },
 )
