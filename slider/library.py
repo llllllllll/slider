@@ -105,6 +105,12 @@ class LocalLibrary(Library):
 
     @property
     def beatmaps(self):
+        """All of the beatmaps available locally.
+
+        Notes
+        -----
+        This is specific to the :class:`~slider.library.LocalLibrary` type.
+        """
         return self._by_md5.values()
 
 

@@ -35,13 +35,11 @@ Library
    :members:
 
 .. autoclass:: slider.library.LocalLibrary
-   :members:
+   :members: beatmaps
 
 .. autoclass:: slider.library.ClientLibrary
-   :members:
 
 .. autoclass:: slider.library.ChainedLibrary
-   :members:
 
 Replay
 ------
