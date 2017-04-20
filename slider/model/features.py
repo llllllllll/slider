@@ -5,6 +5,7 @@ import os
 import numpy as np
 
 from ..beatmap import Circle, Slider
+from ..mod import ar_to_ms, ms_to_ar
 from ..replay import Replay
 
 
@@ -121,13 +122,33 @@ def count_hit_objects(hit_objects):
     return hit_object_count(circles, sliders, spinners)
 
 
-def extract_features(beatmap):
+def extract_features(beatmap,
+                     *,
+                     easy=False,
+                     hidden=False,
+                     hard_rock=False,
+                     double_time=False,
+                     relax=False,
+                     half_time=False,
+                     flashlight=False):
     """Extract all features from a beatmap.
 
     Parameters
     ----------
     beatmap : Beatmap
         The beatmap to extract features from.
+    easy : bool, optional
+        Was the easy mod used?
+    hidden : bool, optional
+        Was the hidden mod used?
+    hard_rock : bool, optional
+        Was the hard rock mod used?
+    double_time : bool, optional
+        Was the double time mod used?
+    hard : bool, optional
+        Was the half time mod used?
+    flashlight : bool, optional
+        Was the flashlight mod used?
 
     Returns
     -------
@@ -142,22 +163,57 @@ def extract_features(beatmap):
 
     circles, sliders, spinners = count_hit_objects(beatmap.hit_objects)
 
+    od = beatmap.od
+    ar = beatmap.ar
+
+    if easy:
+        od /= 2
+        ar /= 2
+    elif hard_rock:
+        od = min(1.4 * od, 10)
+        ar = min(1.4 * ar, 10)
+
+    bpm_min = beatmap.bpm_min
+    bpm_max = beatmap.bpm_max
+
+    if half_time:
+        ar = ms_to_ar(4 * ar_to_ms(ar) / 3)
+        bpm_min *= 0.75
+        bpm_max *= 0.75
+    elif double_time:
+        ar = ms_to_ar(2 * ar_to_ms(ar) / 3)
+        bpm_min *= 1.5
+        bpm_max *= 1.5
+
     return {
+        # basic stats
         'HP': beatmap.hp,
         'CS': beatmap.cs,
-        'OD': beatmap.od,
-        'AR': beatmap.ar,
+        'OD': od,
+        'AR': ar,
 
-        'bpm-min': beatmap.bpm_min,
-        'bpm-max': beatmap.bpm_max,
+        # mods
+        'easy': float(easy),
+        'hidden': float(hidden),
+        'hard_rock': float(hard_rock),
+        'double_time': float(double_time),
+        'half_time': float(half_time),
+        'flashlight': float(flashlight),
 
+        # bpm
+        'bpm-min': bpm_min,
+        'bpm-max': bpm_max,
+
+        # hit objects
         'circle-count': circles,
         'slider-count': sliders,
         'spinner-count': spinners,
 
+        # slider info
         'slider-multiplier': beatmap.slider_multiplier,
         'slider-tick-rate': beatmap.slider_tick_rate,
 
+        # hit object angles
         'mean-pitch': mean_angles[pitch],
         'mean-roll': mean_angles[roll],
         'mean-yaw': mean_angles[yaw],
@@ -174,13 +230,13 @@ def _fst(tup):
     return tup[0]
 
 
-def extract_feature_array(beatmaps):
+def extract_feature_array(beatmaps_and_mods):
     """Extract all features from a beatmap.
 
     Parameters
     ----------
-    beatmap : Beatmap
-        The beatmap to extract features from.
+    beatmaps_and_mods : list[Beatmap, dict[str, bool]]
+        The beatmaps and mod information to extract features from.
 
     Returns
     -------
@@ -191,9 +247,12 @@ def extract_feature_array(beatmaps):
         [
             [
                 snd for
-                fst, snd in sorted(extract_features(beatmap).items(), key=_fst)
+                fst, snd in sorted(
+                    extract_features(beatmap, **mods).items(),
+                    key=_fst,
+                )
             ]
-            for beatmap in beatmaps
+            for beatmap, mods in beatmaps_and_mods
             if len(beatmap.hit_objects) >= 2
         ]
     )
@@ -224,10 +283,10 @@ def extract_from_replay_directory(path, library, age=None):
     The same beatmap may appear more than once if there are multiple replays
     for this beatmap.
     """
-    beatmaps = []
+    beatmaps_and_mods = []
     accuracies = []
 
-    beatmap_append = beatmaps.append
+    beatmap_and_mod_append = beatmaps_and_mods.append
     accuracy_append = accuracies.append
 
     for entry in os.scandir(path):
@@ -238,7 +297,24 @@ def extract_from_replay_directory(path, library, age=None):
         if age is not None and datetime.utcnow() - replay.timestamp > age:
             continue
 
-        beatmap_append(replay.beatmap)
+        if (replay.autoplay or
+                replay.spun_out or
+                replay.auto_pilot or
+                replay.cinema or
+                replay.relax):
+            # ignore plays with mods that are not representative of user skill
+            continue
+
+        beatmap_and_mod_append((
+            replay.beatmap, {
+                'easy': replay.easy,
+                'hidden': replay.hidden,
+                'hard_rock': replay.hard_rock,
+                'double_time': replay.double_time,
+                'half_time': replay.half_time,
+                'flashlight': replay.flashlight,
+            },
+        ))
         accuracy_append(replay.accuracy)
 
-    return extract_feature_array(beatmaps), np.array(accuracies)
+    return extract_feature_array(beatmaps_and_mods), np.array(accuracies)

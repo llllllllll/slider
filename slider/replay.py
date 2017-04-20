@@ -180,8 +180,6 @@ class Replay:
         The largest combo achieved in this replay.
     full_combo : bool
         Did the player earn a max combo in this replay?
-    mod_mask : int
-        The bitmask of mods used.
     no_fail : bool
         Was the no_fail mod used?
     easy : bool

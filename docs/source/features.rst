@@ -1,7 +1,7 @@
 Model Features
 ==============
 
-The slider model currently reduces :class:`~slider.beatmap.Beatmap`\s into 20
+The slider model currently reduces :class:`~slider.beatmap.Beatmap`\s into 27
 features.
 
 These features can extracted from a :class:`~slider.beatmap.Beatmap` with
@@ -23,6 +23,33 @@ Rationale
 
 These metrics affect how hard it is to make jumps, read the map, or accurately
 hit elements.
+
+Mods
+----
+
+The model accounts for some mods that affect the difficulty of a song. The mods
+included are:
+
+- easy (``EZ``)
+- hidden (``HD``)
+- hard rock (``HR``)
+- double time (``DT``) (or nightcore ``NC``)
+- half time (``HT``)
+- flashlight (``FL``)
+
+.. note::
+
+   If a mod is enabled that affects the basic attributes, those will be adjusted
+   to account for this information. If a mod is enabled that affects the BPM,
+   the ``bpm_min`` and ``bpm_max`` will be adjusted.
+
+   The ``OD`` and ``AR`` are adjusted when using ``DT`` or ``HT`` to help the
+   model make better predictions.
+
+Rationale
+~~~~~~~~~
+
+These mods change the ability to read the map or play accurately.
 
 BPM
 ---

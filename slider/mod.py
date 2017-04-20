@@ -36,3 +36,58 @@ class Mod(BitEnum):
     key3 = 1 << 27
     key2 = 1 << 28
     scoreV2 = 1 << 29
+
+
+def ar_to_ms(ar):
+    """Convert an approach rate value to milliseconds of time that an element
+    appears on the screen before being hit.
+
+    Parameters
+    ----------
+    ar : float
+        The approach rate.
+
+    Returns
+    -------
+    milliseconds : float
+        The number of milliseconds that an element appears on the screen before
+         being hit at the given approach rate.
+
+    See Also
+    --------
+    :func:`slider.mod.ms_to_ar`
+    """
+    # NOTE: The formula for ar_to_ms is different for ar >= 5 and ar < 5
+    # see: https://osu.ppy.sh/wiki/Song_Setup#Approach_Rate
+    if ar >= 5:
+        return 1950 - (ar * 150)
+    else:
+        return 1800 - (ar * 120)
+
+
+def ms_to_ar(ms):
+    """Convert milliseconds to hit an element into an approach rate value.
+
+    Parameters
+    ----------
+    ms : float
+        The number of milliseconds that an element appears on the screen before
+        being hit.
+
+    Returns
+    -------
+    ar : float
+        The approach rate value that produces the given millisecond value.
+
+    See Also
+    --------
+    :func:`slider.mod.ar_to_ms`
+    """
+    # NOTE: The formula for ar_to_ms is different for ar >= 5 and ar < 5
+    # see: https://osu.ppy.sh/wiki/Song_Setup#Approach_Rate
+    ar = (ms - 1950) / -150
+    if ar < 5:
+        # the ar lines cross at 5 but we use a different formula for the slower
+        # approach rates.
+        return (ms - 1800) / -120
+    return ar
