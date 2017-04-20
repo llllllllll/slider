@@ -1,0 +1,356 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Model Features &mdash; slider 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="index.html"/>
+        <link rel="next" title="Appendix" href="appendix.html"/>
+        <link rel="prev" title="Slider" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> slider
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model Features</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-attributes">Basic Attributes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rationale">Rationale</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#mods">Mods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Rationale</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#bpm">BPM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Rationale</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#hit-objects">Hit Objects</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Rationale</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#slider-speed">Slider Speed</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Rationale</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#note-angles">Note Angles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Rationale</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">slider</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Model Features</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/features.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="model-features">
+<h1>Model Features<a class="headerlink" href="#model-features" title="Permalink to this headline">¶</a></h1>
+<p>The slider model currently reduces <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a>s into 27
+features.</p>
+<p>These features can extracted from a <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a> with
+<a class="reference internal" href="appendix.html#slider.model.features.extract_features" title="slider.model.features.extract_features"><code class="xref py py-func docutils literal"><span class="pre">extract_features()</span></code></a>.</p>
+<div class="section" id="basic-attributes">
+<h2>Basic Attributes<a class="headerlink" href="#basic-attributes" title="Permalink to this headline">¶</a></h2>
+<p>The first set of features are the basic attributes of the map&#8217;s basic attributes
+that you would see in the osu! client. These include:</p>
+<ul class="simple">
+<li>hp drain rate (<code class="docutils literal"><span class="pre">HP</span></code>)</li>
+<li>circle size (<code class="docutils literal"><span class="pre">CS</span></code>)</li>
+<li>overall difficulty (<code class="docutils literal"><span class="pre">OD</span></code>)</li>
+<li>approach rate (<code class="docutils literal"><span class="pre">AR</span></code>)</li>
+</ul>
+<div class="section" id="rationale">
+<h3>Rationale<a class="headerlink" href="#rationale" title="Permalink to this headline">¶</a></h3>
+<p>These metrics affect how hard it is to make jumps, read the map, or accurately
+hit elements.</p>
+</div>
+</div>
+<div class="section" id="mods">
+<h2>Mods<a class="headerlink" href="#mods" title="Permalink to this headline">¶</a></h2>
+<p>The model accounts for some mods that affect the difficulty of a song. The mods
+included are:</p>
+<ul class="simple">
+<li>easy (<code class="docutils literal"><span class="pre">EZ</span></code>)</li>
+<li>hidden (<code class="docutils literal"><span class="pre">HD</span></code>)</li>
+<li>hard rock (<code class="docutils literal"><span class="pre">HR</span></code>)</li>
+<li>double time (<code class="docutils literal"><span class="pre">DT</span></code>) (or nightcore <code class="docutils literal"><span class="pre">NC</span></code>)</li>
+<li>half time (<code class="docutils literal"><span class="pre">HT</span></code>)</li>
+<li>flashlight (<code class="docutils literal"><span class="pre">FL</span></code>)</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>If a mod is enabled that affects the basic attributes, those will be adjusted
+to account for this information. If a mod is enabled that affects the BPM,
+the <code class="docutils literal"><span class="pre">bpm_min</span></code> and <code class="docutils literal"><span class="pre">bpm_max</span></code> will be adjusted.</p>
+<p class="last">The <code class="docutils literal"><span class="pre">OD</span></code> and <code class="docutils literal"><span class="pre">AR</span></code> are adjusted when using <code class="docutils literal"><span class="pre">DT</span></code> or <code class="docutils literal"><span class="pre">HT</span></code> to help the
+model make better predictions.</p>
+</div>
+<div class="section" id="id1">
+<h3>Rationale<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>These mods change the ability to read the map or play accurately.</p>
+</div>
+</div>
+<div class="section" id="bpm">
+<h2>BPM<a class="headerlink" href="#bpm" title="Permalink to this headline">¶</a></h2>
+<p>The model accounts for the bpm with two values: <code class="docutils literal"><span class="pre">bpm-min</span></code> and
+<code class="docutils literal"><span class="pre">bpm-max</span></code>. Songs with tempo changes will have different values here.</p>
+<div class="section" id="id2">
+<h3>Rationale<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>The BPM affects how hard it is to accurately hit streams or single tap.</p>
+</div>
+</div>
+<div class="section" id="hit-objects">
+<h2>Hit Objects<a class="headerlink" href="#hit-objects" title="Permalink to this headline">¶</a></h2>
+<p>The model has <code class="docutils literal"><span class="pre">circle-count</span></code>, <code class="docutils literal"><span class="pre">slider-count</span></code>, and <code class="docutils literal"><span class="pre">spinner-count</span></code> to count
+the given element kinds.</p>
+<div class="section" id="id3">
+<h3>Rationale<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>The number of each kind of hit element in combination with other metrics can
+give a sense of the &#8220;kind&#8221; of map. For example, a high bpm song with many
+circles and few sliders is probably very stream heavy.</p>
+</div>
+</div>
+<div class="section" id="slider-speed">
+<h2>Slider Speed<a class="headerlink" href="#slider-speed" title="Permalink to this headline">¶</a></h2>
+<p>The model holds represents the slider speed with <code class="docutils literal"><span class="pre">slider-multiplier</span></code> and
+<code class="docutils literal"><span class="pre">slider-tick-rate</span></code>.</p>
+<div class="section" id="id4">
+<h3>Rationale<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>Fast sliders make it hard to hit the end without releasing early. This affects
+accuracy and max combo.</p>
+</div>
+</div>
+<div class="section" id="note-angles">
+<h2>Note Angles<a class="headerlink" href="#note-angles" title="Permalink to this headline">¶</a></h2>
+<p>Imagine an osu! standard beatmap in 3d space as <code class="docutils literal"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">time)</span></code>, where the hit
+elements form a path through this space. We can look at the angle from hit
+object to hit object about each axis to get a sense of how &#8220;far&#8221; a jump is.</p>
+<p>The model looks at the median, mean, and max angle magnitude about each axis.</p>
+<div class="section" id="id5">
+<h3>Rationale<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>More extreme jumps are harder to hit and make maps harder to read. Maps with
+small angles are likely stream maps where the element to element distance is
+very small.</p>
+<p>We look at median to get a sense of how much of a jump is any given note.</p>
+<p>The max is to look at the most extreme jump in the map. Many maps have one or
+two very hard jumps that cause misses. The hardest jump should account for that.</p>
+<p>The mean shows how hard the jumps are across all of the notes. Comparing this to
+median can give us a sense of how much more extreme the outliers are.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="appendix.html" class="btn btn-neutral float-right" title="Appendix" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Slider" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Joe Jevnik.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

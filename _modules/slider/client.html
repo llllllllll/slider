@@ -1,0 +1,529 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>slider.client &mdash; slider 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> slider
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html">Model Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">slider</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>slider.client</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for slider.client</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">IntEnum</span><span class="p">,</span> <span class="n">unique</span>
+
+<span class="kn">import</span> <span class="nn">pytz</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="kn">from</span> <span class="nn">.beatmap</span> <span class="k">import</span> <span class="n">Beatmap</span>
+
+
+<span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">ApprovedState</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The state of a beatmap&#39;s approval.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">loved</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">qualified</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">approved</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">ranked</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">pending</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">WIP</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">graveyard</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span>
+
+
+<span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">Genre</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The genres that appear on the osu! website.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">any</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">unspecified</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">video_game</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">anime</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">rock</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">pop</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">other</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">novelty</span> <span class="o">=</span> <span class="mi">7</span>
+    <span class="c1"># note: there is no 8</span>
+    <span class="n">hip_hop</span> <span class="o">=</span> <span class="mi">9</span>
+    <span class="n">electronic</span> <span class="o">=</span> <span class="mi">10</span>
+
+
+<span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">Language</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The languages that appear on the osu! website.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">any</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">other</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">english</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">japanese</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">chinese</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">instrumental</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">korean</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">french</span> <span class="o">=</span> <span class="mi">7</span>
+    <span class="n">german</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">swedish</span> <span class="o">=</span> <span class="mi">9</span>
+    <span class="n">spanish</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">italian</span> <span class="o">=</span> <span class="mi">11</span>
+
+
+<span class="k">class</span> <span class="nc">BeatmapResult</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A beatmap as represented by the osu! API.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    beatmap : Beatmap</span>
+<span class="sd">        The beatmap object.</span>
+<span class="sd">    approved : ApprovedState</span>
+<span class="sd">        The state of the beatmap&#39;s approved.</span>
+<span class="sd">    approved_date : datetime.datetime</span>
+<span class="sd">        The date when this map was approved.</span>
+<span class="sd">    last_update : datetime.datetime</span>
+<span class="sd">        The last date when this map was updated.</span>
+<span class="sd">    star_rating : float</span>
+<span class="sd">        The star rating for the song.</span>
+<span class="sd">    hit_length : datetime.timedelta</span>
+<span class="sd">        The amount of time from the first element to the last, not counting</span>
+<span class="sd">        breaks.</span>
+<span class="sd">    genre : Genre</span>
+<span class="sd">        The genre that appears on the osu! website.</span>
+<span class="sd">    language : Language</span>
+<span class="sd">        The language that appears on the osu! website.</span>
+<span class="sd">    total_length : datetime.timedelta</span>
+<span class="sd">        The amount of time from the first element to the last, counting breaks.</span>
+<span class="sd">    beatmap_md5 : str</span>
+<span class="sd">        The md5 hash of the beatmap.</span>
+<span class="sd">    favourite_count : int</span>
+<span class="sd">        The number of times the beatmap has been favorited.</span>
+<span class="sd">    play_count : int</span>
+<span class="sd">        The number of times this beatmap has been played.</span>
+<span class="sd">    pass_count : int</span>
+<span class="sd">        The number of times this beatmap has been passed.</span>
+<span class="sd">    max_combo : int</span>
+<span class="sd">        The maximum combo that could be achieved on this beatmap.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">beatmap</span><span class="p">,</span>
+                 <span class="n">approved</span><span class="p">,</span>
+                 <span class="n">approved_date</span><span class="p">,</span>
+                 <span class="n">last_update</span><span class="p">,</span>
+                 <span class="n">star_rating</span><span class="p">,</span>
+                 <span class="n">hit_length</span><span class="p">,</span>
+                 <span class="n">genre</span><span class="p">,</span>
+                 <span class="n">language</span><span class="p">,</span>
+                 <span class="n">total_length</span><span class="p">,</span>
+                 <span class="n">beatmap_md5</span><span class="p">,</span>
+                 <span class="n">favourite_count</span><span class="p">,</span>
+                 <span class="n">play_count</span><span class="p">,</span>
+                 <span class="n">pass_count</span><span class="p">,</span>
+                 <span class="n">max_combo</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beatmap</span> <span class="o">=</span> <span class="n">beatmap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">approved</span> <span class="o">=</span> <span class="n">approved</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">approved_date</span> <span class="o">=</span> <span class="n">approved_date</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_update</span> <span class="o">=</span> <span class="n">last_update</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">star_rating</span> <span class="o">=</span> <span class="n">star_rating</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hit_length</span> <span class="o">=</span> <span class="n">hit_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">genre</span> <span class="o">=</span> <span class="n">genre</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">language</span> <span class="o">=</span> <span class="n">language</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_length</span> <span class="o">=</span> <span class="n">total_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beatmap_md5</span> <span class="o">=</span> <span class="n">beatmap_md5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">favourite_count</span> <span class="o">=</span> <span class="n">favourite_count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">play_count</span> <span class="o">=</span> <span class="n">play_count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pass_count</span> <span class="o">=</span> <span class="n">pass_count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_combo</span> <span class="o">=</span> <span class="n">max_combo</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;&lt;{type(self).__qualname__}: </span><span class="si">{self.beatmap.title}</span><span class="s1">&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; [</span><span class="si">{self.beatmap.version}</span><span class="s1">]&gt;&#39;</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="Client"><a class="viewcode-back" href="../../appendix.html#slider.client.Client">[docs]</a><span class="k">class</span> <span class="nc">Client</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A client for interacting with the osu! rest API.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    api_key : str</span>
+<span class="sd">        The api key to use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">api_url</span><span class="o">=</span><span class="s1">&#39;https://osu.ppy.sh/&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span> <span class="o">=</span> <span class="n">api_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="n">api_url</span>
+
+    <span class="c1"># differences in the osu! api names and slider&#39;s names</span>
+    <span class="n">_beatmap_aliases</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;beatmapset_id&#39;</span><span class="p">:</span> <span class="s1">&#39;beatmap_set_id&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;difficultyrating&#39;</span><span class="p">:</span> <span class="s1">&#39;star_rating&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;diff_size&#39;</span><span class="p">:</span> <span class="s1">&#39;circle_size&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;diff_overall&#39;</span><span class="p">:</span> <span class="s1">&#39;overall_difficulty&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;diff_approach&#39;</span><span class="p">:</span> <span class="s1">&#39;approach_rate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;diff_drain&#39;</span><span class="p">:</span> <span class="s1">&#39;health_drain&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;genre_id&#39;</span><span class="p">:</span> <span class="s1">&#39;genre&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;language_id&#39;</span><span class="p">:</span> <span class="s1">&#39;language&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_md5&#39;</span><span class="p">:</span> <span class="s1">&#39;beatmap_md5&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;playcount&#39;</span><span class="p">:</span> <span class="s1">&#39;play_count&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;passcount&#39;</span><span class="p">:</span> <span class="s1">&#39;pass_count&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_parse_date</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">_tz</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">FixedOffset</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)):</span>
+        <span class="c1"># _tz is UTC+8</span>
+        <span class="k">return</span> <span class="n">_tz</span><span class="o">.</span><span class="n">localize</span><span class="p">(</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%f</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_parse_timedelta</span><span class="p">(</span><span class="n">cs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">cs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_identity</span><span class="p">(</span><span class="n">cs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cs</span>
+
+    <span class="n">_beatmap_conversions</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;approved&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">cs</span><span class="p">:</span> <span class="n">ApprovedState</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cs</span><span class="p">)),</span>
+        <span class="s1">&#39;approved_date&#39;</span><span class="p">:</span> <span class="n">_parse_date</span><span class="p">,</span>
+        <span class="s1">&#39;last_update&#39;</span><span class="p">:</span> <span class="n">_parse_date</span><span class="p">,</span>
+        <span class="s1">&#39;beatmap_id&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;star_rating&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="s1">&#39;hit_length&#39;</span><span class="p">:</span> <span class="n">_parse_timedelta</span><span class="p">,</span>
+        <span class="s1">&#39;genre&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">cs</span><span class="p">:</span> <span class="n">Genre</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cs</span><span class="p">)),</span>
+        <span class="s1">&#39;language&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">cs</span><span class="p">:</span> <span class="n">Language</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cs</span><span class="p">)),</span>
+        <span class="s1">&#39;total_length&#39;</span><span class="p">:</span> <span class="n">_parse_timedelta</span><span class="p">,</span>
+        <span class="s1">&#39;beatmap_md5&#39;</span><span class="p">:</span> <span class="n">_identity</span><span class="p">,</span>
+        <span class="s1">&#39;favourite_count&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;play_count&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;pass_count&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;max_combo&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">del</span> <span class="n">_parse_timedelta</span>
+    <span class="k">del</span> <span class="n">_parse_date</span>
+
+<div class="viewcode-block" id="Client.beatmap"><a class="viewcode-back" href="../../appendix.html#slider.client.Client.beatmap">[docs]</a>    <span class="k">def</span> <span class="nf">beatmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="o">*</span><span class="p">,</span>
+                <span class="n">since</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">beatmap_set_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">beatmap_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">beatmap_md5</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">user_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">user_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">game_mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">include_converted_beatmaps</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">limit</span><span class="o">=</span><span class="mi">500</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retrieve information about a beatmap or set of beatmaps from the</span>
+<span class="sd">        osu! API.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        since : datetime.date, optional</span>
+<span class="sd">            Return all beatmaps ranked since this date.</span>
+<span class="sd">        beatmap_set_id : str, optional</span>
+<span class="sd">            Return all beatmaps in this set.</span>
+<span class="sd">        beatmap_id : str, optional</span>
+<span class="sd">            Return the single beatmap with the given id.</span>
+<span class="sd">        beatmap_md5 : str, optional</span>
+<span class="sd">            Return the single beatmap with the given hash.</span>
+<span class="sd">        user_id : int, optional</span>
+<span class="sd">            Return beatmaps made by the given user.</span>
+<span class="sd">        user_name : str, optional</span>
+<span class="sd">            Return beatmaps made by the given user.</span>
+<span class="sd">        game_mode : GameMode, optional</span>
+<span class="sd">            Return beatmaps for the given game mode.</span>
+<span class="sd">        include_converted_beatmaps : bool, optional</span>
+<span class="sd">            Return converted beatmaps. This only applies for non-osu!standard</span>
+<span class="sd">            game modes.</span>
+<span class="sd">        limit : int, optional</span>
+<span class="sd">            The maximum number of beatmaps to return. This must be less than</span>
+<span class="sd">            500.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">beatmap_identifiers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">{</span>
+                <span class="s1">&#39;beatmap_set_id&#39;</span><span class="p">:</span> <span class="n">beatmap_set_id</span><span class="p">,</span>
+                <span class="s1">&#39;beatmap_id&#39;</span><span class="p">:</span> <span class="n">beatmap_id</span><span class="p">,</span>
+                <span class="s1">&#39;beatmap_md5&#39;</span><span class="p">:</span> <span class="n">beatmap_md5</span><span class="p">,</span>
+            <span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">beatmap_identifiers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;only one of beatmap_set_id, beatmap_id, or beatmap_md5 can&#39;</span>
+                <span class="n">f</span><span class="s1">&#39; be passed, got </span><span class="si">{beatmap_identifiers!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">user_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">user_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;only one of user_name or user_id can be passed&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">limit</span> <span class="o">&gt;</span> <span class="mi">500</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;only 500 beatmaps can be requested at one time&#39;</span><span class="p">)</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span>
+            <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="n">include_converted_beatmaps</span><span class="p">,</span>
+            <span class="s1">&#39;limit&#39;</span><span class="p">:</span> <span class="n">limit</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">since</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;since&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">since</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">beatmap_set_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatmap_set_id</span>
+        <span class="k">elif</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatmap_id</span>
+        <span class="k">elif</span> <span class="n">beatmap_md5</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatmap_md5</span>
+
+        <span class="k">if</span> <span class="n">user_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_id</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;id&#39;</span>
+        <span class="k">elif</span> <span class="n">user_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_name</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;string&#39;</span>
+
+        <span class="k">if</span> <span class="n">game_mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">game_mode</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">+</span> <span class="s1">&#39;/api/get_beatmaps&#39;</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+
+        <span class="n">as_dicts</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_beatmap_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="k">for</span> <span class="n">beatmap</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">converted</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beatmap_conversions</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beatmap_conversions</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">as_dicts</span>
+        <span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">converted</span><span class="p">:</span>
+            <span class="n">beatmap_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">+</span> <span class="n">f</span><span class="s1">&#39;/osu/{d.pop(&quot;beatmap_id&quot;)}&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">beatmap_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">BeatmapResult</span><span class="p">(</span>
+                <span class="n">Beatmap</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">beatmap_response</span><span class="o">.</span><span class="n">text</span><span class="p">),</span>
+                <span class="o">**</span><span class="n">d</span><span class="p">,</span>
+            <span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">beatmap_md5</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">,</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="k">return</span> <span class="n">out</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Joe Jevnik.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

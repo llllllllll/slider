@@ -1,0 +1,1406 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>slider.beatmap &mdash; slider 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> slider
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html">Model Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">slider</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>slider.beatmap</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for slider.beatmap</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">zipfile</span> <span class="k">import</span> <span class="n">ZipFile</span>
+
+<span class="kn">from</span> <span class="nn">.game_mode</span> <span class="k">import</span> <span class="n">GameMode</span>
+<span class="kn">from</span> <span class="nn">.position</span> <span class="k">import</span> <span class="n">Position</span>
+
+
+<span class="k">class</span> <span class="nc">_no_default</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Sentinel type; this should not be instantiated.</span>
+
+<span class="sd">    This type is used so functions can tell the difference between no argument</span>
+<span class="sd">    passed and an explicit value passed even if ``None`` is a valid value.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This is implemented as a type to make functions which use this as a default</span>
+<span class="sd">    argument serializable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;cannot create instances of sentinel type&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_no_default</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cs</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_no_default</span><span class="p">:</span>
+            <span class="k">raise</span>
+        <span class="k">return</span> <span class="n">default</span>
+
+
+
+<span class="k">class</span> <span class="nc">TimingPoint</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A timing point assigns properties to an offset into a beatmap.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    offset : timedelta</span>
+<span class="sd">        When this ``TimingPoint`` takes effect.</span>
+<span class="sd">    ms_per_beat : float</span>
+<span class="sd">        The milliseconds per beat, this is another representation of BPM.</span>
+<span class="sd">    meter : int</span>
+<span class="sd">        The number of beats per measure.</span>
+<span class="sd">    sample_type : int</span>
+<span class="sd">        The type of hit sound samples that are used.</span>
+<span class="sd">    sample_set : int</span>
+<span class="sd">        The set of hit sound samples that are used.</span>
+<span class="sd">    volume : int</span>
+<span class="sd">        The volume of hit sounds in the range [0, 100].</span>
+<span class="sd">    inherited : bool</span>
+<span class="sd">        Is this an inherited timing point? An inherited timing point differs</span>
+<span class="sd">        from a Timing point in that the ms_per_beat value is negative, and</span>
+<span class="sd">        defines a new ms_per_beat based on the last non-inherited timing point.</span>
+<span class="sd">        This can be used to change volume without affecting offset timing, or</span>
+<span class="sd">        changing slider speeds.</span>
+<span class="sd">    kiai_mode : bool</span>
+<span class="sd">        Wheter or not kiai time effects are active.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">offset</span><span class="p">,</span>
+                 <span class="n">ms_per_beat</span><span class="p">,</span>
+                 <span class="n">meter</span><span class="p">,</span>
+                 <span class="n">sample_type</span><span class="p">,</span>
+                 <span class="n">sample_set</span><span class="p">,</span>
+                 <span class="n">volume</span><span class="p">,</span>
+                 <span class="n">inherited</span><span class="p">,</span>
+                 <span class="n">kiai_mode</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">volume</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;volume must be in the range [0, 100], got </span><span class="si">{volume!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms_per_beat</span> <span class="o">=</span> <span class="n">ms_per_beat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meter</span> <span class="o">=</span> <span class="n">meter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_type</span> <span class="o">=</span> <span class="n">sample_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_set</span> <span class="o">=</span> <span class="n">sample_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">=</span> <span class="n">volume</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inherited</span> <span class="o">=</span> <span class="n">inherited</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kiai_mode</span> <span class="o">=</span> <span class="n">kiai_mode</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bpm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The bpm of this timing point.</span>
+
+<span class="sd">        If this is an inherited timing point this value will be None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ms_per_beat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms_per_beat</span>
+        <span class="k">if</span> <span class="n">ms_per_beat</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="mi">60000</span> <span class="o">/</span> <span class="n">ms_per_beat</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;&lt;{type(self).__qualname__}:&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; {self.offset.total_seconds() * 1000:g}ms&gt;&#39;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parse a TimingPoint object from a line in a ``.osu`` file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : str</span>
+<span class="sd">            The line to parse.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        timing_point : TimingPoint</span>
+<span class="sd">            The parsed timing point.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when ``data`` does not describe a ``TimingPoint`` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">offset</span><span class="p">,</span> <span class="n">ms_per_beat</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;failed to parse </span><span class="si">{cls.__qualname__}</span><span class="s1"> from </span><span class="si">{data!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">offset_float</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;offset should be a float, got </span><span class="si">{offset!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">offset_float</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ms_per_beat</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ms_per_beat</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;ms_per_beat should be a float, got </span><span class="si">{ms_per_beat!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">meter</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_get</span><span class="p">(</span><span class="n">rest</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;4&#39;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;meter should be an int, got </span><span class="si">{meter!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sample_type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_get</span><span class="p">(</span><span class="n">rest</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;sample_type should be an int, got </span><span class="si">{sample_type!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sample_set</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_get</span><span class="p">(</span><span class="n">rest</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;sample_set should be an int, got </span><span class="si">{sample_set!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">volume</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_get</span><span class="p">(</span><span class="n">rest</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;volume should be an int, got </span><span class="si">{volume!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">inherited</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">_get</span><span class="p">(</span><span class="n">rest</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">)))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;inherited should be a bool, got </span><span class="si">{inherited!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">kiai_mode</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">_get</span><span class="p">(</span><span class="n">rest</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">)))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;kiai_mode should be a bool, got </span><span class="si">{kiai_mode!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
+            <span class="n">ms_per_beat</span><span class="o">=</span><span class="n">ms_per_beat</span><span class="p">,</span>
+            <span class="n">meter</span><span class="o">=</span><span class="n">meter</span><span class="p">,</span>
+            <span class="n">sample_type</span><span class="o">=</span><span class="n">sample_type</span><span class="p">,</span>
+            <span class="n">sample_set</span><span class="o">=</span><span class="n">sample_set</span><span class="p">,</span>
+            <span class="n">volume</span><span class="o">=</span><span class="n">volume</span><span class="p">,</span>
+            <span class="n">inherited</span><span class="o">=</span><span class="n">inherited</span><span class="p">,</span>
+            <span class="n">kiai_mode</span><span class="o">=</span><span class="n">kiai_mode</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="HitObject"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.HitObject">[docs]</a><span class="k">class</span> <span class="nc">HitObject</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;An abstract hit element for osu! standard.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    position : Position</span>
+<span class="sd">        Where this element appears on the screen.</span>
+<span class="sd">    time : timedelta</span>
+<span class="sd">        When this element appears in the map.</span>
+<span class="sd">    hitsound : int</span>
+<span class="sd">        The hitsound to play when this object is hit.</span>
+<span class="sd">    addition : str, optional</span>
+<span class="sd">        Unknown currently.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">addition</span><span class="o">=</span><span class="s1">&#39;0:0:0:0&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hitsound</span> <span class="o">=</span> <span class="n">hitsound</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addition</span> <span class="o">=</span> <span class="n">addition</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;&lt;{type(self).__qualname__}: </span><span class="si">{self.position}</span><span class="s1">,&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; {self.time.total_seconds() * 1000:g}ms&gt;&#39;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="HitObject.parse"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.HitObject.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parse a HitObject object from a line in a ``.osu`` file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : str</span>
+<span class="sd">            The line to parse.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        hit_objects : HitObject</span>
+<span class="sd">            The parsed hit object. This will be the concrete subclass given</span>
+<span class="sd">            the type.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when ``data`` does not describe a ``HitObject`` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;not enough elements in line, got </span><span class="si">{data!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;x should be an int, got </span><span class="si">{x!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;y should be an int, got </span><span class="si">{y!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;type should be an int, got </span><span class="si">{time!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">type_</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">type_</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;type should be an int, got </span><span class="si">{type_!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">hitsound</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hitsound</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;hitsound should be an int, got </span><span class="si">{hitsound!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">type_</span> <span class="o">&amp;</span> <span class="n">Circle</span><span class="o">.</span><span class="n">type_code</span><span class="p">:</span>
+            <span class="n">type_ob</span> <span class="o">=</span> <span class="n">Circle</span>
+        <span class="k">elif</span> <span class="n">type_</span> <span class="o">&amp;</span> <span class="n">Slider</span><span class="o">.</span><span class="n">type_code</span><span class="p">:</span>
+            <span class="n">type_ob</span> <span class="o">=</span> <span class="n">Slider</span>
+        <span class="k">elif</span> <span class="n">type_</span> <span class="o">&amp;</span> <span class="n">Spinner</span><span class="o">.</span><span class="n">type_code</span><span class="p">:</span>
+            <span class="n">type_ob</span> <span class="o">=</span> <span class="n">Spinner</span>
+        <span class="k">elif</span> <span class="n">type_</span> <span class="o">&amp;</span> <span class="n">HoldNote</span><span class="o">.</span><span class="n">type_code</span><span class="p">:</span>
+            <span class="n">type_ob</span> <span class="o">=</span> <span class="n">HoldNote</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;unknown type code </span><span class="si">{type_!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">type_ob</span><span class="o">.</span><span class="n">_parse</span><span class="p">(</span><span class="n">Position</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">rest</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Circle"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Circle">[docs]</a><span class="k">class</span> <span class="nc">Circle</span><span class="p">(</span><span class="n">HitObject</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A circle hit element.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    position : Position</span>
+<span class="sd">        Where this circle appears on the screen.</span>
+<span class="sd">    time : timedelta</span>
+<span class="sd">        When this circle appears in the map.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_code</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">rest</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;extra data: </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Spinner"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Spinner">[docs]</a><span class="k">class</span> <span class="nc">Spinner</span><span class="p">(</span><span class="n">HitObject</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A spinner hit element</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    position : Position</span>
+<span class="sd">        Where this spinner appears on the screen.</span>
+<span class="sd">    time : int</span>
+<span class="sd">        When this spinner appears in the map.</span>
+<span class="sd">    end_time : int</span>
+<span class="sd">        When this spinner ends in the map.</span>
+<span class="sd">    addition : str</span>
+<span class="sd">        Hitsound additions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_code</span> <span class="o">=</span> <span class="mi">8</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">position</span><span class="p">,</span>
+                 <span class="n">time</span><span class="p">,</span>
+                 <span class="n">hitsound</span><span class="p">,</span>
+                 <span class="n">end_time</span><span class="p">,</span>
+                 <span class="n">addition</span><span class="o">=</span><span class="s1">&#39;0:0:0:0:&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">addition</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span> <span class="o">=</span> <span class="n">end_time</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">rest</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">end_time</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">rest</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;missing end_time&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">end_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">end_time</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;end_time should be an int, got </span><span class="si">{end_time!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;extra data: </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Slider"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Slider">[docs]</a><span class="k">class</span> <span class="nc">Slider</span><span class="p">(</span><span class="n">HitObject</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A slider hit element.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    position : Position</span>
+<span class="sd">        Where this slider appears on the screen.</span>
+<span class="sd">    time : int</span>
+<span class="sd">        When this slider appears in the map.</span>
+<span class="sd">    hitsound : int</span>
+<span class="sd">        The sound played on the tickss of the slider.</span>
+<span class="sd">    slider_type : {&#39;L&#39;, &#39;B&#39;, &#39;P&#39;, &#39;C&#39;}</span>
+<span class="sd">        The type of slider. Linear, Bezier, Perfect, and Catmull.</span>
+<span class="sd">    points : iterable[Position]</span>
+<span class="sd">        The points that this slider travels through.</span>
+<span class="sd">    length : int</span>
+<span class="sd">        The length of this slider in osu! pixels.</span>
+<span class="sd">    edge_sounds : list[int]</span>
+<span class="sd">        A list of hitsounds for each edge.</span>
+<span class="sd">    edge_additions : list[str]</span>
+<span class="sd">        A list of additions for each edge.</span>
+<span class="sd">    addition : str</span>
+<span class="sd">        Hitsound additions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_code</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">position</span><span class="p">,</span>
+                 <span class="n">time</span><span class="p">,</span>
+                 <span class="n">hitsound</span><span class="p">,</span>
+                 <span class="n">slider_type</span><span class="p">,</span>
+                 <span class="n">points</span><span class="p">,</span>
+                 <span class="n">repeat</span><span class="p">,</span>
+                 <span class="n">length</span><span class="p">,</span>
+                 <span class="n">edge_sounds</span><span class="p">,</span>
+                 <span class="n">edge_additions</span><span class="p">,</span>
+                 <span class="n">addition</span><span class="o">=</span><span class="s1">&#39;0:0:0:0&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">slider_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;slider_type should be in {&#39;L&#39;, &#39;B&#39;, &#39;P&#39;, &#39;C&#39;},&quot;</span>
+                <span class="n">f</span><span class="s2">&quot; got </span><span class="si">{slider_type!r}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">addition</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slider_type</span> <span class="o">=</span> <span class="n">slider_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span> <span class="o">=</span> <span class="n">repeat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_sounds</span> <span class="o">=</span> <span class="n">edge_sounds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_additions</span> <span class="o">=</span> <span class="n">edge_additions</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">rest</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">group_1</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">rest</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;missing required slider data in </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">slider_type</span><span class="p">,</span> <span class="o">*</span><span class="n">raw_points</span> <span class="o">=</span> <span class="n">group_1</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;expected slider type and points in the first&#39;</span>
+                <span class="n">f</span><span class="s1">&#39; element of rest, </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">raw_points</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="n">f</span><span class="s1">&#39;expected points in the form x:y, got </span><span class="si">{point!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;x should be an int, got </span><span class="si">{x!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;y should be an int, got </span><span class="si">{y!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Position</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">repeat</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">rest</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;missing repeat in </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">repeat</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">repeat</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;repeat should be an int, got </span><span class="si">{repeat!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">pixel_length</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">rest</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;missing pixel_length in </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">pixel_length</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">pixel_length</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;pixel_length should be a float, got </span><span class="si">{pixel_length!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">raw_edge_sounds_grouped</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">rest</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">raw_edge_sounds_grouped</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="n">raw_edge_sounds</span> <span class="o">=</span> <span class="n">raw_edge_sounds_grouped</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
+        <span class="n">edge_sounds</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">raw_edge_sounds</span> <span class="o">!=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">edge_sound</span> <span class="ow">in</span> <span class="n">raw_edge_sounds</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">edge_sound</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">edge_sound</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="n">f</span><span class="s1">&#39;edge_sound should be an int, got </span><span class="si">{edge_sound!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="n">edge_sounds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">edge_sound</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">edge_additions_grouped</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">rest</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">edge_additions_grouped</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="n">edge_additions_grouped</span><span class="p">:</span>
+            <span class="n">edge_additions</span> <span class="o">=</span> <span class="n">edge_additions_grouped</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">edge_additions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;extra data: </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">position</span><span class="p">,</span>
+            <span class="n">time</span><span class="p">,</span>
+            <span class="n">hitsound</span><span class="p">,</span>
+            <span class="n">slider_type</span><span class="p">,</span>
+            <span class="n">points</span><span class="p">,</span>
+            <span class="n">repeat</span><span class="p">,</span>
+            <span class="n">pixel_length</span><span class="p">,</span>
+            <span class="n">edge_sounds</span><span class="p">,</span>
+            <span class="n">edge_additions</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">rest</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HoldNote"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.HoldNote">[docs]</a><span class="k">class</span> <span class="nc">HoldNote</span><span class="p">(</span><span class="n">HitObject</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A HoldNote hit element.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    position : Position</span>
+<span class="sd">        Where this HoldNote appears on the screen.</span>
+<span class="sd">    time : timedelta</span>
+<span class="sd">        When this HoldNote appears in the map.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    A ``HoldNote`` can only appear in an osu!mania map.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_code</span> <span class="o">=</span> <span class="mi">128</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">rest</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;extra data: </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_no_default</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lookup a field from a given section.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    groups : dict[str, dict[str, str]]</span>
+<span class="sd">        The grouped osu! file.</span>
+<span class="sd">    section : str</span>
+<span class="sd">        The section to read from.</span>
+<span class="sd">    field : str</span>
+<span class="sd">        The field to read.</span>
+<span class="sd">    default : int, optional</span>
+<span class="sd">        A value to return if ``field`` is not in ``groups[section]``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cs : str</span>
+<span class="sd">        ``groups[section][field]`` or default if ``field` is not in</span>
+<span class="sd">         ``groups[section]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="n">groups</span><span class="p">[</span><span class="n">section</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_no_default</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;missing section </span><span class="si">{section!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">default</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mapping</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_no_default</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;missing field </span><span class="si">{field!r}</span><span class="s1"> in section </span><span class="si">{section!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">default</span>
+
+
+<span class="k">def</span> <span class="nf">_get_as_int</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_no_default</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lookup a field from a given section and parse it as an integer.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    groups : dict[str, dict[str, str]]</span>
+<span class="sd">        The grouped osu! file.</span>
+<span class="sd">    section : str</span>
+<span class="sd">        The section to read from.</span>
+<span class="sd">    field : str</span>
+<span class="sd">        The field to read and parse.</span>
+<span class="sd">    default : int, optional</span>
+<span class="sd">        A value to return if ``field`` is not in ``groups[section]``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    integer : int</span>
+<span class="sd">        ``int(groups[section][field])`` or default if ``field` is not in</span>
+<span class="sd">        ``groups[section]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="n">default</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;field </span><span class="si">{field!r}</span><span class="s1"> in section </span><span class="si">{section!r}</span><span class="s1"> should be an int,&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; got </span><span class="si">{v!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get_as_int_list</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_no_default</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lookup a field from a given section and parse it as an integer list.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    groups : dict[str, dict[str, str]]</span>
+<span class="sd">        The grouped osu! file.</span>
+<span class="sd">    section : str</span>
+<span class="sd">        The section to read from.</span>
+<span class="sd">    field : str</span>
+<span class="sd">        The field to read and parse.</span>
+<span class="sd">    default : int, optional</span>
+<span class="sd">        A value to return if ``field`` is not in ``groups[section]``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ints : list[int]</span>
+<span class="sd">        ``int(groups[section][field])`` or default if ``field` is not in</span>
+<span class="sd">        ``groups[section]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="n">default</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;field </span><span class="si">{field!r}</span><span class="s1"> in section </span><span class="si">{section!r}</span><span class="s1"> should be an int list,&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; got </span><span class="si">{v!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get_as_float</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_no_default</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lookup a field from a given section and parse it as an float</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    groups : dict[str, dict[str, str]]</span>
+<span class="sd">        The grouped osu! file.</span>
+<span class="sd">    section : str</span>
+<span class="sd">        The section to read from.</span>
+<span class="sd">    field : str</span>
+<span class="sd">        The field to read and parse.</span>
+<span class="sd">    default : float, optional</span>
+<span class="sd">        A value to return if ``field`` is not in ``groups[section]``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    f : float</span>
+<span class="sd">        ``float(groups[section][field])`` or default if ``field` is not in</span>
+<span class="sd">        ``groups[section]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="n">default</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;field </span><span class="si">{field!r}</span><span class="s1"> in section </span><span class="si">{section!r}</span><span class="s1"> should be a float,&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; got </span><span class="si">{v!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get_as_bool</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_no_default</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lookup a field from a given section and parse it as an float</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    groups : dict[str, dict[str, str]]</span>
+<span class="sd">        The grouped osu! file.</span>
+<span class="sd">    section : str</span>
+<span class="sd">        The section to read from.</span>
+<span class="sd">    field : str</span>
+<span class="sd">        The field to read and parse.</span>
+<span class="sd">    default : float, optional</span>
+<span class="sd">        A value to return if ``field`` is not in ``groups[section]``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    f : float</span>
+<span class="sd">        ``float(groups[section][field])`` or default if ``field` is not in</span>
+<span class="sd">        ``groups[section]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="n">default</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># cast to int then to bool because &#39;0&#39; is still True; bools are written</span>
+        <span class="c1"># to the file as &#39;0&#39; and &#39;1&#39; so this is safe.</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;field </span><span class="si">{field!r}</span><span class="s1"> in section </span><span class="si">{section!r}</span><span class="s1"> should be a bool,&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; got </span><span class="si">{v!r}</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="Beatmap"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap">[docs]</a><span class="k">class</span> <span class="nc">Beatmap</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A beatmap for osu! standard.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    format_version : int</span>
+<span class="sd">        The version of the beatmap file.</span>
+<span class="sd">    audio_filename : str</span>
+<span class="sd">        The location of the audio file relative to the unpacked ``.osz``</span>
+<span class="sd">        directory.</span>
+<span class="sd">    audio_lead_in : timedelta</span>
+<span class="sd">        The amount of time added before the audio file begins playing. Useful</span>
+<span class="sd">        selection menu.</span>
+<span class="sd">    preview_time : timedelta</span>
+<span class="sd">        When the audio file should begin playing when selected in the song for</span>
+<span class="sd">        audio files that begin immediately.</span>
+<span class="sd">    countdown : bool</span>
+<span class="sd">        Should the countdown be displayed before the first hit object.</span>
+<span class="sd">    sample_set : str</span>
+<span class="sd">        The set of hit sounds to use through the beatmap.</span>
+<span class="sd">    stack_leniency : float</span>
+<span class="sd">        How often closely placed hit objects will be placed together.</span>
+<span class="sd">    mode : GameMode</span>
+<span class="sd">        The game mode.</span>
+<span class="sd">    letterbox_in_breaks : bool</span>
+<span class="sd">        Should the letterbox appear during breaks.</span>
+<span class="sd">    widescreen_storyboard : bool</span>
+<span class="sd">        Should the storyboard be widescreen?</span>
+<span class="sd">    bookmarks : list[timedelta]</span>
+<span class="sd">        The time for all of the bookmarks.</span>
+<span class="sd">    distance_spacing : float</span>
+<span class="sd">        A multiplier for the &#39;distance snap&#39; feature.</span>
+<span class="sd">    beat_divisor : int</span>
+<span class="sd">        The beat division for placing objects.</span>
+<span class="sd">    grid_size : int</span>
+<span class="sd">        The size of the grid for the &#39;grid snap&#39; feature.</span>
+<span class="sd">    timeline_zoom : float</span>
+<span class="sd">        The zoom in the editor timeline.</span>
+<span class="sd">    title : str</span>
+<span class="sd">        The title of the song limited to ascii characters.</span>
+<span class="sd">    title_unicode : str</span>
+<span class="sd">        The title of the song with unicode support.</span>
+<span class="sd">    artist : str</span>
+<span class="sd">        The name of the song artist limited to ascii characters.</span>
+<span class="sd">    artist_unicode : str</span>
+<span class="sd">        The name of the song artist with unicode support.</span>
+<span class="sd">    creator : str</span>
+<span class="sd">        The username of the mapper.</span>
+<span class="sd">    version : str</span>
+<span class="sd">        The name of the beatmap&#39;s difficulty.</span>
+<span class="sd">    source : str</span>
+<span class="sd">        The origin of the song.</span>
+<span class="sd">    tags : list[str]</span>
+<span class="sd">        A collection of words describing the song. This is searchable on the</span>
+<span class="sd">        osu! website.</span>
+<span class="sd">    beatmap_id : int or None</span>
+<span class="sd">        The id of this single beatmap. Old beatmaps did not store this in the</span>
+<span class="sd">        file.</span>
+<span class="sd">    beatmap_set_id : int or None</span>
+<span class="sd">        The id of this beatmap set. Old beatmaps did not store this in the</span>
+<span class="sd">        file.</span>
+<span class="sd">    hp_drain_rate : float</span>
+<span class="sd">        The ``HP`` attribute of the beatmap.</span>
+<span class="sd">    circle_size, : float</span>
+<span class="sd">        The ``CS`` attribute of the beatmap.</span>
+<span class="sd">    overall_difficulty : float</span>
+<span class="sd">        The ``OD`` attribute of the beatmap.</span>
+<span class="sd">    approach_rate : float</span>
+<span class="sd">        The ``AR`` attribute of the beatmap.</span>
+<span class="sd">    slider_multiplier : float</span>
+<span class="sd">        The multiplier for slider velocity.</span>
+<span class="sd">    slider_tick_rate : float</span>
+<span class="sd">        How often slider ticks appear.</span>
+<span class="sd">    timing_points : list[TimingPoint]</span>
+<span class="sd">        The timing points the the map.</span>
+<span class="sd">    hit_objects : list[HitObject]</span>
+<span class="sd">        The hit objects in the map.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This is currently missing the storyboard data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_version_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^osu file format v(\d+)$&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">format_version</span><span class="p">,</span>
+                 <span class="n">audio_filename</span><span class="p">,</span>
+                 <span class="n">audio_lead_in</span><span class="p">,</span>
+                 <span class="n">preview_time</span><span class="p">,</span>
+                 <span class="n">countdown</span><span class="p">,</span>
+                 <span class="n">sample_set</span><span class="p">,</span>
+                 <span class="n">stack_leniency</span><span class="p">,</span>
+                 <span class="n">mode</span><span class="p">,</span>
+                 <span class="n">letterbox_in_breaks</span><span class="p">,</span>
+                 <span class="n">widescreen_storyboard</span><span class="p">,</span>
+                 <span class="n">bookmarks</span><span class="p">,</span>
+                 <span class="n">distance_spacing</span><span class="p">,</span>
+                 <span class="n">beat_divisor</span><span class="p">,</span>
+                 <span class="n">grid_size</span><span class="p">,</span>
+                 <span class="n">timeline_zoom</span><span class="p">,</span>
+                 <span class="n">title</span><span class="p">,</span>
+                 <span class="n">title_unicode</span><span class="p">,</span>
+                 <span class="n">artist</span><span class="p">,</span>
+                 <span class="n">artist_unicode</span><span class="p">,</span>
+                 <span class="n">creator</span><span class="p">,</span>
+                 <span class="n">version</span><span class="p">,</span>
+                 <span class="n">source</span><span class="p">,</span>
+                 <span class="n">tags</span><span class="p">,</span>
+                 <span class="n">beatmap_id</span><span class="p">,</span>
+                 <span class="n">beatmap_set_id</span><span class="p">,</span>
+                 <span class="n">hp_drain_rate</span><span class="p">,</span>
+                 <span class="n">circle_size</span><span class="p">,</span>
+                 <span class="n">overall_difficulty</span><span class="p">,</span>
+                 <span class="n">approach_rate</span><span class="p">,</span>
+                 <span class="n">slider_multiplier</span><span class="p">,</span>
+                 <span class="n">slider_tick_rate</span><span class="p">,</span>
+                 <span class="n">timing_points</span><span class="p">,</span>
+                 <span class="n">hit_objects</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format_version</span> <span class="o">=</span> <span class="n">format_version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_filename</span> <span class="o">=</span> <span class="n">audio_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_lead_in</span> <span class="o">=</span> <span class="n">audio_lead_in</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preview_time</span> <span class="o">=</span> <span class="n">preview_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">countdown</span> <span class="o">=</span> <span class="n">countdown</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_set</span> <span class="o">=</span> <span class="n">sample_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stack_leniency</span> <span class="o">=</span> <span class="n">stack_leniency</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">letterbox_in_breaks</span> <span class="o">=</span> <span class="n">letterbox_in_breaks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">widescreen_storyboard</span> <span class="o">=</span> <span class="n">widescreen_storyboard</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bookmarks</span> <span class="o">=</span> <span class="n">bookmarks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distance_spacing</span> <span class="o">=</span> <span class="n">distance_spacing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beat_divisor</span> <span class="o">=</span> <span class="n">beat_divisor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span> <span class="o">=</span> <span class="n">grid_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeline_zoom</span> <span class="o">=</span> <span class="n">timeline_zoom</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title_unicode</span> <span class="o">=</span> <span class="n">title_unicode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">artist</span> <span class="o">=</span> <span class="n">artist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">artist_unicode</span> <span class="o">=</span> <span class="n">artist_unicode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">creator</span> <span class="o">=</span> <span class="n">creator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="n">tags</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beatmap_id</span> <span class="o">=</span> <span class="n">beatmap_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beatmap_set_id</span> <span class="o">=</span> <span class="n">beatmap_set_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hp_drain_rate</span> <span class="o">=</span> <span class="n">hp_drain_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">circle_size</span> <span class="o">=</span> <span class="n">circle_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">overall_difficulty</span> <span class="o">=</span> <span class="n">overall_difficulty</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">approach_rate</span> <span class="o">=</span> <span class="n">approach_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slider_multiplier</span> <span class="o">=</span> <span class="n">slider_multiplier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slider_tick_rate</span> <span class="o">=</span> <span class="n">slider_tick_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="o">=</span> <span class="n">timing_points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span> <span class="o">=</span> <span class="n">hit_objects</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bpm_min</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The minimum bpm in this beatmap.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">)))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bpm_max</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The maximum bpm in this beatmap.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">)))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Alias for ``hp_drain_rate``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hp_drain_rate</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Alias for ``circle_size``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">circle_size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">od</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Alias for ``overall_difficulty``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_difficulty</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Alias for ``approach_rate``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">approach_rate</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hit_objects_no_spinners</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The hit objects with spinners filtered out.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">Spinner</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;&lt;{type(self).__qualname__}: </span><span class="si">{self.title}</span><span class="s1"> [</span><span class="si">{self.version}</span><span class="s1">]&gt;&#39;</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Beatmap.from_osz_path"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.from_osz_path">[docs]</a>    <span class="k">def</span> <span class="nf">from_osz_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read a beatmap collection from an ``.osz`` file on disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or pathlib.Path</span>
+<span class="sd">            The file path to read from.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        beatmaps : dict[str, Beatmap]</span>
+<span class="sd">            A mapping from difficulty name to the parsed Beatmap.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when the file cannot be pased as a ``.osz`` file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">ZipFile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">zf</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_osz_file</span><span class="p">(</span><span class="n">zf</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Beatmap.from_path"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.from_path">[docs]</a>    <span class="k">def</span> <span class="nf">from_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read in a ``Beatmap`` object from a file on disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or pathlib.Path</span>
+<span class="sd">            The path to the file to read from.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The parsed beatmap object.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when the file cannot be parsed as a ``.osu`` file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8-sig&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Beatmap.from_osz_file"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.from_osz_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_osz_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read a beatmap collection from a ``.osz`` file on disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : zipfile.ZipFile</span>
+<span class="sd">            The zipfile to read from.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        beatmaps : dict[str, Beatmap]</span>
+<span class="sd">            A mapping from difficulty name to the parsed Beatmap.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when the file cannot be pased as a ``.osz`` file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">beatmap</span><span class="o">.</span><span class="n">version</span><span class="p">:</span> <span class="n">beatmap</span>
+            <span class="k">for</span> <span class="n">beatmap</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="n">Beatmap</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8-sig&#39;</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span>
+                <span class="n">file</span><span class="o">.</span><span class="n">namelist</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osu&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">}</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Beatmap.from_file"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.from_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read in a ``Beatmap`` object from an open file object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : file-like</span>
+<span class="sd">            The file object to read from.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The parsed beatmap object.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when the file cannot be parsed as a ``.osu`` file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span></div>
+
+    <span class="n">_mapping_groups</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
+        <span class="s1">&#39;General&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Editor&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
+    <span class="p">})</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_find_groups</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Split the input data into the named groups.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        lines : iterator[str]</span>
+<span class="sd">            The raw lines from the file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        groups : dict[str, list[str] or dict[str, str]]</span>
+<span class="sd">            The lines in the section. If the section is a mapping section</span>
+<span class="sd">            the the value will be a dict from key to value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">current_group</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">group_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">def</span> <span class="nf">commit_group</span><span class="p">():</span>
+            <span class="k">nonlocal</span> <span class="n">group_buffer</span>
+
+            <span class="k">if</span> <span class="n">current_group</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># we are not building a group, just return</span>
+                <span class="k">return</span>
+
+            <span class="c1"># we are currently building a group</span>
+            <span class="k">if</span> <span class="n">current_group</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_mapping_groups</span><span class="p">:</span>
+                <span class="c1"># build a dict from the ``Key: Value`` line format.</span>
+                <span class="n">mapping</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">group_buffer</span><span class="p">:</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="c1"># throw away whitespace</span>
+                    <span class="n">mapping</span><span class="p">[</span><span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">group_buffer</span> <span class="o">=</span> <span class="n">mapping</span>
+
+            <span class="n">groups</span><span class="p">[</span><span class="n">current_group</span><span class="p">]</span> <span class="o">=</span> <span class="n">group_buffer</span>
+            <span class="n">group_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span> <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;//&#39;</span><span class="p">):</span>
+                <span class="c1"># filter out empty lines and comments</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;[&#39;</span> <span class="ow">and</span> <span class="n">line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;]&#39;</span><span class="p">:</span>
+                <span class="c1"># we found a section header, commit the current buffered group</span>
+                <span class="c1"># and start the new group</span>
+                <span class="n">commit_group</span><span class="p">()</span>
+                <span class="n">current_group</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">group_buffer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="c1"># commit the final group</span>
+        <span class="n">commit_group</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">groups</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Beatmap.parse"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parse a ``Beatmap`` from text in the ``.osu`` format.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : str</span>
+<span class="sd">            The data to parse.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The parsed beatmap object.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when the data cannot be parsed in the ``.osu`` format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_version_regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;missing osu file format specifier in: </span><span class="si">{line!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">format_version</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_find_groups</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+        <span class="n">artist</span> <span class="o">=</span> <span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;Artist&#39;</span><span class="p">)</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;Title&#39;</span><span class="p">)</span>
+        <span class="n">od</span> <span class="o">=</span> <span class="n">_get_as_float</span><span class="p">(</span>
+            <span class="n">groups</span><span class="p">,</span>
+            <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;OverallDifficulty&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">format_version</span><span class="o">=</span><span class="n">format_version</span><span class="p">,</span>
+            <span class="n">audio_filename</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;General&#39;</span><span class="p">,</span> <span class="s1">&#39;AudioFilename&#39;</span><span class="p">),</span>
+            <span class="n">audio_lead_in</span><span class="o">=</span><span class="n">timedelta</span><span class="p">(</span>
+                <span class="n">milliseconds</span><span class="o">=</span><span class="n">_get_as_int</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;General&#39;</span><span class="p">,</span> <span class="s1">&#39;AudioLeadIn&#39;</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">preview_time</span><span class="o">=</span><span class="n">timedelta</span><span class="p">(</span>
+                <span class="n">milliseconds</span><span class="o">=</span><span class="n">_get_as_int</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;General&#39;</span><span class="p">,</span> <span class="s1">&#39;PreviewTime&#39;</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">countdown</span><span class="o">=</span><span class="n">_get_as_bool</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;General&#39;</span><span class="p">,</span> <span class="s1">&#39;Countdown&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="n">sample_set</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;General&#39;</span><span class="p">,</span> <span class="s1">&#39;SampleSet&#39;</span><span class="p">),</span>
+            <span class="n">stack_leniency</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;General&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;StackLeniency&#39;</span><span class="p">,</span>
+                <span class="mi">0</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">mode</span><span class="o">=</span><span class="n">GameMode</span><span class="p">(</span><span class="n">_get_as_int</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;General&#39;</span><span class="p">,</span> <span class="s1">&#39;Mode&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+            <span class="n">letterbox_in_breaks</span><span class="o">=</span><span class="n">_get_as_bool</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;General&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;LetterboxInBreaks&#39;</span><span class="p">,</span>
+                <span class="kc">False</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">widescreen_storyboard</span><span class="o">=</span><span class="n">_get_as_bool</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;General&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;WidescreenStoryboard&#39;</span><span class="p">,</span>
+                <span class="kc">False</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">bookmarks</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">ms</span><span class="p">)</span> <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">_get_as_int_list</span><span class="p">(</span>
+                    <span class="n">groups</span><span class="p">,</span>
+                    <span class="s1">&#39;Editor&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;bookmarks&#39;</span><span class="p">,</span>
+                    <span class="p">[],</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">distance_spacing</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;Editor&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;DistanceSpacing&#39;</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">beat_divisor</span><span class="o">=</span><span class="n">_get_as_int</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Editor&#39;</span><span class="p">,</span> <span class="s1">&#39;BeatDivisor&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+            <span class="n">grid_size</span><span class="o">=</span><span class="n">_get_as_int</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Editor&#39;</span><span class="p">,</span> <span class="s1">&#39;GridSize&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+            <span class="n">timeline_zoom</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Editor&#39;</span><span class="p">,</span> <span class="s1">&#39;TimelineZoom&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">title_unicode</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;TitleUnicode&#39;</span><span class="p">,</span>
+                <span class="n">title</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">artist</span><span class="o">=</span><span class="n">artist</span><span class="p">,</span>
+            <span class="n">artist_unicode</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ArtistUnicode&#39;</span><span class="p">,</span>
+                <span class="n">artist</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">creator</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;Creator&#39;</span><span class="p">),</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;Version&#39;</span><span class="p">),</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;Source&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="c1"># space delimited list</span>
+            <span class="n">tags</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;Tags&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(),</span>
+            <span class="n">beatmap_id</span><span class="o">=</span><span class="n">_get_as_int</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;BeatmapID&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">beatmap_set_id</span><span class="o">=</span><span class="n">_get_as_int</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;Metadata&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;BeatmapSetID&#39;</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">hp_drain_rate</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span> <span class="s1">&#39;HPDrainRate&#39;</span><span class="p">),</span>
+            <span class="n">circle_size</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span> <span class="s1">&#39;CircleSize&#39;</span><span class="p">),</span>
+            <span class="n">overall_difficulty</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;OverallDifficulty&#39;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">approach_rate</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ApproachRate&#39;</span><span class="p">,</span>
+                <span class="c1"># old maps didn&#39;t have an AR so the OD is used as a default</span>
+                <span class="n">default</span><span class="o">=</span><span class="n">od</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">slider_multiplier</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;SliderMultiplier&#39;</span><span class="p">,</span>
+                <span class="n">default</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span>  <span class="c1"># taken from wiki</span>
+            <span class="p">),</span>
+            <span class="n">slider_tick_rate</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span>
+                <span class="n">groups</span><span class="p">,</span>
+                <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;SliderTickRate&#39;</span><span class="p">,</span>
+                <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># taken from wiki</span>
+            <span class="p">),</span>
+            <span class="n">timing_points</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">TimingPoint</span><span class="o">.</span><span class="n">parse</span><span class="p">,</span> <span class="n">groups</span><span class="p">[</span><span class="s1">&#39;TimingPoints&#39;</span><span class="p">])),</span>
+            <span class="n">hit_objects</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">HitObject</span><span class="o">.</span><span class="n">parse</span><span class="p">,</span> <span class="n">groups</span><span class="p">[</span><span class="s1">&#39;HitObjects&#39;</span><span class="p">])),</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Joe Jevnik.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

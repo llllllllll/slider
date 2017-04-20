@@ -1,0 +1,399 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>slider.library &mdash; slider 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> slider
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html">Model Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">slider</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>slider.library</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for slider.library</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">md5</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">requests</span> <span class="k">import</span> <span class="n">HTTPError</span>
+
+<span class="kn">from</span> <span class="nn">.beatmap</span> <span class="k">import</span> <span class="n">Beatmap</span>
+
+
+<div class="viewcode-block" id="Library"><a class="viewcode-back" href="../../appendix.html#slider.library.Library">[docs]</a><span class="k">class</span> <span class="nc">Library</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A collection of beatmaps.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="Library.lookup_by_id"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.lookup_by_id">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retrieve a beatmap by its beatmap id.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beatmap_id : int</span>
+<span class="sd">            The id of the beatmap to lookup.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The beatmap with the given id.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            Raised when the given id is not in the library.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;lookup_by_id&#39;</span><span class="p">)</span></div>
+
+    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="Library.lookup_by_md5"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.lookup_by_md5">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_by_md5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_md5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retrieve a beatmap by its md5 hash.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beatmap_md5 : bytes</span>
+<span class="sd">            The md5 hash of the beatmap to lookup.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The beatmap with the given md5 hash.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            Raised when the given md5 hash is not in the library.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;lookup_by_md5&#39;</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="c1"># copy docstring down for abstract methods</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">method</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="vm">__class__</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># noqa</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="s1">&#39;__isabstract__&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">implementation</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">implementation</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">implementation</span><span class="o">.</span><span class="vm">__doc__</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">implementation</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="vm">__doc__</span></div>
+
+
+<div class="viewcode-block" id="LocalLibrary"><a class="viewcode-back" href="../../appendix.html#slider.library.LocalLibrary">[docs]</a><span class="k">class</span> <span class="nc">LocalLibrary</span><span class="p">(</span><span class="n">Library</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A library backed by a local directory.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str or pathlib.Path</span>
+<span class="sd">        The path to a directory of ``.osu`` files.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_by_id</span> <span class="o">=</span> <span class="n">by_id</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_by_md5</span> <span class="o">=</span> <span class="n">by_md5</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osu&#39;</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">beatmap</span> <span class="o">=</span> <span class="n">Beatmap</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8-sig&#39;</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;failed to parse </span><span class="si">{entry.path}</span><span class="s1">&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+            <span class="n">by_md5</span><span class="p">[</span><span class="n">md5</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()]</span> <span class="o">=</span> <span class="n">beatmap</span>
+
+            <span class="n">beatmap_id</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">beatmap_id</span>
+            <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># very old beatmaps didn&#39;t store the id in the ``.osu`` file</span>
+                <span class="n">by_id</span><span class="p">[</span><span class="n">beatmap_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatmap</span>
+
+    <span class="k">def</span> <span class="nf">lookup_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_by_id</span><span class="p">[</span><span class="n">beatmap_id</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">lookup_by_md5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_md5</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_by_md5</span><span class="p">[</span><span class="n">beatmap_md5</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">beatmaps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_by_md5</span><span class="o">.</span><span class="n">values</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ClientLibrary"><a class="viewcode-back" href="../../appendix.html#slider.library.ClientLibrary">[docs]</a><span class="k">class</span> <span class="nc">ClientLibrary</span><span class="p">(</span><span class="n">Library</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A library backed by a :class:`~slider.client.Client`. This can fetch</span>
+<span class="sd">    any beatmap that exists on the osu! servers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    client : Client</span>
+<span class="sd">        The osu! client to use when downloading beatmaps.</span>
+<span class="sd">    cache : int, optional</span>
+<span class="sd">        The amount of beatmaps to cache in memory. This uses</span>
+<span class="sd">        :func:`functools.lru_cache`, and if set to None will cache everything.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="mi">2048</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_download_beatmap</span> <span class="o">=</span> <span class="n">lru_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">_raw_download_beatmap</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_raw_download_beatmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">beatmap_md5</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Function for downloading beatmaps from the osu! website.</span>
+
+<span class="sd">        This handles both cases to only require a single lru cache.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">beatmap</span><span class="p">(</span><span class="n">beatmap_id</span><span class="o">=</span><span class="n">beatmap_id</span><span class="p">)</span><span class="o">.</span><span class="n">beatmap</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">beatmap</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="o">=</span><span class="n">beatmap_md5</span><span class="p">)</span><span class="o">.</span><span class="n">beatmap</span>
+        <span class="k">except</span> <span class="n">HTTPError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="n">beatmap_id</span> <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">beatmap_md5</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">lookup_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_beatmap</span><span class="p">(</span><span class="n">beatmap_id</span><span class="o">=</span><span class="n">beatmap_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">lookup_by_md5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_md5</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_beatmap</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="o">=</span><span class="n">beatmap_md5</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ChainedLibrary"><a class="viewcode-back" href="../../appendix.html#slider.library.ChainedLibrary">[docs]</a><span class="k">class</span> <span class="nc">ChainedLibrary</span><span class="p">(</span><span class="n">Library</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A library that tries to read from multiple libraries in priority order.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *libraries</span>
+<span class="sd">        The libraries to read from in the order to search.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">libraries</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">libraries</span> <span class="o">=</span> <span class="n">libraries</span>
+
+    <span class="k">def</span> <span class="nf">lookup_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">library</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">libraries</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">library</span><span class="o">.</span><span class="n">lookup_by_id</span><span class="p">(</span><span class="n">beatmap_id</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">beatmap_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">lookup_by_md5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_md5</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">library</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">libraries</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">library</span><span class="o">.</span><span class="n">lookup_by_md5</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Joe Jevnik.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,725 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>slider.replay &mdash; slider 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> slider
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html">Model Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">slider</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>slider.replay</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for slider.replay</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">unique</span>
+<span class="kn">import</span> <span class="nn">lzma</span>
+<span class="kn">from</span> <span class="nn">struct</span> <span class="k">import</span> <span class="n">unpack</span>
+
+<span class="kn">from</span> <span class="nn">.bit_enum</span> <span class="k">import</span> <span class="n">BitEnum</span>
+<span class="kn">from</span> <span class="nn">.game_mode</span> <span class="k">import</span> <span class="n">GameMode</span>
+<span class="kn">from</span> <span class="nn">.mod</span> <span class="k">import</span> <span class="n">Mod</span>
+<span class="kn">from</span> <span class="nn">.position</span> <span class="k">import</span> <span class="n">Position</span>
+
+
+<span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">ActionBitMask</span><span class="p">(</span><span class="n">BitEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The bitmask values for the action type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">m1</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">m2</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">k1</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">k2</span> <span class="o">=</span> <span class="mi">10</span>
+
+
+<span class="k">class</span> <span class="nc">Action</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A user action.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    offset : timedelta</span>
+<span class="sd">        The offset since the previous action.</span>
+<span class="sd">    position : Position</span>
+<span class="sd">        The position of the cursor.</span>
+<span class="sd">    key1 : bool</span>
+<span class="sd">        Is the first keyboard key pressed?</span>
+<span class="sd">    key2 : bool</span>
+<span class="sd">        Is the second keyboard key pressed?</span>
+<span class="sd">    mouse1 : bool</span>
+<span class="sd">        Is the first mouse button pressed?</span>
+<span class="sd">    mouse2 : bool</span>
+<span class="sd">        is the second mouse button pressed?</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">key1</span><span class="p">,</span> <span class="n">key2</span><span class="p">,</span> <span class="n">mouse1</span><span class="p">,</span> <span class="n">mouse2</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key1</span> <span class="o">=</span> <span class="n">key1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key2</span> <span class="o">=</span> <span class="n">key2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mouse1</span> <span class="o">=</span> <span class="n">mouse1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mouse2</span> <span class="o">=</span> <span class="n">mouse2</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">action_bitmask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the action bitmask from an action.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ActionBitMask</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span>
+            <span class="n">m1</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mouse1</span><span class="p">,</span>
+            <span class="n">m2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mouse2</span><span class="p">,</span>
+            <span class="n">k1</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">key1</span><span class="p">,</span>
+            <span class="n">k2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">key2</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_consume_byte</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">_consume_short</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">buffer</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="s1">&#39;little&#39;</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">buffer</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">_consume_int</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">buffer</span><span class="p">[:</span><span class="mi">4</span><span class="p">],</span> <span class="s1">&#39;little&#39;</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">buffer</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">_consume_long</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">buffer</span><span class="p">[:</span><span class="mi">8</span><span class="p">],</span> <span class="s1">&#39;little&#39;</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">buffer</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">_consume_uleb128</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">shift</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">byte</span> <span class="o">=</span> <span class="n">_consume_byte</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">|=</span> <span class="p">(</span><span class="n">byte</span> <span class="o">&amp;</span> <span class="mh">0x7f</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">shift</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">byte</span> <span class="o">&amp;</span> <span class="mh">0x80</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">shift</span> <span class="o">+=</span> <span class="mi">7</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+<span class="k">def</span> <span class="nf">_consume_string</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">_consume_byte</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">!=</span> <span class="mh">0x0b</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;unknown string start byte: {hex(mode)}, expected 0 or 0x0b&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">byte_length</span> <span class="o">=</span> <span class="n">_consume_uleb128</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">buffer</span><span class="p">[:</span><span class="n">byte_length</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">buffer</span><span class="p">[:</span><span class="n">byte_length</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_consume_datetime</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">windows_ticks</span> <span class="o">=</span> <span class="n">_consume_long</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">windows_ticks</span> <span class="o">/</span> <span class="mi">10000000</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_consume_life_bar_graph</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">life_bar_graph_raw</span> <span class="o">=</span> <span class="n">_consume_string</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">offset</span><span class="p">)),</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">offset</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">pair</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">life_bar_graph_raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">pair</span>
+        <span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_consume_actions</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
+    <span class="n">compressed_byte_count</span> <span class="o">=</span> <span class="n">_consume_int</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+    <span class="n">compressed_data</span> <span class="o">=</span> <span class="n">buffer</span><span class="p">[:</span><span class="n">compressed_byte_count</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">buffer</span><span class="p">[:</span><span class="n">compressed_byte_count</span><span class="p">]</span>
+    <span class="n">decompressed_data</span> <span class="o">=</span> <span class="n">lzma</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">compressed_data</span><span class="p">)</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">raw_action</span> <span class="ow">in</span> <span class="n">decompressed_data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;,&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">raw_action</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">offset</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">raw_action_mask</span> <span class="o">=</span> <span class="n">raw_action</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
+        <span class="n">action_mask</span> <span class="o">=</span> <span class="n">ActionBitMask</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">raw_action_mask</span><span class="p">))</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Action</span><span class="p">(</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">offset</span><span class="p">)),</span>
+            <span class="n">Position</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)),</span>
+            <span class="n">action_mask</span><span class="p">[</span><span class="s1">&#39;m1&#39;</span><span class="p">],</span>
+            <span class="n">action_mask</span><span class="p">[</span><span class="s1">&#39;m2&#39;</span><span class="p">],</span>
+            <span class="n">action_mask</span><span class="p">[</span><span class="s1">&#39;k1&#39;</span><span class="p">],</span>
+            <span class="n">action_mask</span><span class="p">[</span><span class="s1">&#39;k2&#39;</span><span class="p">],</span>
+        <span class="p">))</span>
+
+<div class="viewcode-block" id="Replay"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay">[docs]</a><span class="k">class</span> <span class="nc">Replay</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;An osu! replay.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mode : GameMode</span>
+<span class="sd">        The game mode.</span>
+<span class="sd">    version : int</span>
+<span class="sd">        The version of osu! used to create this replay.</span>
+<span class="sd">    beatmap_md5 : str</span>
+<span class="sd">        The md5 hash of the beatmap played in this replay.</span>
+<span class="sd">    player_name : str</span>
+<span class="sd">        The name of the player who recorded this replay.</span>
+<span class="sd">    replay_md5 : str</span>
+<span class="sd">        The md5 hash of part of the data in this replay.</span>
+<span class="sd">    count_300 : int</span>
+<span class="sd">        The number of 300&#39;s hit in the replay.</span>
+<span class="sd">    count_100 : int</span>
+<span class="sd">        The number of 100&#39;s hit in the replay.</span>
+<span class="sd">    count_50 : int</span>
+<span class="sd">        The number of 50&#39;s hit in the replay.</span>
+<span class="sd">    count_geki : int</span>
+<span class="sd">        The number of geki in the replay. A geki is when the user scores all</span>
+<span class="sd">        300&#39;s for a given color section.</span>
+<span class="sd">    count_katu : int</span>
+<span class="sd">        The number of katu in the replay. A katu is when the user completes</span>
+<span class="sd">        a given color section without any 50&#39;s or misses. All 300&#39;s would</span>
+<span class="sd">        result in a geki instead of a katu.</span>
+<span class="sd">    count_miss : int</span>
+<span class="sd">        The number of misses in the replay.</span>
+<span class="sd">    score : int</span>
+<span class="sd">        The score earned in this replay. This is the normal score, not</span>
+<span class="sd">        performance points.</span>
+<span class="sd">    max_combo : int</span>
+<span class="sd">        The largest combo achieved in this replay.</span>
+<span class="sd">    full_combo : bool</span>
+<span class="sd">        Did the player earn a max combo in this replay?</span>
+<span class="sd">    no_fail : bool</span>
+<span class="sd">        Was the no_fail mod used?</span>
+<span class="sd">    easy : bool</span>
+<span class="sd">        Was the easy mod used?</span>
+<span class="sd">    no_video : bool</span>
+<span class="sd">        Was the no_video mod used?</span>
+<span class="sd">    hidden : bool</span>
+<span class="sd">        Was the hidden mod used?</span>
+<span class="sd">    hard_rock : hard_rock</span>
+<span class="sd">        Was the hard_rock mod used?</span>
+<span class="sd">    sudden_death : bool</span>
+<span class="sd">        Was the sudden_death mod used?</span>
+<span class="sd">    double_time : bool</span>
+<span class="sd">        Was the double_time mod used?</span>
+<span class="sd">    relax : bool</span>
+<span class="sd">        Was the relax mod used?</span>
+<span class="sd">    half_time : bool</span>
+<span class="sd">        Was the half_time mod used?</span>
+<span class="sd">    nightcore : bool</span>
+<span class="sd">        Was the nightcore mod used?</span>
+<span class="sd">    flashlight : bool</span>
+<span class="sd">        Was the flashlight mod used?</span>
+<span class="sd">    autoplay : bool</span>
+<span class="sd">        Was the autoplay mod used?</span>
+<span class="sd">    spun_out : bool</span>
+<span class="sd">        Was the spun_out mod used?</span>
+<span class="sd">    auto_pilot : bool</span>
+<span class="sd">        Was the auto_pilot mod used?</span>
+<span class="sd">    perfect : bool</span>
+<span class="sd">        Was the perfect mod used?</span>
+<span class="sd">    key4 : bool</span>
+<span class="sd">        Was the key4 mod used?</span>
+<span class="sd">    key5 : bool</span>
+<span class="sd">        Was the key5 mod used?</span>
+<span class="sd">    key6 : bool</span>
+<span class="sd">        Was the key6 mod used?</span>
+<span class="sd">    key7 : bool</span>
+<span class="sd">        Was the key7 mod used?</span>
+<span class="sd">    key8 : bool</span>
+<span class="sd">        Was the key8 mod used?</span>
+<span class="sd">    fade_in : bool</span>
+<span class="sd">        Was the fade_in mod used?</span>
+<span class="sd">    random : bool</span>
+<span class="sd">        Was the random mod used?</span>
+<span class="sd">    cinema : bool</span>
+<span class="sd">        Was the cinema mod used?</span>
+<span class="sd">    target_practice : bool</span>
+<span class="sd">        Was the target_practice mod used?</span>
+<span class="sd">    key9 : bool</span>
+<span class="sd">        Was the key9 mod used?</span>
+<span class="sd">    coop : bool</span>
+<span class="sd">        Was the coop mod used?</span>
+<span class="sd">    key1 : bool</span>
+<span class="sd">        Was the key1 mod used?</span>
+<span class="sd">    key3 : bool</span>
+<span class="sd">        Was the key3 mod used?</span>
+<span class="sd">    key2 : bool</span>
+<span class="sd">        Was the key2 mod used?</span>
+<span class="sd">    scoreV2 : bool</span>
+<span class="sd">        Was the scoreV2 mod used?</span>
+<span class="sd">    life_bar_graph : list[timedelta, float]</span>
+<span class="sd">        A list of time points paired with the value of the life bar at that</span>
+<span class="sd">        time. These appear in sorted order. The values are in the range [0, 1].</span>
+<span class="sd">    timestamp : datetime</span>
+<span class="sd">        When this replay was created.</span>
+<span class="sd">    actions : list[Action]</span>
+<span class="sd">        A sorted list of all of the actions recorded from the player.</span>
+<span class="sd">    beatmap : Beatmap or None</span>
+<span class="sd">        The beatmap played in this replay if known, otherwise None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">mode</span><span class="p">,</span>
+                 <span class="n">version</span><span class="p">,</span>
+                 <span class="n">beatmap_md5</span><span class="p">,</span>
+                 <span class="n">player_name</span><span class="p">,</span>
+                 <span class="n">replay_md5</span><span class="p">,</span>
+                 <span class="n">count_300</span><span class="p">,</span>
+                 <span class="n">count_100</span><span class="p">,</span>
+                 <span class="n">count_50</span><span class="p">,</span>
+                 <span class="n">count_geki</span><span class="p">,</span>
+                 <span class="n">count_katu</span><span class="p">,</span>
+                 <span class="n">count_miss</span><span class="p">,</span>
+                 <span class="n">score</span><span class="p">,</span>
+                 <span class="n">max_combo</span><span class="p">,</span>
+                 <span class="n">full_combo</span><span class="p">,</span>
+                 <span class="n">no_fail</span><span class="p">,</span>
+                 <span class="n">easy</span><span class="p">,</span>
+                 <span class="n">no_video</span><span class="p">,</span>
+                 <span class="n">hidden</span><span class="p">,</span>
+                 <span class="n">hard_rock</span><span class="p">,</span>
+                 <span class="n">sudden_death</span><span class="p">,</span>
+                 <span class="n">double_time</span><span class="p">,</span>
+                 <span class="n">relax</span><span class="p">,</span>
+                 <span class="n">half_time</span><span class="p">,</span>
+                 <span class="n">nightcore</span><span class="p">,</span>
+                 <span class="n">flashlight</span><span class="p">,</span>
+                 <span class="n">autoplay</span><span class="p">,</span>
+                 <span class="n">spun_out</span><span class="p">,</span>
+                 <span class="n">auto_pilot</span><span class="p">,</span>
+                 <span class="n">perfect</span><span class="p">,</span>
+                 <span class="n">key4</span><span class="p">,</span>
+                 <span class="n">key5</span><span class="p">,</span>
+                 <span class="n">key6</span><span class="p">,</span>
+                 <span class="n">key7</span><span class="p">,</span>
+                 <span class="n">key8</span><span class="p">,</span>
+                 <span class="n">fade_in</span><span class="p">,</span>
+                 <span class="n">random</span><span class="p">,</span>
+                 <span class="n">cinema</span><span class="p">,</span>
+                 <span class="n">target_practice</span><span class="p">,</span>
+                 <span class="n">key9</span><span class="p">,</span>
+                 <span class="n">coop</span><span class="p">,</span>
+                 <span class="n">key1</span><span class="p">,</span>
+                 <span class="n">key3</span><span class="p">,</span>
+                 <span class="n">key2</span><span class="p">,</span>
+                 <span class="n">scoreV2</span><span class="p">,</span>
+                 <span class="n">life_bar_graph</span><span class="p">,</span>
+                 <span class="n">timestamp</span><span class="p">,</span>
+                 <span class="n">actions</span><span class="p">,</span>
+                 <span class="n">beatmap</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beatmap_md5</span> <span class="o">=</span> <span class="n">beatmap_md5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">player_name</span> <span class="o">=</span> <span class="n">player_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">replay_md5</span> <span class="o">=</span> <span class="n">replay_md5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_300</span> <span class="o">=</span> <span class="n">count_300</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_100</span> <span class="o">=</span> <span class="n">count_100</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_50</span> <span class="o">=</span> <span class="n">count_50</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_geki</span> <span class="o">=</span> <span class="n">count_geki</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_katu</span> <span class="o">=</span> <span class="n">count_katu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_miss</span> <span class="o">=</span> <span class="n">count_miss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="n">score</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_combo</span> <span class="o">=</span> <span class="n">max_combo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_combo</span> <span class="o">=</span> <span class="n">full_combo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_fail</span> <span class="o">=</span> <span class="n">no_fail</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">easy</span> <span class="o">=</span> <span class="n">easy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_video</span> <span class="o">=</span> <span class="n">no_video</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden</span> <span class="o">=</span> <span class="n">hidden</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hard_rock</span> <span class="o">=</span> <span class="n">hard_rock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sudden_death</span> <span class="o">=</span> <span class="n">sudden_death</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">double_time</span> <span class="o">=</span> <span class="n">double_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relax</span> <span class="o">=</span> <span class="n">relax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">half_time</span> <span class="o">=</span> <span class="n">half_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nightcore</span> <span class="o">=</span> <span class="n">nightcore</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flashlight</span> <span class="o">=</span> <span class="n">flashlight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoplay</span> <span class="o">=</span> <span class="n">autoplay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spun_out</span> <span class="o">=</span> <span class="n">spun_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_pilot</span> <span class="o">=</span> <span class="n">auto_pilot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perfect</span> <span class="o">=</span> <span class="n">perfect</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key4</span> <span class="o">=</span> <span class="n">key4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key5</span> <span class="o">=</span> <span class="n">key5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key6</span> <span class="o">=</span> <span class="n">key6</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key7</span> <span class="o">=</span> <span class="n">key7</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key8</span> <span class="o">=</span> <span class="n">key8</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fade_in</span> <span class="o">=</span> <span class="n">fade_in</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random</span> <span class="o">=</span> <span class="n">random</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cinema</span> <span class="o">=</span> <span class="n">cinema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_practice</span> <span class="o">=</span> <span class="n">target_practice</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key9</span> <span class="o">=</span> <span class="n">key9</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coop</span> <span class="o">=</span> <span class="n">coop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key1</span> <span class="o">=</span> <span class="n">key1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key3</span> <span class="o">=</span> <span class="n">key3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key2</span> <span class="o">=</span> <span class="n">key2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scoreV2</span> <span class="o">=</span> <span class="n">scoreV2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">life_bar_graph</span> <span class="o">=</span> <span class="n">life_bar_graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">actions</span> <span class="o">=</span> <span class="n">actions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beatmap</span> <span class="o">=</span> <span class="n">beatmap</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="n">GameMode</span><span class="o">.</span><span class="n">standard</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s1">&#39;accuracy for non osu!standard replays is not yet supported&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">points_of_hits</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count_300</span> <span class="o">*</span> <span class="mi">300</span> <span class="o">+</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count_100</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count_50</span> <span class="o">*</span> <span class="mi">50</span>
+        <span class="p">)</span>
+        <span class="n">total_hits</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count_300</span> <span class="o">+</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count_100</span> <span class="o">+</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count_50</span> <span class="o">+</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count_miss</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">points_of_hits</span> <span class="o">/</span> <span class="p">(</span><span class="n">total_hits</span> <span class="o">*</span> <span class="mi">300</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Replay.from_path"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_path">[docs]</a>    <span class="k">def</span> <span class="nf">from_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read in a ``Replay`` object from a ``.osr`` file on disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or pathlib.Path</span>
+<span class="sd">            The path to the file to read from.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        replay : Replay</span>
+<span class="sd">            The parsed replay object.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when the file cannot be parsed as a ``.osr`` file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Replay.from_file"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read in a ``Replay`` object from an open file object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : file-like</span>
+<span class="sd">            The file object to read from.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        replay : Replay</span>
+<span class="sd">            The parsed replay object.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when the file cannot be parsed as a ``.osr`` file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Replay.parse"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parse a replay from ``.osr`` file data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : bytes</span>
+<span class="sd">            The data from an ``.osr`` file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        replay : Replay</span>
+<span class="sd">            The parsed replay.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when ``data`` is not in the ``.osr`` format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">buffer</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">GameMode</span><span class="p">(</span><span class="n">_consume_byte</span><span class="p">(</span><span class="n">buffer</span><span class="p">))</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">_consume_int</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">beatmap_md5</span> <span class="o">=</span> <span class="n">_consume_string</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">player_name</span> <span class="o">=</span> <span class="n">_consume_string</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">replay_md5</span> <span class="o">=</span> <span class="n">_consume_string</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">count_300</span> <span class="o">=</span> <span class="n">_consume_short</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">count_100</span> <span class="o">=</span> <span class="n">_consume_short</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">count_50</span> <span class="o">=</span> <span class="n">_consume_short</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">count_geki</span> <span class="o">=</span> <span class="n">_consume_short</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">count_katu</span> <span class="o">=</span> <span class="n">_consume_short</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">count_miss</span> <span class="o">=</span> <span class="n">_consume_short</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">_consume_int</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">max_combo</span> <span class="o">=</span> <span class="n">_consume_short</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">full_combo</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_consume_byte</span><span class="p">(</span><span class="n">buffer</span><span class="p">))</span>
+        <span class="n">mod_mask</span> <span class="o">=</span> <span class="n">_consume_int</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">life_bar_graph</span> <span class="o">=</span> <span class="n">_consume_life_bar_graph</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">_consume_datetime</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="n">actions</span> <span class="o">=</span> <span class="n">_consume_actions</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+
+        <span class="n">mod_kwargs</span> <span class="o">=</span> <span class="n">Mod</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">mod_mask</span><span class="p">)</span>
+        <span class="c1"># delete the alias field names</span>
+        <span class="k">del</span> <span class="n">mod_kwargs</span><span class="p">[</span><span class="s1">&#39;relax2&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">mod_kwargs</span><span class="p">[</span><span class="s1">&#39;last_mod&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">library</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">beatmap</span> <span class="o">=</span> <span class="n">library</span><span class="o">.</span><span class="n">lookup_by_md5</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">beatmap</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+            <span class="n">beatmap_md5</span><span class="o">=</span><span class="n">beatmap_md5</span><span class="p">,</span>
+            <span class="n">player_name</span><span class="o">=</span><span class="n">player_name</span><span class="p">,</span>
+            <span class="n">replay_md5</span><span class="o">=</span><span class="n">replay_md5</span><span class="p">,</span>
+            <span class="n">count_300</span><span class="o">=</span><span class="n">count_300</span><span class="p">,</span>
+            <span class="n">count_100</span><span class="o">=</span><span class="n">count_100</span><span class="p">,</span>
+            <span class="n">count_50</span><span class="o">=</span><span class="n">count_50</span><span class="p">,</span>
+            <span class="n">count_geki</span><span class="o">=</span><span class="n">count_geki</span><span class="p">,</span>
+            <span class="n">count_katu</span><span class="o">=</span><span class="n">count_katu</span><span class="p">,</span>
+            <span class="n">count_miss</span><span class="o">=</span><span class="n">count_miss</span><span class="p">,</span>
+            <span class="n">score</span><span class="o">=</span><span class="n">score</span><span class="p">,</span>
+            <span class="n">max_combo</span><span class="o">=</span><span class="n">max_combo</span><span class="p">,</span>
+            <span class="n">full_combo</span><span class="o">=</span><span class="n">full_combo</span><span class="p">,</span>
+            <span class="n">life_bar_graph</span><span class="o">=</span><span class="n">life_bar_graph</span><span class="p">,</span>
+            <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
+            <span class="n">actions</span><span class="o">=</span><span class="n">actions</span><span class="p">,</span>
+            <span class="n">beatmap</span><span class="o">=</span><span class="n">beatmap</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">mod_kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">accuracy</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;{self.accuracy * 100:.2f}&#39;</span>
+        <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+            <span class="n">accuracy</span> <span class="o">=</span> <span class="s1">&#39;&lt;unknown&gt;&#39;</span>
+
+        <span class="n">beatmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beatmap</span>
+        <span class="k">if</span> <span class="n">beatmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">beatmap</span> <span class="o">=</span> <span class="s1">&#39;&lt;unknown&gt;&#39;</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;&lt;{type(self).__qualname__}: </span><span class="si">{accuracy}</span><span class="s1">% (&#39;</span>
+            <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.count_300}</span><span class="s1">/</span><span class="si">{self.count_100}</span><span class="s1">/&#39;</span>
+            <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.count_50}</span><span class="s1">/</span><span class="si">{self.count_miss}</span><span class="s1">) on </span><span class="si">{beatmap}</span><span class="s1">&gt;&#39;</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Joe Jevnik.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
