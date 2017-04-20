@@ -82,7 +82,12 @@ Predictions
 
 .. autofunction:: slider.model.train.train_from_replay_directory
 
-.. autoclass:: slider.model.model.Regressor
+.. autofunction:: slider.model.train.test_model_from_replay_directory
+
+.. autoclass:: slider.model.model.OsuModel
+   :members:
+
+.. autoclass:: slider.model.model.MLPRegressor
    :members:
 
 .. autofunction:: slider.model.features.extract_features
