@@ -9,5 +9,8 @@ build/
 # python artifacts
 *.pyc
 
+# spearmint
+output/
+
 # osu! API key
 .api-key
