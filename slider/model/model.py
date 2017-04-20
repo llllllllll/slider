@@ -32,16 +32,19 @@ class OsuModel:
 class MLPRegressor(OsuModel, _MLPRegressor):
     """An osu! aware MLPRegressor.
     """
-    def __init_(hidden_layer_sizes=(100, 50),
+    def __init_(alpha=0.009,
                 solver='lbfgs',
                 activation='tanh',
+                hidden_layer_sizes=(54, 199, 66),
+                max_iter=1000,
                 tol=1e-9,
                 warm_start=True,
                 **kwargs):
         super().__init__(
-            hidden_layer_sizes=hidden_layer_sizes,
+            alpha=alpha,
             solver=solver,
             activation=activation,
+            hidden_layer_sizes=hidden_layer_sizes,
             tol=tol,
             warm_start=warm_start,
             **kwargs,

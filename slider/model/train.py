@@ -29,7 +29,7 @@ def train_model(beatmap_features, accuracies, model=None):
 
     m = model()
     m.fit(beatmap_features, accuracies)
-    return model
+    return m
 
 
 def train_from_replay_directory(path, library, age=None, model=None):
@@ -106,7 +106,6 @@ def test_model_from_replay_directory(path,
         path,
         library,
         age=age,
-        model=model,
     )
     train_features, test_features, train_acc, test_acc = train_test_split(
         features,
@@ -115,5 +114,5 @@ def test_model_from_replay_directory(path,
         train_size=train_size,
     )
 
-    model = train_model(train_features, train_acc)
-    return model, model.predict(test_features), test_acc
+    m = train_model(train_features, train_acc, model=model)
+    return m, m.predict(test_features), test_acc
