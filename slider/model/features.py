@@ -15,7 +15,7 @@ _y = 1
 _z = 2
 
 
-def hit_object_coordinates(hit_objects):
+def hit_object_coordinates(hit_objects, *, double_time=False, half_time=False):
     """Return the coordinates of the hit objects as a (3, len(hit_objects))
     array.
 
@@ -23,6 +23,10 @@ def hit_object_coordinates(hit_objects):
     ----------
     hit_objects : iterable[HitObject]
         The hit objects to take the coordinates of.
+    double_time : bool, optional
+        Apply double time compression to the Z axis.
+    half_time : bool, optional
+        Apply half time expansion to the Z axis.
 
     Returns
     -------
@@ -50,7 +54,14 @@ def hit_object_coordinates(hit_objects):
         y(position.y)
         z(hit_object.time.total_seconds() * 100)
 
-    return np.array([xs, ys, zs], dtype=np.float64)
+    coords = np.array([xs, ys, zs], dtype=np.float64)
+
+    if double_time:
+        coords[_z] *= 4 / 3
+    elif half_time:
+        coords[_z] *= 2 / 3
+
+    return coords
 
 
 # angle indices
@@ -59,7 +70,7 @@ roll = 1
 yaw = 2
 
 
-def hit_object_angles(hit_objects):
+def hit_object_angles(hit_objects, *, double_time=False, half_time=False):
     """Compute the angle from one hit object to the next in 3d space with time
     along the Z axis.
 
@@ -67,6 +78,10 @@ def hit_object_angles(hit_objects):
     ----------
     hit_objects : iterable[HitObject]
         The hit objects to compute the angles about.
+    double_time : bool, optional
+        Apply double time compression to the Z axis.
+    half_time : bool, optional
+        Apply half time expansion to the Z axis.
 
     Returns
     -------
@@ -74,8 +89,11 @@ def hit_object_angles(hit_objects):
         An array shape (3, len(hit_objects) - 1) of pitch, roll, and yaw
         between each hit object. All angles are measured in radians.
     """
-    coords = hit_object_coordinates(hit_objects)
-
+    coords = hit_object_coordinates(
+        hit_objects,
+        double_time=double_time,
+        half_time=half_time,
+    )
     diff = np.diff(coords, axis=1)
 
     # (pitch, roll, yaw) x transitions
@@ -156,7 +174,11 @@ def extract_features(beatmap,
         The features by name.
     """
     # ignore the direction of the angle, just take the magnitude
-    angles = np.abs(hit_object_angles(beatmap.hit_objects_no_spinners))
+    angles = np.abs(hit_object_angles(
+        beatmap.hit_objects_no_spinners,
+        double_time=double_time,
+        half_time=half_time,
+    ))
     mean_angles = np.mean(angles, axis=1)
     median_angles = np.median(angles, axis=1)
     max_angles = np.max(angles, axis=1)

@@ -1,5 +1,6 @@
 from sklearn.model_selection import train_test_split
 
+
 from .features import extract_from_replay_directory
 from .model import Model
 
@@ -25,11 +26,10 @@ def train_model(beatmap_features, accuracies, model=None):
         be added by re-fitting the new replays.
     """
     if model is None:
-        model = Model
+        model = Model()
 
-    m = model()
-    m.fit(beatmap_features, accuracies)
-    return m
+    model.fit(beatmap_features, accuracies)
+    return model
 
 
 def train_from_replay_directory(path, library, age=None, model=None):

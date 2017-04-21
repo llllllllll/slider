@@ -32,16 +32,15 @@ def train():
         accuracy,
     )
 
-    def model():
-        return MLPRegressor(
-            alpha=float(flask.request.args['alpha']),
-            hidden_layer_sizes=list(map(
-                int,
-                flask.request.args.getlist('hidden_layer_sizes'),
-            )),
-            solver=flask.request.args['solver'],
-            activation=flask.request.args['activation'],
-        )
+    model = MLPRegressor(
+        alpha=float(flask.request.args['alpha']),
+        hidden_layer_sizes=list(map(
+            int,
+            flask.request.args.getlist('hidden_layer_sizes'),
+        )),
+        solver=flask.request.args['solver'],
+        activation=flask.request.args['activation'],
+    )
 
-    m = train_model(train_labels, train_acc, model=model)
-    return str(np.mean(np.abs(test_acc - m.predict(test_labels))))
+    model = train_model(train_labels, train_acc, model=model)
+    return str(np.mean(np.abs(test_acc - model.predict(test_labels))))
