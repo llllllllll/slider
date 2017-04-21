@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.neural_network import MLPRegressor as _MLPRegressor
+from sklearn.preprocessing import StandardScaler
 
 from .features import extract_feature_array
 
@@ -32,14 +33,15 @@ class OsuModel:
 class MLPRegressor(OsuModel, _MLPRegressor):
     """An osu! aware MLPRegressor.
     """
-    def __init_(alpha=0.009,
-                solver='lbfgs',
-                activation='tanh',
-                hidden_layer_sizes=(54, 199, 66),
-                max_iter=1000,
-                tol=1e-9,
-                warm_start=True,
-                **kwargs):
+    def __init__(self,
+                 alpha=0.009,
+                 solver='lbfgs',
+                 activation='tanh',
+                 hidden_layer_sizes=(54, 199, 66),
+                 max_iter=1000,
+                 tol=1e-9,
+                 warm_start=True,
+                 **kwargs):
         super().__init__(
             alpha=alpha,
             solver=solver,
@@ -49,6 +51,14 @@ class MLPRegressor(OsuModel, _MLPRegressor):
             warm_start=warm_start,
             **kwargs,
         )
+        self._normalize = StandardScaler()
+
+    def fit(self, train, labels):
+        train = self._normalize.fit_transform(train, labels)
+        return super().fit(train, labels)
+
+    def predict(self, features):
+        return super().predict(self._normalize.transform(features))
 
 
 # The default model
