@@ -7,7 +7,7 @@ this dramatically speeds up the hyperparameter optimization.
 from datetime import timedelta
 
 import flask
-import numpy as np
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
 from slider import LocalLibrary
@@ -16,8 +16,8 @@ from slider.model.model import MLPRegressor
 
 
 features, accuracy = extract_from_replay_directory(
-    '../data/replays',
-    LocalLibrary('../data/maps'),
+    '../../data/replays',
+    LocalLibrary('../../data/maps'),
     age=timedelta(days=365 // 2),
 )
 
@@ -25,9 +25,9 @@ features, accuracy = extract_from_replay_directory(
 app = flask.Flask(__name__)
 
 
-@app.route('/train')
-def train():
-    train_labels, test_labels, train_acc, test_acc = train_test_split(
+@app.route('/mse')
+def mse():
+    train_features, test_features, train_acc, test_acc = train_test_split(
         features,
         accuracy,
     )
@@ -42,5 +42,5 @@ def train():
         activation=flask.request.args['activation'],
     )
 
-    model = train_model(train_labels, train_acc, model=model)
-    return str(np.mean(np.abs(test_acc - model.predict(test_labels))))
+    model = train_model(train_features, train_acc, model=model)
+    return str(mean_squared_error(test_acc, model.predict(test_features)))

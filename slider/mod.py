@@ -91,3 +91,19 @@ def ms_to_ar(ms):
         # approach rates.
         return (ms - 1800) / -120
     return ar
+
+
+def circle_radius(cs):
+    """Compute the ``CS`` attribute into a circle radius in osu! pixels.
+
+    Parameters
+    ----------
+    cs : float
+        The circle size.
+
+    Returns
+    -------
+    radius : float
+        The radius in osu! pixels.
+    """
+    return (512 / 16) * (1 - 0.7 * (cs - 5) / 5)

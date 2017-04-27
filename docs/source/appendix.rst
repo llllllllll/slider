@@ -64,8 +64,12 @@ Mods
 
 .. autofunction:: slider.mod.ms_to_ar
 
+.. autofunction:: slider.mod.circle_radius
+
 Utilities
 ---------
+
+.. autofunction:: slider.utils.accuracy
 
 .. autoclass:: slider.position.Position
    :members:

@@ -187,13 +187,16 @@ def extract_features(beatmap,
 
     od = beatmap.od
     ar = beatmap.ar
+    cs = beatmap.cs
 
     if easy:
         od /= 2
         ar /= 2
+        cs /= 2
     elif hard_rock:
         od = min(1.4 * od, 10)
         ar = min(1.4 * ar, 10)
+        cs = min(1.4 * cs, 10)
 
     bpm_min = beatmap.bpm_min
     bpm_max = beatmap.bpm_max
@@ -210,7 +213,7 @@ def extract_features(beatmap,
     return {
         # basic stats
         'HP': beatmap.hp,
-        'CS': beatmap.cs,
+        'CS': cs,
         'OD': od,
         'AR': ar,
 

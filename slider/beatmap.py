@@ -1,10 +1,23 @@
 from datetime import timedelta
+from functools import partial
+import operator as op
 import re
-import warnings
 from zipfile import ZipFile
 
 from .game_mode import GameMode
+from .mod import ar_to_ms, ms_to_ar, circle_radius
 from .position import Position
+from .utils import accuracy as calculate_accuracy, lazyval
+
+try:
+    import numpy as np
+except ModuleNotFoundError:
+    from math import log10, ceil
+else:
+    max = np.max
+    min = np.min
+    log10 = np.log10
+    ceil = np.ceil
 
 
 class _no_default:
@@ -31,7 +44,6 @@ def _get(cs, ix, default=_no_default):
         return default
 
 
-
 class TimingPoint:
     """A timing point assigns properties to an offset into a beatmap.
 
@@ -49,12 +61,13 @@ class TimingPoint:
         The set of hit sound samples that are used.
     volume : int
         The volume of hit sounds in the range [0, 100].
-    inherited : bool
-        Is this an inherited timing point? An inherited timing point differs
-        from a Timing point in that the ms_per_beat value is negative, and
-        defines a new ms_per_beat based on the last non-inherited timing point.
-        This can be used to change volume without affecting offset timing, or
-        changing slider speeds.
+    parent : TimingPoint or None
+        The parent of an inherited timing point. An inherited timing point
+        differs from a normal timing point in that the ``ms_per_beat`` value is
+        negative, and defines a new ``ms_per_beat`` based on the parent
+        timing point. This can be used to change volume without affecting
+        offset timing, or changing slider speeds. If this is not an inherited
+        timing point the parent should be ``None``.
     kiai_mode : bool
         Wheter or not kiai time effects are active.
     """
@@ -65,7 +78,7 @@ class TimingPoint:
                  sample_type,
                  sample_set,
                  volume,
-                 inherited,
+                 parent,
                  kiai_mode):
         if not (0 <= volume <= 100):
             raise ValueError(
@@ -77,10 +90,41 @@ class TimingPoint:
         self.sample_type = sample_type
         self.sample_set = sample_set
         self.volume = volume
-        self.inherited = inherited
+        self.parent = parent
         self.kiai_mode = kiai_mode
 
-    @property
+    @lazyval
+    def half_time(self):
+        """The ``TimingPoint`` as it would appear with
+        :data:`~slider.mod.Mod.half_time` enabled.
+        """
+        return type(self)(
+            4 * self.offset / 3,
+            self.ms_per_beat if self.inherited else (4 * self.ms_per_beat / 3),
+            self.meter,
+            self.sample_type,
+            self.sample_set,
+            self.volume,
+            getattr(self.parent, 'half_time', None),
+            self.kiai_mode,
+        )
+
+    def double_time(self):
+        """The ``TimingPoint`` as it would appear with
+        :data:`~slider.mod.Mod.double_time` enabled.
+        """
+        return type(self)(
+            2 * self.offset / 3,
+            self.ms_per_beat if self.inherited else (2 * self.ms_per_beat / 3),
+            self.meter,
+            self.sample_type,
+            self.sample_set,
+            self.volume,
+            getattr(self.parent, 'double_time', None),
+            self.kiai_mode,
+        )
+
+    @lazyval
     def bpm(self):
         """The bpm of this timing point.
 
@@ -98,13 +142,15 @@ class TimingPoint:
         )
 
     @classmethod
-    def parse(cls, data):
+    def parse(cls, data, parent):
         """Parse a TimingPoint object from a line in a ``.osu`` file.
 
         Parameters
         ----------
         data : str
             The line to parse.
+        parent : TimingPoint
+            The last non-inherited timing point.
 
         Returns
         -------
@@ -178,7 +224,7 @@ class TimingPoint:
             sample_type=sample_type,
             sample_set=sample_set,
             volume=volume,
-            inherited=inherited,
+            parent=parent if inherited else None,
             kiai_mode=kiai_mode,
         )
 
@@ -209,14 +255,51 @@ class HitObject:
             f' {self.time.total_seconds() * 1000:g}ms>'
         )
 
+    @lazyval
+    def half_time(self):
+        """The ``HitObject`` as it would appear with
+        :data:`~slider.mod.Mod.half_time` enabled.
+        """
+        kwargs = vars(self)
+        kwargs['time'] = 4 * kwargs['time'] / 3
+        try:
+            end_time = kwargs['end_time']
+        except KeyError:
+            pass
+        else:
+            kwargs['end_time'] = 4 * end_time / 3
+        return type(self)(**kwargs)
+
+    @lazyval
+    def double_time(self):
+        """The ``HitObject`` as it would appear with
+        :data:`~slider.mod.Mod.double_time` enabled.
+        """
+        kwargs = vars(self)
+        kwargs['time'] = 2 * kwargs['time'] / 3
+        kwargs['time'] = 4 * kwargs['time'] / 3
+        try:
+            end_time = kwargs['end_time']
+        except KeyError:
+            pass
+        else:
+            kwargs['end_time'] = 2 * end_time / 3
+        return type(self)(**kwargs)
+
     @classmethod
-    def parse(cls, data):
+    def parse(cls, data, timing_points, slider_multiplier, slider_tick_rate):
         """Parse a HitObject object from a line in a ``.osu`` file.
 
         Parameters
         ----------
         data : str
             The line to parse.
+        timing_points : list[TimingPoint]
+            The timing points in the map.
+        slider_multiplier : float
+            The slider multiplier for computing slider end_time and ticks.
+        slider_tick_rate : float
+            The slider tick rate for computing slider end_time and ticks.
 
         Returns
         -------
@@ -260,17 +343,22 @@ class HitObject:
             raise ValueError(f'hitsound should be an int, got {hitsound!r}')
 
         if type_ & Circle.type_code:
-            type_ob = Circle
+            parse = Circle._parse
         elif type_ & Slider.type_code:
-            type_ob = Slider
+            parse = partial(
+                Slider._parse,
+                timing_points=timing_points,
+                slider_multiplier=slider_multiplier,
+                slider_tick_rate=slider_tick_rate,
+            )
         elif type_ & Spinner.type_code:
-            type_ob = Spinner
+            parse = Spinner._parse
         elif type_ & HoldNote.type_code:
-            type_ob = HoldNote
+            parse = HoldNote._parse
         else:
             raise ValueError(f'unknown type code {type_!r}')
 
-        return type_ob._parse(Position(x, y), time, hitsound, rest)
+        return parse(Position(x, y), time, hitsound, rest)
 
 
 class Circle(HitObject):
@@ -343,16 +431,20 @@ class Slider(HitObject):
     ----------
     position : Position
         Where this slider appears on the screen.
-    time : int
+    time : datetime.timedelta
         When this slider appears in the map.
+    end_time : datetime.timedelta
+        When this slider ends in the map
     hitsound : int
-        The sound played on the tickss of the slider.
+        The sound played on the ticks of the slider.
     slider_type : {'L', 'B', 'P', 'C'}
         The type of slider. Linear, Bezier, Perfect, and Catmull.
     points : iterable[Position]
         The points that this slider travels through.
     length : int
         The length of this slider in osu! pixels.
+    ticks : int
+        The number of slider ticks including the head and tail of the slider.
     edge_sounds : list[int]
         A list of hitsounds for each edge.
     edge_additions : list[str]
@@ -365,11 +457,13 @@ class Slider(HitObject):
     def __init__(self,
                  position,
                  time,
+                 end_time,
                  hitsound,
                  slider_type,
                  points,
                  repeat,
                  length,
+                 ticks,
                  edge_sounds,
                  edge_additions,
                  addition='0:0:0:0'):
@@ -380,15 +474,24 @@ class Slider(HitObject):
             )
 
         super().__init__(position, time, hitsound, addition)
+        self.end_time = end_time
         self.slider_type = slider_type
         self.points = points
         self.repeat = repeat
         self.length = length
+        self.ticks = ticks
         self.edge_sounds = edge_sounds
         self.edge_additions = edge_additions
 
     @classmethod
-    def _parse(cls, position, time, hitsound, rest):
+    def _parse(cls,
+               position,
+               time,
+               hitsound,
+               rest,
+               timing_points,
+               slider_multiplier,
+               slider_tick_rate):
         try:
             group_1, *rest = rest
         except ValueError:
@@ -475,14 +578,39 @@ class Slider(HitObject):
         if len(rest) > 1:
             raise ValueError(f'extra data: {rest!r}')
 
+        for tp in timing_points:
+            if tp.offset < time:
+                break
+        else:
+            tp = timing_points[0]
+
+        if tp.parent is not None:
+            velocity_multiplier = -100 / tp.ms_per_beat
+            ms_per_beat = tp.parent.ms_per_beat
+        else:
+            velocity_multiplier = 1
+            ms_per_beat = tp.ms_per_beat
+
+        pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
+        num_beats = (pixel_length * repeat) / pixels_per_beat
+        duration = timedelta(milliseconds=ceil(num_beats * ms_per_beat))
+
+        ticks = int(
+            ((ceil(num_beats / repeat * slider_tick_rate) - 1) * repeat) +
+            repeat +
+            1
+        )
+
         return cls(
             position,
             time,
+            time + duration,
             hitsound,
             slider_type,
             points,
             repeat,
             pixel_length,
+            ticks,
             edge_sounds,
             edge_additions,
             *rest,
@@ -838,47 +966,69 @@ class Beatmap:
         self.timing_points = timing_points
         self.hit_objects = hit_objects
 
-    @property
+    @lazyval
     def bpm_min(self):
         """The minimum bpm in this beatmap.
         """
-        return min(filter(None, (p.bpm for p in self.timing_points)))
+        # use list comprehension for when this is np.min
+        return min([p.bpm for p in self.timing_points if p.bpm])
 
-    @property
+    @lazyval
     def bpm_max(self):
         """The maximum bpm in this beatmap.
         """
-        return max(filter(None, (p.bpm for p in self.timing_points)))
+        # use list comprehension for when this is np.max
+        return max([p.bpm for p in self.timing_points if p.bpm])
 
-    @property
+    @lazyval
     def hp(self):
         """Alias for ``hp_drain_rate``.
         """
         return self.hp_drain_rate
 
-    @property
+    @lazyval
     def cs(self):
         """Alias for ``circle_size``.
         """
         return self.circle_size
 
-    @property
+    @lazyval
     def od(self):
         """Alias for ``overall_difficulty``.
         """
         return self.overall_difficulty
 
-    @property
+    @lazyval
     def ar(self):
         """Alias for ``approach_rate``.
         """
         return self.approach_rate
 
-    @property
+    @lazyval
     def hit_objects_no_spinners(self):
         """The hit objects with spinners filtered out.
         """
         return tuple(e for e in self.hit_objects if not isinstance(e, Spinner))
+
+    @lazyval
+    def circles(self):
+        """Just the circles in the beatmap.
+        """
+        return tuple(e for e in self.hit_objects if isinstance(e, Circle))
+
+    @lazyval
+    def max_combo(self):
+        """The highest combo that can be achieved on this beatmap.
+        """
+        max_combo = 0
+
+        for hit_object in self.hit_objects:
+            if isinstance(hit_object, Slider):
+                max_combo += hit_object.ticks
+            else:
+                max_combo += 1
+
+        return max_combo
 
     def __repr__(self):
         return f'<{type(self).__qualname__}: {self.title} [{self.version}]>'
@@ -1077,6 +1227,31 @@ class Beatmap:
             'OverallDifficulty',
         )
 
+        timing_points = []
+        # the parent starts as None because the first timing point should
+        # not be inherited
+        parent = None
+        for raw_timing_point in groups['TimingPoints']:
+            timing_point = TimingPoint.parse(raw_timing_point, parent)
+            if parent is not None and timing_point.parent is None:
+                # we have a new parent node, pass that along to the new
+                # timing points
+                parent = timing_point
+            timing_points.append(timing_point)
+
+        slider_multiplier = _get_as_float(
+            groups,
+            'Difficulty',
+            'SliderMultiplier',
+            default=1.4,  # taken from wiki
+        )
+        slider_tick_rate = _get_as_float(
+            groups,
+            'Difficulty',
+            'SliderTickRate',
+            default=1.0,  # taken from wiki
+        )
+
         return cls(
             format_version=format_version,
             audio_filename=_get_as_str(groups, 'General', 'AudioFilename'),
@@ -1164,18 +1339,310 @@ class Beatmap:
                 # old maps didn't have an AR so the OD is used as a default
                 default=od,
             ),
-            slider_multiplier=_get_as_float(
-                groups,
-                'Difficulty',
-                'SliderMultiplier',
-                default=1.4,  # taken from wiki
-            ),
-            slider_tick_rate=_get_as_float(
-                groups,
-                'Difficulty',
-                'SliderTickRate',
-                default=1.0,  # taken from wiki
-            ),
-            timing_points=list(map(TimingPoint.parse, groups['TimingPoints'])),
-            hit_objects=list(map(HitObject.parse, groups['HitObjects'])),
+            slider_multiplier=slider_multiplier,
+            slider_tick_rate=slider_tick_rate,
+            timing_points=timing_points,
+            hit_objects=list(map(
+                partial(
+                    HitObject.parse,
+                    timing_points=timing_points,
+                    slider_multiplier=slider_multiplier,
+                    slider_tick_rate=slider_tick_rate,
+                ),
+                groups['HitObjects'],
+            )),
         )
+
+    def timing_point_at(self, time):
+        """Get the :class:`slider.beatmap.TimingPoint` at the given time.
+
+        Parameters
+        ----------
+        time : datetime.timedelta
+            The time to lookup the :class:`slider.beatmap.TimingPoint` for.
+
+        Returns
+        -------
+        timing_point : TimingPoint
+            The :class:`slider.beatmap.TimingPoint` at the given time.
+        """
+        for tp in self.timing_points:
+            if tp.offset < time:
+                return tp
+
+        return self.timing_points[0]
+
+    @staticmethod
+    def _base_strain(strain):
+        """Scale up the base attribute
+        """
+        return ((5 * max(1, strain / 0.0675) - 4) ** 3) / 100000
+
+    def _star_calc(self):
+        # radius = circle_radius(self.cs)
+
+        # hit_objects = iter(self.hit_objects)
+        # previous = next(hit_objects)
+        # for hit_object in hit_objects:
+        #     ...
+
+        raise NotImplementedError('_star_calc')
+
+    def _round_hitcounts(self, accuracy, count_miss=0):
+        """Round the accuracy to the nearest hit counts.
+
+        Parameters
+        ----------
+        accuracy : float
+            The accuracy to round in the range [0, 1]
+        count_miss : int, optional
+            The number of misses to fix.
+
+        Returns
+        -------
+        count_300 : int
+            The number of 300s.
+        count_100 : int
+            The number of 100s.
+        count_50 : int
+            The number of 50s.
+        count_miss : int
+            The number of misses.
+        """
+        max_300 = len(self.hit_objects) - count_miss
+
+        accuracy = max(
+            0.0,
+            min(
+                calculate_accuracy(max_300, 0, 0, count_miss) * 100.0,
+                accuracy * 100,
+            ),
+        )
+
+        count_50 = 0
+        count_100 = round(
+            -3.0 *
+            ((accuracy * 0.01 - 1.0) * len(self.hit_objects) + count_miss) *
+            0.5,
+        )
+
+        if count_100 > len(self.hit_objects) - count_miss:
+            # accuracy lower than all 100s, use 50s
+            count_100 = 0
+            count_50 = round(
+                -6.0 *
+                ((accuracy * 0.01 - 1.0) * len(self.hit_objects) +
+                 count_miss) *
+                0.2,
+            )
+
+            count_50 = min(max_300, count_50)
+        else:
+            count_100 = min(max_300, count_100)
+
+        count_300 = (
+            len(self.hit_objects) -
+            count_100 -
+            count_50 -
+            count_miss
+        )
+
+        return count_300, count_100, count_50, count_miss
+
+    def performance_points(self,
+                           *,
+                           combo=None,
+                           accuracy=None,
+                           count_300=None,
+                           count_100=None,
+                           count_50=None,
+                           count_miss=0,
+                           no_fail=False,
+                           easy=False,
+                           hidden=False,
+                           hard_rock=False,
+                           double_time=False,
+                           half_time=False,
+                           flashlight=False,
+                           spun_out=False,
+                           version=1):
+        """Compute the performance points for the given map.
+
+        Parameters
+        ----------
+        combo : int, optional
+            The combo achieved on the map. Defaults to max combo.
+        accuracy : float, optional
+            The accuracy achieved in the range [0, 1]. If not provided
+            and none of ``count_300``, ``count_100``, or ``count_50``
+            provided then the this defaults to 100%
+        count_300 : int, optional
+            The number of 300s hit.
+        count_100 : int, optional
+            The number of 100s hit.
+        count_50 : int, optional
+            The number of 50s hit.
+        count_miss : int, optional
+            The number of misses.
+        no_fail : bool, optional
+            Account for no fail mod.
+        easy : bool, optional
+            Account for the easy mod.
+        hidden : bool, optional
+            Account for the hidden mod.
+        hard_rock : bool, optional
+            Account for the hard rock mod.
+        double_time : bool, optional
+            Account for the double time mod.
+        half_time : bool, optional
+            Account for the half time mod.
+        flashlight : bool, optional
+            Account for the flashlight mod.
+        spun_out : bool, optional
+            Account for the spun out mod.
+        version : int, optional
+            The version of the performance points calculation to use.
+
+        Returns
+        -------
+        pp : float
+            The performance points awarded for the specified play.
+        """
+        raise NotImplementedError('pp calculation is not done')
+
+        if version not in {1, 2}:
+            raise ValueError(f'unknown PP version: {version}')
+
+        if combo is None:
+            combo = self.max_combo
+
+        if accuracy is not None:
+            if (count_300 is not None or
+                    count_100 is not None or
+                    count_50 is not None):
+                raise ValueError('cannot pass accuracy and hit counts')
+            # compute the closest hit counts for the accuracy
+            count_300, count_100, count_50, count_miss = self._round_hitcounts(
+                accuracy,
+                count_miss,
+            )
+
+        elif (count_300 is None and
+              count_100 is None and
+              count_50 is not None):
+            count_300, count_100, count_50, count_miss = self._round_hitcounts(
+                accuracy,
+                count_miss,
+            )
+
+        od = self.od
+        ar = self.ar
+
+        if easy:
+            od /= 2
+            ar /= 2
+        elif hard_rock:
+            od = min(1.4 * od, 10)
+            ar = min(1.4 * ar, 10)
+
+        if half_time:
+            ar = ms_to_ar(4 * ar_to_ms(ar) / 3)
+        elif double_time:
+            ar = ms_to_ar(2 * ar_to_ms(ar) / 3)
+
+        accuracy = calculate_accuracy(
+            count_300,
+            count_100,
+            count_50,
+            count_miss,
+        ) * 100
+        accuracy_bonus = 0.5 + accuracy / 2
+
+        count_hit_objects = len(self.hit_objects)
+        count_hit_objects_over_2000 = count_hit_objects / 2000
+        length_bonus = (
+            0.95 +
+            0.4 * min(1.0, count_hit_objects_over_2000) + (
+                log10(count_hit_objects_over_2000) * 0.5
+                if count_hit_objects > 2000 else
+                0
+            )
+        )
+
+        miss_penalty = 0.97 ** count_miss
+
+        combo_break_penalty = combo ** 0.8 / self.max_combo ** 0.8
+
+        ar_bonus = 1
+        if ar > 10.33:
+            # high ar bonus
+            ar_bonus += 0.45 * (ar - 10.33)
+        elif ar < 8:
+            # low ar bonus
+            low_ar_bonus = 0.01 * (8.0 - ar)
+            if hidden:
+                low_ar_bonus *= 2
+            ar_bonus += low_ar_bonus
+
+        hidden_bonus = 1.18 if hidden else 1
+        flashlight_bonus = 1.45 * length_bonus if flashlight else 1
+        od_bonus = 0.98 + od ** 2 / 2500
+
+        aim_score = (
+            self._base_strain(self.aim_stars) *
+            length_bonus *
+            miss_penalty *
+            combo_break_penalty *
+            ar_bonus *
+            accuracy_bonus *
+            hidden_bonus *
+            flashlight_bonus *
+            od_bonus
+        )
+
+        speed_score = (
+            self._base_strain(self.speed_stars) *
+            length_bonus *
+            miss_penalty *
+            combo_break_penalty *
+            accuracy_bonus *
+            od_bonus
+        )
+
+        if version == 2:
+            count_circles = count_hit_objects
+            real_accuracy = accuracy
+        else:
+            count_circles = len(self.circles)
+            if count_circles:
+                real_accuracy = (
+                    (count_300 - (count_hit_objects - count_circles)) * 300.0 +
+                    count_100 * 100.0 +
+                    count_50 * 50.0
+                ) / (count_circles * 300)
+                real_accuracy = max(real_accuracy, 0)
+            else:
+                real_accuracy = 0
+
+        accuracy_length_bonus = min(1.5, (count_circles / 1000) ** 0.3)
+        accuracy_hidden_bonus = 1.02 if hidden else 1
+        accuracy_flashlight_bonus = 1.02 if flashlight else 1
+
+        accuracy_score = (
+            1.52163 ** od * real_accuracy ** 24.0 * 2.83 *
+            accuracy_length_bonus *
+            accuracy_hidden_bonus *
+            accuracy_flashlight_bonus
+        )
+
+        final_multiplier = 1.12
+        if no_fail:
+            final_multiplier *= 0.9
+        if spun_out:
+            final_multiplier *= 0.95
+
+        return (
+            (aim_score ** 1.1) +
+            (speed_score ** 1.1) +
+            (accuracy_score ** 1.1)
+        ) ** (1 / 1.1) * final_multiplier

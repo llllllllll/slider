@@ -1,12 +1,12 @@
 import datetime
 from enum import unique
 import lzma
-from struct import unpack
 
 from .bit_enum import BitEnum
 from .game_mode import GameMode
 from .mod import Mod
 from .position import Position
+from .utils import accuracy, lazyval
 
 
 @unique
@@ -93,6 +93,7 @@ def _consume_uleb128(buffer):
 
     return result
 
+
 def _consume_string(buffer):
     mode = _consume_byte(buffer)
     if mode == 0:
@@ -142,6 +143,7 @@ def _consume_actions(buffer):
             action_mask['k1'],
             action_mask['k2'],
         ))
+
 
 class Replay:
     """An osu! replay.
@@ -348,25 +350,21 @@ class Replay:
         self.actions = actions
         self.beatmap = beatmap
 
-    @property
+    @lazyval
     def accuracy(self):
+        """The accuracy achieved in the replay in the range [0, 1].
+        """
         if self.mode != GameMode.standard:
             raise NotImplementedError(
                 'accuracy for non osu!standard replays is not yet supported',
             )
 
-        points_of_hits = (
-            self.count_300 * 300 +
-            self.count_100 * 100 +
-            self.count_50 * 50
+        return accuracy(
+            self.count_300,
+            self.count_100,
+            self.count_50,
+            self.count_miss,
         )
-        total_hits = (
-            self.count_300 +
-            self.count_100 +
-            self.count_50 +
-            self.count_miss
-        )
-        return points_of_hits / (total_hits * 300)
 
     @classmethod
     def from_path(cls, path, library=None):

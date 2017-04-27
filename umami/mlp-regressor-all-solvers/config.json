@@ -1,7 +1,6 @@
 {
-    "language"        : "PYTHON",
     "main-file"       : "run_task.py",
-    "experiment-name" : "mlp-regressor-all-solvers",
+    "name"            : "mlp-regressor-all-solvers",
     "likelihood"      : "GAUSSIAN",
     "variables" : {
         "alpha" : {
