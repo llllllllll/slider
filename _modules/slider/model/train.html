@@ -157,7 +157,9 @@
            <div itemprop="articleBody">
             
   <h1>Source code for slider.model.train</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+
 
 <span class="kn">from</span> <span class="nn">.features</span> <span class="k">import</span> <span class="n">extract_from_replay_directory</span>
 <span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">Model</span>
@@ -184,10 +186,9 @@
 <span class="sd">        be added by re-fitting the new replays.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">()</span>
 
-    <span class="n">m</span> <span class="o">=</span> <span class="n">model</span><span class="p">()</span>
-    <span class="n">m</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">beatmap_features</span><span class="p">,</span> <span class="n">accuracies</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">beatmap_features</span><span class="p">,</span> <span class="n">accuracies</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">model</span></div>
 
 
@@ -265,7 +266,6 @@
         <span class="n">path</span><span class="p">,</span>
         <span class="n">library</span><span class="p">,</span>
         <span class="n">age</span><span class="o">=</span><span class="n">age</span><span class="p">,</span>
-        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">train_features</span><span class="p">,</span> <span class="n">test_features</span><span class="p">,</span> <span class="n">train_acc</span><span class="p">,</span> <span class="n">test_acc</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
         <span class="n">features</span><span class="p">,</span>
@@ -274,8 +274,8 @@
         <span class="n">train_size</span><span class="o">=</span><span class="n">train_size</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">model</span> <span class="o">=</span> <span class="n">train_model</span><span class="p">(</span><span class="n">train_features</span><span class="p">,</span> <span class="n">train_acc</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_features</span><span class="p">),</span> <span class="n">test_acc</span></div>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">train_model</span><span class="p">(</span><span class="n">train_features</span><span class="p">,</span> <span class="n">train_acc</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_features</span><span class="p">),</span> <span class="n">test_acc</span></div>
 </pre></div>
 
            </div>

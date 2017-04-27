@@ -158,12 +158,25 @@
             
   <h1>Source code for slider.beatmap</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+<span class="kn">import</span> <span class="nn">operator</span> <span class="k">as</span> <span class="nn">op</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">zipfile</span> <span class="k">import</span> <span class="n">ZipFile</span>
 
 <span class="kn">from</span> <span class="nn">.game_mode</span> <span class="k">import</span> <span class="n">GameMode</span>
+<span class="kn">from</span> <span class="nn">.mod</span> <span class="k">import</span> <span class="n">ar_to_ms</span><span class="p">,</span> <span class="n">ms_to_ar</span><span class="p">,</span> <span class="n">circle_radius</span>
 <span class="kn">from</span> <span class="nn">.position</span> <span class="k">import</span> <span class="n">Position</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">accuracy</span> <span class="k">as</span> <span class="n">calculate_accuracy</span><span class="p">,</span> <span class="n">lazyval</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="k">except</span> <span class="n">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">log10</span><span class="p">,</span> <span class="n">ceil</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span>
+    <span class="nb">min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span>
+    <span class="n">log10</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span>
+    <span class="n">ceil</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span>
 
 
 <span class="k">class</span> <span class="nc">_no_default</span><span class="p">:</span>
@@ -190,7 +203,6 @@
         <span class="k">return</span> <span class="n">default</span>
 
 
-
 <span class="k">class</span> <span class="nc">TimingPoint</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A timing point assigns properties to an offset into a beatmap.</span>
 
@@ -208,12 +220,13 @@
 <span class="sd">        The set of hit sound samples that are used.</span>
 <span class="sd">    volume : int</span>
 <span class="sd">        The volume of hit sounds in the range [0, 100].</span>
-<span class="sd">    inherited : bool</span>
-<span class="sd">        Is this an inherited timing point? An inherited timing point differs</span>
-<span class="sd">        from a Timing point in that the ms_per_beat value is negative, and</span>
-<span class="sd">        defines a new ms_per_beat based on the last non-inherited timing point.</span>
-<span class="sd">        This can be used to change volume without affecting offset timing, or</span>
-<span class="sd">        changing slider speeds.</span>
+<span class="sd">    parent : TimingPoint or None</span>
+<span class="sd">        The parent of an inherited timing point. An inherited timing point</span>
+<span class="sd">        differs from a normal timing point in that the ``ms_per_beat`` value is</span>
+<span class="sd">        negative, and defines a new ``ms_per_beat`` based on the parent</span>
+<span class="sd">        timing point. This can be used to change volume without affecting</span>
+<span class="sd">        offset timing, or changing slider speeds. If this is not an inherited</span>
+<span class="sd">        timing point the parent should be ``None``.</span>
 <span class="sd">    kiai_mode : bool</span>
 <span class="sd">        Wheter or not kiai time effects are active.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -224,7 +237,7 @@
                  <span class="n">sample_type</span><span class="p">,</span>
                  <span class="n">sample_set</span><span class="p">,</span>
                  <span class="n">volume</span><span class="p">,</span>
-                 <span class="n">inherited</span><span class="p">,</span>
+                 <span class="n">parent</span><span class="p">,</span>
                  <span class="n">kiai_mode</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">volume</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -236,10 +249,41 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sample_type</span> <span class="o">=</span> <span class="n">sample_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sample_set</span> <span class="o">=</span> <span class="n">sample_set</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">=</span> <span class="n">volume</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">inherited</span> <span class="o">=</span> <span class="n">inherited</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kiai_mode</span> <span class="o">=</span> <span class="n">kiai_mode</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">half_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ``TimingPoint`` as it would appear with</span>
+<span class="sd">        :data:`~slider.mod.Mod.half_time` enabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+            <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ms_per_beat</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inherited</span> <span class="k">else</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms_per_beat</span> <span class="o">/</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">meter</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sample_type</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sample_set</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">volume</span><span class="p">,</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="s1">&#39;half_time&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">kiai_mode</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">double_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ``TimingPoint`` as it would appear with</span>
+<span class="sd">        :data:`~slider.mod.Mod.double_time` enabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ms_per_beat</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inherited</span> <span class="k">else</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms_per_beat</span> <span class="o">/</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">meter</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sample_type</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sample_set</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">volume</span><span class="p">,</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="s1">&#39;double_time&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">kiai_mode</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">bpm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The bpm of this timing point.</span>
 
@@ -257,13 +301,15 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Parse a TimingPoint object from a line in a ``.osu`` file.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        data : str</span>
 <span class="sd">            The line to parse.</span>
+<span class="sd">        parent : TimingPoint</span>
+<span class="sd">            The last non-inherited timing point.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -337,7 +383,7 @@
             <span class="n">sample_type</span><span class="o">=</span><span class="n">sample_type</span><span class="p">,</span>
             <span class="n">sample_set</span><span class="o">=</span><span class="n">sample_set</span><span class="p">,</span>
             <span class="n">volume</span><span class="o">=</span><span class="n">volume</span><span class="p">,</span>
-            <span class="n">inherited</span><span class="o">=</span><span class="n">inherited</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span> <span class="k">if</span> <span class="n">inherited</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">kiai_mode</span><span class="o">=</span><span class="n">kiai_mode</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -368,14 +414,51 @@
             <span class="n">f</span><span class="s1">&#39; {self.time.total_seconds() * 1000:g}ms&gt;&#39;</span>
         <span class="p">)</span>
 
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">half_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ``HitObject`` as it would appear with</span>
+<span class="sd">        :data:`~slider.mod.Mod.half_time` enabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">end_time</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">end_time</span> <span class="o">/</span> <span class="mi">3</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">double_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ``HitObject`` as it would appear with</span>
+<span class="sd">        :data:`~slider.mod.Mod.double_time` enabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">end_time</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">end_time</span> <span class="o">/</span> <span class="mi">3</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="HitObject.parse"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.HitObject.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="HitObject.parse"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.HitObject.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">timing_points</span><span class="p">,</span> <span class="n">slider_multiplier</span><span class="p">,</span> <span class="n">slider_tick_rate</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Parse a HitObject object from a line in a ``.osu`` file.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        data : str</span>
 <span class="sd">            The line to parse.</span>
+<span class="sd">        timing_points : list[TimingPoint]</span>
+<span class="sd">            The timing points in the map.</span>
+<span class="sd">        slider_multiplier : float</span>
+<span class="sd">            The slider multiplier for computing slider end_time and ticks.</span>
+<span class="sd">        slider_tick_rate : float</span>
+<span class="sd">            The slider tick rate for computing slider end_time and ticks.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -419,17 +502,22 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;hitsound should be an int, got </span><span class="si">{hitsound!r}</span><span class="s1">&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">type_</span> <span class="o">&amp;</span> <span class="n">Circle</span><span class="o">.</span><span class="n">type_code</span><span class="p">:</span>
-            <span class="n">type_ob</span> <span class="o">=</span> <span class="n">Circle</span>
+            <span class="n">parse</span> <span class="o">=</span> <span class="n">Circle</span><span class="o">.</span><span class="n">_parse</span>
         <span class="k">elif</span> <span class="n">type_</span> <span class="o">&amp;</span> <span class="n">Slider</span><span class="o">.</span><span class="n">type_code</span><span class="p">:</span>
-            <span class="n">type_ob</span> <span class="o">=</span> <span class="n">Slider</span>
+            <span class="n">parse</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+                <span class="n">Slider</span><span class="o">.</span><span class="n">_parse</span><span class="p">,</span>
+                <span class="n">timing_points</span><span class="o">=</span><span class="n">timing_points</span><span class="p">,</span>
+                <span class="n">slider_multiplier</span><span class="o">=</span><span class="n">slider_multiplier</span><span class="p">,</span>
+                <span class="n">slider_tick_rate</span><span class="o">=</span><span class="n">slider_tick_rate</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">elif</span> <span class="n">type_</span> <span class="o">&amp;</span> <span class="n">Spinner</span><span class="o">.</span><span class="n">type_code</span><span class="p">:</span>
-            <span class="n">type_ob</span> <span class="o">=</span> <span class="n">Spinner</span>
+            <span class="n">parse</span> <span class="o">=</span> <span class="n">Spinner</span><span class="o">.</span><span class="n">_parse</span>
         <span class="k">elif</span> <span class="n">type_</span> <span class="o">&amp;</span> <span class="n">HoldNote</span><span class="o">.</span><span class="n">type_code</span><span class="p">:</span>
-            <span class="n">type_ob</span> <span class="o">=</span> <span class="n">HoldNote</span>
+            <span class="n">parse</span> <span class="o">=</span> <span class="n">HoldNote</span><span class="o">.</span><span class="n">_parse</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;unknown type code </span><span class="si">{type_!r}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">type_ob</span><span class="o">.</span><span class="n">_parse</span><span class="p">(</span><span class="n">Position</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">rest</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">parse</span><span class="p">(</span><span class="n">Position</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">rest</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Circle"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Circle">[docs]</a><span class="k">class</span> <span class="nc">Circle</span><span class="p">(</span><span class="n">HitObject</span><span class="p">):</span>
@@ -502,16 +590,20 @@
 <span class="sd">    ----------</span>
 <span class="sd">    position : Position</span>
 <span class="sd">        Where this slider appears on the screen.</span>
-<span class="sd">    time : int</span>
+<span class="sd">    time : datetime.timedelta</span>
 <span class="sd">        When this slider appears in the map.</span>
+<span class="sd">    end_time : datetime.timedelta</span>
+<span class="sd">        When this slider ends in the map</span>
 <span class="sd">    hitsound : int</span>
-<span class="sd">        The sound played on the tickss of the slider.</span>
+<span class="sd">        The sound played on the ticks of the slider.</span>
 <span class="sd">    slider_type : {&#39;L&#39;, &#39;B&#39;, &#39;P&#39;, &#39;C&#39;}</span>
 <span class="sd">        The type of slider. Linear, Bezier, Perfect, and Catmull.</span>
 <span class="sd">    points : iterable[Position]</span>
 <span class="sd">        The points that this slider travels through.</span>
 <span class="sd">    length : int</span>
 <span class="sd">        The length of this slider in osu! pixels.</span>
+<span class="sd">    ticks : int</span>
+<span class="sd">        The number of slider ticks including the head and tail of the slider.</span>
 <span class="sd">    edge_sounds : list[int]</span>
 <span class="sd">        A list of hitsounds for each edge.</span>
 <span class="sd">    edge_additions : list[str]</span>
@@ -524,11 +616,13 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">position</span><span class="p">,</span>
                  <span class="n">time</span><span class="p">,</span>
+                 <span class="n">end_time</span><span class="p">,</span>
                  <span class="n">hitsound</span><span class="p">,</span>
                  <span class="n">slider_type</span><span class="p">,</span>
                  <span class="n">points</span><span class="p">,</span>
                  <span class="n">repeat</span><span class="p">,</span>
                  <span class="n">length</span><span class="p">,</span>
+                 <span class="n">ticks</span><span class="p">,</span>
                  <span class="n">edge_sounds</span><span class="p">,</span>
                  <span class="n">edge_additions</span><span class="p">,</span>
                  <span class="n">addition</span><span class="o">=</span><span class="s1">&#39;0:0:0:0&#39;</span><span class="p">):</span>
@@ -539,15 +633,24 @@
             <span class="p">)</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">addition</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span> <span class="o">=</span> <span class="n">end_time</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">slider_type</span> <span class="o">=</span> <span class="n">slider_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">points</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">repeat</span> <span class="o">=</span> <span class="n">repeat</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span> <span class="o">=</span> <span class="n">ticks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">edge_sounds</span> <span class="o">=</span> <span class="n">edge_sounds</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">edge_additions</span> <span class="o">=</span> <span class="n">edge_additions</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">hitsound</span><span class="p">,</span> <span class="n">rest</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+               <span class="n">position</span><span class="p">,</span>
+               <span class="n">time</span><span class="p">,</span>
+               <span class="n">hitsound</span><span class="p">,</span>
+               <span class="n">rest</span><span class="p">,</span>
+               <span class="n">timing_points</span><span class="p">,</span>
+               <span class="n">slider_multiplier</span><span class="p">,</span>
+               <span class="n">slider_tick_rate</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">group_1</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">rest</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
@@ -634,14 +737,39 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;extra data: </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
 
+        <span class="k">for</span> <span class="n">tp</span> <span class="ow">in</span> <span class="n">timing_points</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;</span> <span class="n">time</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tp</span> <span class="o">=</span> <span class="n">timing_points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">velocity_multiplier</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span> <span class="o">/</span> <span class="n">tp</span><span class="o">.</span><span class="n">ms_per_beat</span>
+            <span class="n">ms_per_beat</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">ms_per_beat</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">velocity_multiplier</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">ms_per_beat</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">ms_per_beat</span>
+
+        <span class="n">pixels_per_beat</span> <span class="o">=</span> <span class="n">slider_multiplier</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">velocity_multiplier</span>
+        <span class="n">num_beats</span> <span class="o">=</span> <span class="p">(</span><span class="n">pixel_length</span> <span class="o">*</span> <span class="n">repeat</span><span class="p">)</span> <span class="o">/</span> <span class="n">pixels_per_beat</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_beats</span> <span class="o">*</span> <span class="n">ms_per_beat</span><span class="p">))</span>
+
+        <span class="n">ticks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="p">((</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_beats</span> <span class="o">/</span> <span class="n">repeat</span> <span class="o">*</span> <span class="n">slider_tick_rate</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">repeat</span><span class="p">)</span> <span class="o">+</span>
+            <span class="n">repeat</span> <span class="o">+</span>
+            <span class="mi">1</span>
+        <span class="p">)</span>
+
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">position</span><span class="p">,</span>
             <span class="n">time</span><span class="p">,</span>
+            <span class="n">time</span> <span class="o">+</span> <span class="n">duration</span><span class="p">,</span>
             <span class="n">hitsound</span><span class="p">,</span>
             <span class="n">slider_type</span><span class="p">,</span>
             <span class="n">points</span><span class="p">,</span>
             <span class="n">repeat</span><span class="p">,</span>
             <span class="n">pixel_length</span><span class="p">,</span>
+            <span class="n">ticks</span><span class="p">,</span>
             <span class="n">edge_sounds</span><span class="p">,</span>
             <span class="n">edge_additions</span><span class="p">,</span>
             <span class="o">*</span><span class="n">rest</span><span class="p">,</span>
@@ -997,47 +1125,69 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="o">=</span> <span class="n">timing_points</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span> <span class="o">=</span> <span class="n">hit_objects</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">bpm_min</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The minimum bpm in this beatmap.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">)))</span>
+        <span class="c1"># use list comprehension for when this is np.min</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bpm</span><span class="p">])</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">bpm_max</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The maximum bpm in this beatmap.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">)))</span>
+        <span class="c1"># use list comprehension for when this is np.max</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bpm</span><span class="p">])</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">hp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Alias for ``hp_drain_rate``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hp_drain_rate</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">cs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Alias for ``circle_size``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">circle_size</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">od</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Alias for ``overall_difficulty``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_difficulty</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">ar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Alias for ``approach_rate``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">approach_rate</span>
 
-    <span class="nd">@property</span>
+    <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">hit_objects_no_spinners</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The hit objects with spinners filtered out.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">Spinner</span><span class="p">))</span>
+
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">circles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Just the circles in the beatmap.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">Circle</span><span class="p">))</span>
+
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">max_combo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The highest combo that can be achieved on this beatmap.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">max_combo</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">hit_object</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hit_object</span><span class="p">,</span> <span class="n">Slider</span><span class="p">):</span>
+                <span class="n">max_combo</span> <span class="o">+=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">ticks</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">max_combo</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">max_combo</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;&lt;{type(self).__qualname__}: </span><span class="si">{self.title}</span><span class="s1"> [</span><span class="si">{self.version}</span><span class="s1">]&gt;&#39;</span>
@@ -1236,6 +1386,31 @@
             <span class="s1">&#39;OverallDifficulty&#39;</span><span class="p">,</span>
         <span class="p">)</span>
 
+        <span class="n">timing_points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># the parent starts as None because the first timing point should</span>
+        <span class="c1"># not be inherited</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">raw_timing_point</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">[</span><span class="s1">&#39;TimingPoints&#39;</span><span class="p">]:</span>
+            <span class="n">timing_point</span> <span class="o">=</span> <span class="n">TimingPoint</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">raw_timing_point</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">timing_point</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># we have a new parent node, pass that along to the new</span>
+                <span class="c1"># timing points</span>
+                <span class="n">parent</span> <span class="o">=</span> <span class="n">timing_point</span>
+            <span class="n">timing_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">timing_point</span><span class="p">)</span>
+
+        <span class="n">slider_multiplier</span> <span class="o">=</span> <span class="n">_get_as_float</span><span class="p">(</span>
+            <span class="n">groups</span><span class="p">,</span>
+            <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;SliderMultiplier&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span>  <span class="c1"># taken from wiki</span>
+        <span class="p">)</span>
+        <span class="n">slider_tick_rate</span> <span class="o">=</span> <span class="n">_get_as_float</span><span class="p">(</span>
+            <span class="n">groups</span><span class="p">,</span>
+            <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;SliderTickRate&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># taken from wiki</span>
+        <span class="p">)</span>
+
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">format_version</span><span class="o">=</span><span class="n">format_version</span><span class="p">,</span>
             <span class="n">audio_filename</span><span class="o">=</span><span class="n">_get_as_str</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="s1">&#39;General&#39;</span><span class="p">,</span> <span class="s1">&#39;AudioFilename&#39;</span><span class="p">),</span>
@@ -1323,21 +1498,313 @@
                 <span class="c1"># old maps didn&#39;t have an AR so the OD is used as a default</span>
                 <span class="n">default</span><span class="o">=</span><span class="n">od</span><span class="p">,</span>
             <span class="p">),</span>
-            <span class="n">slider_multiplier</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span>
-                <span class="n">groups</span><span class="p">,</span>
-                <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;SliderMultiplier&#39;</span><span class="p">,</span>
-                <span class="n">default</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span>  <span class="c1"># taken from wiki</span>
+            <span class="n">slider_multiplier</span><span class="o">=</span><span class="n">slider_multiplier</span><span class="p">,</span>
+            <span class="n">slider_tick_rate</span><span class="o">=</span><span class="n">slider_tick_rate</span><span class="p">,</span>
+            <span class="n">timing_points</span><span class="o">=</span><span class="n">timing_points</span><span class="p">,</span>
+            <span class="n">hit_objects</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+                <span class="n">partial</span><span class="p">(</span>
+                    <span class="n">HitObject</span><span class="o">.</span><span class="n">parse</span><span class="p">,</span>
+                    <span class="n">timing_points</span><span class="o">=</span><span class="n">timing_points</span><span class="p">,</span>
+                    <span class="n">slider_multiplier</span><span class="o">=</span><span class="n">slider_multiplier</span><span class="p">,</span>
+                    <span class="n">slider_tick_rate</span><span class="o">=</span><span class="n">slider_tick_rate</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">groups</span><span class="p">[</span><span class="s1">&#39;HitObjects&#39;</span><span class="p">],</span>
+            <span class="p">)),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Beatmap.timing_point_at"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.timing_point_at">[docs]</a>    <span class="k">def</span> <span class="nf">timing_point_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the :class:`slider.beatmap.TimingPoint` at the given time.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        time : datetime.timedelta</span>
+<span class="sd">            The time to lookup the :class:`slider.beatmap.TimingPoint` for.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        timing_point : TimingPoint</span>
+<span class="sd">            The :class:`slider.beatmap.TimingPoint` at the given time.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">tp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;</span> <span class="n">time</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tp</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_base_strain</span><span class="p">(</span><span class="n">strain</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Scale up the base attribute</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">((</span><span class="mi">5</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">strain</span> <span class="o">/</span> <span class="mf">0.0675</span><span class="p">)</span> <span class="o">-</span> <span class="mi">4</span><span class="p">)</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100000</span>
+
+    <span class="k">def</span> <span class="nf">_star_calc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># radius = circle_radius(self.cs)</span>
+
+        <span class="c1"># hit_objects = iter(self.hit_objects)</span>
+        <span class="c1"># previous = next(hit_objects)</span>
+        <span class="c1"># for hit_object in hit_objects:</span>
+        <span class="c1">#     ...</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_star_calc&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_round_hitcounts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">accuracy</span><span class="p">,</span> <span class="n">count_miss</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Round the accuracy to the nearest hit counts.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        accuracy : float</span>
+<span class="sd">            The accuracy to round in the range [0, 1]</span>
+<span class="sd">        count_miss : int, optional</span>
+<span class="sd">            The number of misses to fix.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        count_300 : int</span>
+<span class="sd">            The number of 300s.</span>
+<span class="sd">        count_100 : int</span>
+<span class="sd">            The number of 100s.</span>
+<span class="sd">        count_50 : int</span>
+<span class="sd">            The number of 50s.</span>
+<span class="sd">        count_miss : int</span>
+<span class="sd">            The number of misses.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">max_300</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">-</span> <span class="n">count_miss</span>
+
+        <span class="n">accuracy</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="mf">0.0</span><span class="p">,</span>
+            <span class="nb">min</span><span class="p">(</span>
+                <span class="n">calculate_accuracy</span><span class="p">(</span><span class="n">max_300</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">count_miss</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">,</span>
+                <span class="n">accuracy</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span>
             <span class="p">),</span>
-            <span class="n">slider_tick_rate</span><span class="o">=</span><span class="n">_get_as_float</span><span class="p">(</span>
-                <span class="n">groups</span><span class="p">,</span>
-                <span class="s1">&#39;Difficulty&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;SliderTickRate&#39;</span><span class="p">,</span>
-                <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># taken from wiki</span>
-            <span class="p">),</span>
-            <span class="n">timing_points</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">TimingPoint</span><span class="o">.</span><span class="n">parse</span><span class="p">,</span> <span class="n">groups</span><span class="p">[</span><span class="s1">&#39;TimingPoints&#39;</span><span class="p">])),</span>
-            <span class="n">hit_objects</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">HitObject</span><span class="o">.</span><span class="n">parse</span><span class="p">,</span> <span class="n">groups</span><span class="p">[</span><span class="s1">&#39;HitObjects&#39;</span><span class="p">])),</span>
-        <span class="p">)</span></div></div>
+        <span class="p">)</span>
+
+        <span class="n">count_50</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">count_100</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span>
+            <span class="o">-</span><span class="mf">3.0</span> <span class="o">*</span>
+            <span class="p">((</span><span class="n">accuracy</span> <span class="o">*</span> <span class="mf">0.01</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">+</span> <span class="n">count_miss</span><span class="p">)</span> <span class="o">*</span>
+            <span class="mf">0.5</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">count_100</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">-</span> <span class="n">count_miss</span><span class="p">:</span>
+            <span class="c1"># accuracy lower than all 100s, use 50s</span>
+            <span class="n">count_100</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">count_50</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span>
+                <span class="o">-</span><span class="mf">6.0</span> <span class="o">*</span>
+                <span class="p">((</span><span class="n">accuracy</span> <span class="o">*</span> <span class="mf">0.01</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">+</span>
+                 <span class="n">count_miss</span><span class="p">)</span> <span class="o">*</span>
+                <span class="mf">0.2</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">count_50</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_300</span><span class="p">,</span> <span class="n">count_50</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">count_100</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_300</span><span class="p">,</span> <span class="n">count_100</span><span class="p">)</span>
+
+        <span class="n">count_300</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">-</span>
+            <span class="n">count_100</span> <span class="o">-</span>
+            <span class="n">count_50</span> <span class="o">-</span>
+            <span class="n">count_miss</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">count_300</span><span class="p">,</span> <span class="n">count_100</span><span class="p">,</span> <span class="n">count_50</span><span class="p">,</span> <span class="n">count_miss</span>
+
+<div class="viewcode-block" id="Beatmap.performance_points"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.performance_points">[docs]</a>    <span class="k">def</span> <span class="nf">performance_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="o">*</span><span class="p">,</span>
+                           <span class="n">combo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">accuracy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">count_300</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">count_100</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">count_50</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">count_miss</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                           <span class="n">no_fail</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">easy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">hidden</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">flashlight</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">spun_out</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">version</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the performance points for the given map.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        combo : int, optional</span>
+<span class="sd">            The combo achieved on the map. Defaults to max combo.</span>
+<span class="sd">        accuracy : float, optional</span>
+<span class="sd">            The accuracy achieved in the range [0, 1]. If not provided</span>
+<span class="sd">            and none of ``count_300``, ``count_100``, or ``count_50``</span>
+<span class="sd">            provided then the this defaults to 100%</span>
+<span class="sd">        count_300 : int, optional</span>
+<span class="sd">            The number of 300s hit.</span>
+<span class="sd">        count_100 : int, optional</span>
+<span class="sd">            The number of 100s hit.</span>
+<span class="sd">        count_50 : int, optional</span>
+<span class="sd">            The number of 50s hit.</span>
+<span class="sd">        count_miss : int, optional</span>
+<span class="sd">            The number of misses.</span>
+<span class="sd">        no_fail : bool, optional</span>
+<span class="sd">            Account for no fail mod.</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            Account for the easy mod.</span>
+<span class="sd">        hidden : bool, optional</span>
+<span class="sd">            Account for the hidden mod.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            Account for the hard rock mod.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Account for the double time mod.</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Account for the half time mod.</span>
+<span class="sd">        flashlight : bool, optional</span>
+<span class="sd">            Account for the flashlight mod.</span>
+<span class="sd">        spun_out : bool, optional</span>
+<span class="sd">            Account for the spun out mod.</span>
+<span class="sd">        version : int, optional</span>
+<span class="sd">            The version of the performance points calculation to use.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pp : float</span>
+<span class="sd">            The performance points awarded for the specified play.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;pp calculation is not done&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;unknown PP version: </span><span class="si">{version}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">combo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">combo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_combo</span>
+
+        <span class="k">if</span> <span class="n">accuracy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">count_300</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span>
+                    <span class="n">count_100</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span>
+                    <span class="n">count_50</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot pass accuracy and hit counts&#39;</span><span class="p">)</span>
+            <span class="c1"># compute the closest hit counts for the accuracy</span>
+            <span class="n">count_300</span><span class="p">,</span> <span class="n">count_100</span><span class="p">,</span> <span class="n">count_50</span><span class="p">,</span> <span class="n">count_miss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_round_hitcounts</span><span class="p">(</span>
+                <span class="n">accuracy</span><span class="p">,</span>
+                <span class="n">count_miss</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="p">(</span><span class="n">count_300</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
+              <span class="n">count_100</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
+              <span class="n">count_50</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">count_300</span><span class="p">,</span> <span class="n">count_100</span><span class="p">,</span> <span class="n">count_50</span><span class="p">,</span> <span class="n">count_miss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_round_hitcounts</span><span class="p">(</span>
+                <span class="n">accuracy</span><span class="p">,</span>
+                <span class="n">count_miss</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">od</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">od</span>
+        <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ar</span>
+
+        <span class="k">if</span> <span class="n">easy</span><span class="p">:</span>
+            <span class="n">od</span> <span class="o">/=</span> <span class="mi">2</span>
+            <span class="n">ar</span> <span class="o">/=</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="n">hard_rock</span><span class="p">:</span>
+            <span class="n">od</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">od</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+            <span class="n">ar</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">ar</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">half_time</span><span class="p">:</span>
+            <span class="n">ar</span> <span class="o">=</span> <span class="n">ms_to_ar</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">ar_to_ms</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">double_time</span><span class="p">:</span>
+            <span class="n">ar</span> <span class="o">=</span> <span class="n">ms_to_ar</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ar_to_ms</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="n">accuracy</span> <span class="o">=</span> <span class="n">calculate_accuracy</span><span class="p">(</span>
+            <span class="n">count_300</span><span class="p">,</span>
+            <span class="n">count_100</span><span class="p">,</span>
+            <span class="n">count_50</span><span class="p">,</span>
+            <span class="n">count_miss</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="n">accuracy_bonus</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="n">accuracy</span> <span class="o">/</span> <span class="mi">2</span>
+
+        <span class="n">count_hit_objects</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span>
+        <span class="n">count_hit_objects_over_2000</span> <span class="o">=</span> <span class="n">count_hit_objects</span> <span class="o">/</span> <span class="mi">2000</span>
+        <span class="n">length_bonus</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mf">0.95</span> <span class="o">+</span>
+            <span class="mf">0.4</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">count_hit_objects_over_2000</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
+                <span class="n">log10</span><span class="p">(</span><span class="n">count_hit_objects_over_2000</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+                <span class="k">if</span> <span class="n">count_hit_objects</span> <span class="o">&gt;</span> <span class="mi">2000</span> <span class="k">else</span>
+                <span class="mi">0</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">miss_penalty</span> <span class="o">=</span> <span class="mf">0.97</span> <span class="o">**</span> <span class="n">count_miss</span>
+
+        <span class="n">combo_break_penalty</span> <span class="o">=</span> <span class="n">combo</span> <span class="o">**</span> <span class="mf">0.8</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_combo</span> <span class="o">**</span> <span class="mf">0.8</span>
+
+        <span class="n">ar_bonus</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">ar</span> <span class="o">&gt;</span> <span class="mf">10.33</span><span class="p">:</span>
+            <span class="c1"># high ar bonus</span>
+            <span class="n">ar_bonus</span> <span class="o">+=</span> <span class="mf">0.45</span> <span class="o">*</span> <span class="p">(</span><span class="n">ar</span> <span class="o">-</span> <span class="mf">10.33</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ar</span> <span class="o">&lt;</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="c1"># low ar bonus</span>
+            <span class="n">low_ar_bonus</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="p">(</span><span class="mf">8.0</span> <span class="o">-</span> <span class="n">ar</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">hidden</span><span class="p">:</span>
+                <span class="n">low_ar_bonus</span> <span class="o">*=</span> <span class="mi">2</span>
+            <span class="n">ar_bonus</span> <span class="o">+=</span> <span class="n">low_ar_bonus</span>
+
+        <span class="n">hidden_bonus</span> <span class="o">=</span> <span class="mf">1.18</span> <span class="k">if</span> <span class="n">hidden</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">flashlight_bonus</span> <span class="o">=</span> <span class="mf">1.45</span> <span class="o">*</span> <span class="n">length_bonus</span> <span class="k">if</span> <span class="n">flashlight</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">od_bonus</span> <span class="o">=</span> <span class="mf">0.98</span> <span class="o">+</span> <span class="n">od</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">2500</span>
+
+        <span class="n">aim_score</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_base_strain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aim_stars</span><span class="p">)</span> <span class="o">*</span>
+            <span class="n">length_bonus</span> <span class="o">*</span>
+            <span class="n">miss_penalty</span> <span class="o">*</span>
+            <span class="n">combo_break_penalty</span> <span class="o">*</span>
+            <span class="n">ar_bonus</span> <span class="o">*</span>
+            <span class="n">accuracy_bonus</span> <span class="o">*</span>
+            <span class="n">hidden_bonus</span> <span class="o">*</span>
+            <span class="n">flashlight_bonus</span> <span class="o">*</span>
+            <span class="n">od_bonus</span>
+        <span class="p">)</span>
+
+        <span class="n">speed_score</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_base_strain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">speed_stars</span><span class="p">)</span> <span class="o">*</span>
+            <span class="n">length_bonus</span> <span class="o">*</span>
+            <span class="n">miss_penalty</span> <span class="o">*</span>
+            <span class="n">combo_break_penalty</span> <span class="o">*</span>
+            <span class="n">accuracy_bonus</span> <span class="o">*</span>
+            <span class="n">od_bonus</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">count_circles</span> <span class="o">=</span> <span class="n">count_hit_objects</span>
+            <span class="n">real_accuracy</span> <span class="o">=</span> <span class="n">accuracy</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">count_circles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">circles</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">count_circles</span><span class="p">:</span>
+                <span class="n">real_accuracy</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="n">count_300</span> <span class="o">-</span> <span class="p">(</span><span class="n">count_hit_objects</span> <span class="o">-</span> <span class="n">count_circles</span><span class="p">))</span> <span class="o">*</span> <span class="mf">300.0</span> <span class="o">+</span>
+                    <span class="n">count_100</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">+</span>
+                    <span class="n">count_50</span> <span class="o">*</span> <span class="mf">50.0</span>
+                <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">count_circles</span> <span class="o">*</span> <span class="mi">300</span><span class="p">)</span>
+                <span class="n">real_accuracy</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">real_accuracy</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">real_accuracy</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">accuracy_length_bonus</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="p">(</span><span class="n">count_circles</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.3</span><span class="p">)</span>
+        <span class="n">accuracy_hidden_bonus</span> <span class="o">=</span> <span class="mf">1.02</span> <span class="k">if</span> <span class="n">hidden</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">accuracy_flashlight_bonus</span> <span class="o">=</span> <span class="mf">1.02</span> <span class="k">if</span> <span class="n">flashlight</span> <span class="k">else</span> <span class="mi">1</span>
+
+        <span class="n">accuracy_score</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mf">1.52163</span> <span class="o">**</span> <span class="n">od</span> <span class="o">*</span> <span class="n">real_accuracy</span> <span class="o">**</span> <span class="mf">24.0</span> <span class="o">*</span> <span class="mf">2.83</span> <span class="o">*</span>
+            <span class="n">accuracy_length_bonus</span> <span class="o">*</span>
+            <span class="n">accuracy_hidden_bonus</span> <span class="o">*</span>
+            <span class="n">accuracy_flashlight_bonus</span>
+        <span class="p">)</span>
+
+        <span class="n">final_multiplier</span> <span class="o">=</span> <span class="mf">1.12</span>
+        <span class="k">if</span> <span class="n">no_fail</span><span class="p">:</span>
+            <span class="n">final_multiplier</span> <span class="o">*=</span> <span class="mf">0.9</span>
+        <span class="k">if</span> <span class="n">spun_out</span><span class="p">:</span>
+            <span class="n">final_multiplier</span> <span class="o">*=</span> <span class="mf">0.95</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">aim_score</span> <span class="o">**</span> <span class="mf">1.1</span><span class="p">)</span> <span class="o">+</span>
+            <span class="p">(</span><span class="n">speed_score</span> <span class="o">**</span> <span class="mf">1.1</span><span class="p">)</span> <span class="o">+</span>
+            <span class="p">(</span><span class="n">accuracy_score</span> <span class="o">**</span> <span class="mf">1.1</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">1.1</span><span class="p">)</span> <span class="o">*</span> <span class="n">final_multiplier</span></div></div>
 </pre></div>
 
            </div>

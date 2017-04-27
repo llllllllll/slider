@@ -322,30 +322,6 @@ file.</p>
 </table>
 <p class="rubric">Notes</p>
 <p>This is currently missing the storyboard data.</p>
-<dl class="attribute">
-<dt id="slider.beatmap.Beatmap.ar">
-<code class="descname">ar</code><a class="headerlink" href="#slider.beatmap.Beatmap.ar" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for <code class="docutils literal"><span class="pre">approach_rate</span></code>.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="slider.beatmap.Beatmap.bpm_max">
-<code class="descname">bpm_max</code><a class="headerlink" href="#slider.beatmap.Beatmap.bpm_max" title="Permalink to this definition">¶</a></dt>
-<dd><p>The maximum bpm in this beatmap.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="slider.beatmap.Beatmap.bpm_min">
-<code class="descname">bpm_min</code><a class="headerlink" href="#slider.beatmap.Beatmap.bpm_min" title="Permalink to this definition">¶</a></dt>
-<dd><p>The minimum bpm in this beatmap.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="slider.beatmap.Beatmap.cs">
-<code class="descname">cs</code><a class="headerlink" href="#slider.beatmap.Beatmap.cs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for <code class="docutils literal"><span class="pre">circle_size</span></code>.</p>
-</dd></dl>
-
 <dl class="classmethod">
 <dt id="slider.beatmap.Beatmap.from_file">
 <em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.from_file" title="Permalink to this definition">¶</a></dt>
@@ -466,24 +442,6 @@ file.</p>
 </table>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="slider.beatmap.Beatmap.hit_objects_no_spinners">
-<code class="descname">hit_objects_no_spinners</code><a class="headerlink" href="#slider.beatmap.Beatmap.hit_objects_no_spinners" title="Permalink to this definition">¶</a></dt>
-<dd><p>The hit objects with spinners filtered out.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="slider.beatmap.Beatmap.hp">
-<code class="descname">hp</code><a class="headerlink" href="#slider.beatmap.Beatmap.hp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for <code class="docutils literal"><span class="pre">hp_drain_rate</span></code>.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="slider.beatmap.Beatmap.od">
-<code class="descname">od</code><a class="headerlink" href="#slider.beatmap.Beatmap.od" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for <code class="docutils literal"><span class="pre">overall_difficulty</span></code>.</p>
-</dd></dl>
-
 <dl class="classmethod">
 <dt id="slider.beatmap.Beatmap.parse">
 <em class="property">classmethod </em><code class="descname">parse</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.parse" title="Permalink to this definition">¶</a></dt>
@@ -507,6 +465,112 @@ file.</p>
 <tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>ValueError</strong></p>
 <blockquote class="last">
 <div><p>Raised when the data cannot be parsed in the <code class="docutils literal"><span class="pre">.osu</span></code> format.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="slider.beatmap.Beatmap.performance_points">
+<code class="descname">performance_points</code><span class="sig-paren">(</span><em>*</em>, <em>combo=None</em>, <em>accuracy=None</em>, <em>count_300=None</em>, <em>count_100=None</em>, <em>count_50=None</em>, <em>count_miss=0</em>, <em>no_fail=False</em>, <em>easy=False</em>, <em>hidden=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em>, <em>flashlight=False</em>, <em>spun_out=False</em>, <em>version=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.performance_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.performance_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the performance points for the given map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>combo</strong> : int, optional</p>
+<blockquote>
+<div><p>The combo achieved on the map. Defaults to max combo.</p>
+</div></blockquote>
+<p><strong>accuracy</strong> : float, optional</p>
+<blockquote>
+<div><p>The accuracy achieved in the range [0, 1]. If not provided
+and none of <code class="docutils literal"><span class="pre">count_300</span></code>, <code class="docutils literal"><span class="pre">count_100</span></code>, or <code class="docutils literal"><span class="pre">count_50</span></code>
+provided then the this defaults to 100%</p>
+</div></blockquote>
+<p><strong>count_300</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of 300s hit.</p>
+</div></blockquote>
+<p><strong>count_100</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of 100s hit.</p>
+</div></blockquote>
+<p><strong>count_50</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of 50s hit.</p>
+</div></blockquote>
+<p><strong>count_miss</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of misses.</p>
+</div></blockquote>
+<p><strong>no_fail</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for no fail mod.</p>
+</div></blockquote>
+<p><strong>easy</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the easy mod.</p>
+</div></blockquote>
+<p><strong>hidden</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the hidden mod.</p>
+</div></blockquote>
+<p><strong>hard_rock</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the hard rock mod.</p>
+</div></blockquote>
+<p><strong>double_time</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the double time mod.</p>
+</div></blockquote>
+<p><strong>half_time</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the half time mod.</p>
+</div></blockquote>
+<p><strong>flashlight</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the flashlight mod.</p>
+</div></blockquote>
+<p><strong>spun_out</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the spun out mod.</p>
+</div></blockquote>
+<p><strong>version</strong> : int, optional</p>
+<blockquote>
+<div><p>The version of the performance points calculation to use.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pp</strong> : float</p>
+<blockquote class="last">
+<div><p>The performance points awarded for the specified play.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="slider.beatmap.Beatmap.timing_point_at">
+<code class="descname">timing_point_at</code><span class="sig-paren">(</span><em>time</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.timing_point_at"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.timing_point_at" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the <code class="xref py py-class docutils literal"><span class="pre">slider.beatmap.TimingPoint</span></code> at the given time.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>time</strong> : datetime.timedelta</p>
+<blockquote>
+<div><p>The time to lookup the <code class="xref py py-class docutils literal"><span class="pre">slider.beatmap.TimingPoint</span></code> for.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>timing_point</strong> : TimingPoint</p>
+<blockquote class="last">
+<div><p>The <code class="xref py py-class docutils literal"><span class="pre">slider.beatmap.TimingPoint</span></code> at the given time.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -546,7 +610,7 @@ file.</p>
 </table>
 <dl class="classmethod">
 <dt id="slider.beatmap.HitObject.parse">
-<em class="property">classmethod </em><code class="descname">parse</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#HitObject.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.HitObject.parse" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">parse</code><span class="sig-paren">(</span><em>data</em>, <em>timing_points</em>, <em>slider_multiplier</em>, <em>slider_tick_rate</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#HitObject.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.HitObject.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse a HitObject object from a line in a <code class="docutils literal"><span class="pre">.osu</span></code> file.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -555,6 +619,18 @@ file.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>data</strong> : str</p>
 <blockquote>
 <div><p>The line to parse.</p>
+</div></blockquote>
+<p><strong>timing_points</strong> : list[TimingPoint]</p>
+<blockquote>
+<div><p>The timing points in the map.</p>
+</div></blockquote>
+<p><strong>slider_multiplier</strong> : float</p>
+<blockquote>
+<div><p>The slider multiplier for computing slider end_time and ticks.</p>
+</div></blockquote>
+<p><strong>slider_tick_rate</strong> : float</p>
+<blockquote>
+<div><p>The slider tick rate for computing slider end_time and ticks.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -601,7 +677,7 @@ the type.</p>
 
 <dl class="class">
 <dt id="slider.beatmap.Slider">
-<em class="property">class </em><code class="descclassname">slider.beatmap.</code><code class="descname">Slider</code><span class="sig-paren">(</span><em>position</em>, <em>time</em>, <em>hitsound</em>, <em>slider_type</em>, <em>points</em>, <em>repeat</em>, <em>length</em>, <em>edge_sounds</em>, <em>edge_additions</em>, <em>addition='0:0:0:0'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Slider"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Slider" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">slider.beatmap.</code><code class="descname">Slider</code><span class="sig-paren">(</span><em>position</em>, <em>time</em>, <em>end_time</em>, <em>hitsound</em>, <em>slider_type</em>, <em>points</em>, <em>repeat</em>, <em>length</em>, <em>ticks</em>, <em>edge_sounds</em>, <em>edge_additions</em>, <em>addition='0:0:0:0'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Slider"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Slider" title="Permalink to this definition">¶</a></dt>
 <dd><p>A slider hit element.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -611,13 +687,17 @@ the type.</p>
 <blockquote>
 <div><p>Where this slider appears on the screen.</p>
 </div></blockquote>
-<p><strong>time</strong> : int</p>
+<p><strong>time</strong> : datetime.timedelta</p>
 <blockquote>
 <div><p>When this slider appears in the map.</p>
 </div></blockquote>
+<p><strong>end_time</strong> : datetime.timedelta</p>
+<blockquote>
+<div><p>When this slider ends in the map</p>
+</div></blockquote>
 <p><strong>hitsound</strong> : int</p>
 <blockquote>
-<div><p>The sound played on the tickss of the slider.</p>
+<div><p>The sound played on the ticks of the slider.</p>
 </div></blockquote>
 <p><strong>slider_type</strong> : {&#8216;L&#8217;, &#8216;B&#8217;, &#8216;P&#8217;, &#8216;C&#8217;}</p>
 <blockquote>
@@ -630,6 +710,10 @@ the type.</p>
 <p><strong>length</strong> : int</p>
 <blockquote>
 <div><p>The length of this slider in osu! pixels.</p>
+</div></blockquote>
+<p><strong>ticks</strong> : int</p>
+<blockquote>
+<div><p>The number of slider ticks including the head and tail of the slider.</p>
 </div></blockquote>
 <p><strong>edge_sounds</strong> : list[int]</p>
 <blockquote>
@@ -1298,9 +1382,69 @@ being hit.</p>
 </div>
 </dd></dl>
 
+<dl class="function">
+<dt id="slider.mod.circle_radius">
+<code class="descclassname">slider.mod.</code><code class="descname">circle_radius</code><span class="sig-paren">(</span><em>cs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/mod.html#circle_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.mod.circle_radius" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the <code class="docutils literal"><span class="pre">CS</span></code> attribute into a circle radius in osu! pixels.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>cs</strong> : float</p>
+<blockquote>
+<div><p>The circle size.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>radius</strong> : float</p>
+<blockquote class="last">
+<div><p>The radius in osu! pixels.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="utilities">
 <h2>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="slider.utils.accuracy">
+<code class="descclassname">slider.utils.</code><code class="descname">accuracy</code><span class="sig-paren">(</span><em>count_300</em>, <em>count_100</em>, <em>count_50</em>, <em>count_miss</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/utils.html#accuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.utils.accuracy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate osu! standard accuracy from discrete hit counts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>count_300</strong> : int</p>
+<blockquote>
+<div><p>The number of 300&#8217;s hit.</p>
+</div></blockquote>
+<p><strong>count_100</strong> : int</p>
+<blockquote>
+<div><p>The number of 100&#8217;s hit.</p>
+</div></blockquote>
+<p><strong>count_50</strong> : int</p>
+<blockquote>
+<div><p>The number of 50&#8217;s hit.</p>
+</div></blockquote>
+<p><strong>count_miss</strong> : int</p>
+<blockquote>
+<div><p>The number of misses</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>accuracy</strong> : float</p>
+<blockquote class="last">
+<div><p>The accuracy in the range [0, 1]</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="class">
 <dt id="slider.position.Position">
 <em class="property">class </em><code class="descclassname">slider.position.</code><code class="descname">Position</code><a class="reference internal" href="_modules/slider/position.html#Position"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.position.Position" title="Permalink to this definition">¶</a></dt>
@@ -1552,7 +1696,7 @@ for this beatmap.</p>
 
 <dl class="class">
 <dt id="slider.model.model.MLPRegressor">
-<em class="property">class </em><code class="descclassname">slider.model.model.</code><code class="descname">MLPRegressor</code><span class="sig-paren">(</span><em>hidden_layer_sizes=(100</em>, <em>)</em>, <em>activation='relu'</em>, <em>solver='adam'</em>, <em>alpha=0.0001</em>, <em>batch_size='auto'</em>, <em>learning_rate='constant'</em>, <em>learning_rate_init=0.001</em>, <em>power_t=0.5</em>, <em>max_iter=200</em>, <em>shuffle=True</em>, <em>random_state=None</em>, <em>tol=0.0001</em>, <em>verbose=False</em>, <em>warm_start=False</em>, <em>momentum=0.9</em>, <em>nesterovs_momentum=True</em>, <em>early_stopping=False</em>, <em>validation_fraction=0.1</em>, <em>beta_1=0.9</em>, <em>beta_2=0.999</em>, <em>epsilon=1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/model.html#MLPRegressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.model.MLPRegressor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">slider.model.model.</code><code class="descname">MLPRegressor</code><span class="sig-paren">(</span><em>alpha=0.009</em>, <em>solver='lbfgs'</em>, <em>activation='tanh'</em>, <em>hidden_layer_sizes=(54</em>, <em>199</em>, <em>66)</em>, <em>max_iter=1000</em>, <em>tol=1e-09</em>, <em>warm_start=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/model.html#MLPRegressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.model.MLPRegressor" title="Permalink to this definition">¶</a></dt>
 <dd><p>An osu! aware MLPRegressor.</p>
 </dd></dl>
 

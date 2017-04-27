@@ -159,6 +159,7 @@
   <h1>Source code for slider.model.model</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">sklearn.neural_network</span> <span class="k">import</span> <span class="n">MLPRegressor</span> <span class="k">as</span> <span class="n">_MLPRegressor</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="k">import</span> <span class="n">StandardScaler</span>
 
 <span class="kn">from</span> <span class="nn">.features</span> <span class="k">import</span> <span class="n">extract_feature_array</span>
 
@@ -191,20 +192,32 @@
 <div class="viewcode-block" id="MLPRegressor"><a class="viewcode-back" href="../../../appendix.html#slider.model.model.MLPRegressor">[docs]</a><span class="k">class</span> <span class="nc">MLPRegressor</span><span class="p">(</span><span class="n">OsuModel</span><span class="p">,</span> <span class="n">_MLPRegressor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;An osu! aware MLPRegressor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init_</span><span class="p">(</span><span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span>
-                <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;lbfgs&#39;</span><span class="p">,</span>
-                <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;tanh&#39;</span><span class="p">,</span>
-                <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
-                <span class="n">warm_start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">alpha</span><span class="o">=</span><span class="mf">0.009</span><span class="p">,</span>
+                 <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;lbfgs&#39;</span><span class="p">,</span>
+                 <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;tanh&#39;</span><span class="p">,</span>
+                 <span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">54</span><span class="p">,</span> <span class="mi">199</span><span class="p">,</span> <span class="mi">66</span><span class="p">),</span>
+                 <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+                 <span class="n">warm_start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="n">hidden_layer_sizes</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
             <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
             <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">,</span>
+            <span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="n">hidden_layer_sizes</span><span class="p">,</span>
             <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
             <span class="n">warm_start</span><span class="o">=</span><span class="n">warm_start</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_normalize</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+        <span class="n">train</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normalize</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">features</span><span class="p">))</span></div>
 
 
 <span class="c1"># The default model</span>

@@ -250,6 +250,22 @@
         <span class="c1"># approach rates.</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">ms</span> <span class="o">-</span> <span class="mi">1800</span><span class="p">)</span> <span class="o">/</span> <span class="o">-</span><span class="mi">120</span>
     <span class="k">return</span> <span class="n">ar</span></div>
+
+
+<div class="viewcode-block" id="circle_radius"><a class="viewcode-back" href="../../appendix.html#slider.mod.circle_radius">[docs]</a><span class="k">def</span> <span class="nf">circle_radius</span><span class="p">(</span><span class="n">cs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the ``CS`` attribute into a circle radius in osu! pixels.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cs : float</span>
+<span class="sd">        The circle size.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    radius : float</span>
+<span class="sd">        The radius in osu! pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mi">512</span> <span class="o">/</span> <span class="mi">16</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="p">(</span><span class="n">cs</span> <span class="o">-</span> <span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="mi">5</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

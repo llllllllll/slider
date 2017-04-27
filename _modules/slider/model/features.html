@@ -174,7 +174,7 @@
 <span class="n">_z</span> <span class="o">=</span> <span class="mi">2</span>
 
 
-<span class="k">def</span> <span class="nf">hit_object_coordinates</span><span class="p">(</span><span class="n">hit_objects</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">hit_object_coordinates</span><span class="p">(</span><span class="n">hit_objects</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return the coordinates of the hit objects as a (3, len(hit_objects))</span>
 <span class="sd">    array.</span>
 
@@ -182,6 +182,10 @@
 <span class="sd">    ----------</span>
 <span class="sd">    hit_objects : iterable[HitObject]</span>
 <span class="sd">        The hit objects to take the coordinates of.</span>
+<span class="sd">    double_time : bool, optional</span>
+<span class="sd">        Apply double time compression to the Z axis.</span>
+<span class="sd">    half_time : bool, optional</span>
+<span class="sd">        Apply half time expansion to the Z axis.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -209,7 +213,14 @@
         <span class="n">y</span><span class="p">(</span><span class="n">position</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
         <span class="n">z</span><span class="p">(</span><span class="n">hit_object</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">zs</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">zs</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">double_time</span><span class="p">:</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">_z</span><span class="p">]</span> <span class="o">*=</span> <span class="mi">4</span> <span class="o">/</span> <span class="mi">3</span>
+    <span class="k">elif</span> <span class="n">half_time</span><span class="p">:</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">_z</span><span class="p">]</span> <span class="o">*=</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span>
+
+    <span class="k">return</span> <span class="n">coords</span>
 
 
 <span class="c1"># angle indices</span>
@@ -218,7 +229,7 @@
 <span class="n">yaw</span> <span class="o">=</span> <span class="mi">2</span>
 
 
-<span class="k">def</span> <span class="nf">hit_object_angles</span><span class="p">(</span><span class="n">hit_objects</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">hit_object_angles</span><span class="p">(</span><span class="n">hit_objects</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the angle from one hit object to the next in 3d space with time</span>
 <span class="sd">    along the Z axis.</span>
 
@@ -226,6 +237,10 @@
 <span class="sd">    ----------</span>
 <span class="sd">    hit_objects : iterable[HitObject]</span>
 <span class="sd">        The hit objects to compute the angles about.</span>
+<span class="sd">    double_time : bool, optional</span>
+<span class="sd">        Apply double time compression to the Z axis.</span>
+<span class="sd">    half_time : bool, optional</span>
+<span class="sd">        Apply half time expansion to the Z axis.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -233,8 +248,11 @@
 <span class="sd">        An array shape (3, len(hit_objects) - 1) of pitch, roll, and yaw</span>
 <span class="sd">        between each hit object. All angles are measured in radians.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">coords</span> <span class="o">=</span> <span class="n">hit_object_coordinates</span><span class="p">(</span><span class="n">hit_objects</span><span class="p">)</span>
-
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">hit_object_coordinates</span><span class="p">(</span>
+        <span class="n">hit_objects</span><span class="p">,</span>
+        <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
+        <span class="n">half_time</span><span class="o">=</span><span class="n">half_time</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="c1"># (pitch, roll, yaw) x transitions</span>
@@ -315,7 +333,11 @@
 <span class="sd">        The features by name.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># ignore the direction of the angle, just take the magnitude</span>
-    <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hit_object_angles</span><span class="p">(</span><span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects_no_spinners</span><span class="p">))</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hit_object_angles</span><span class="p">(</span>
+        <span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects_no_spinners</span><span class="p">,</span>
+        <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
+        <span class="n">half_time</span><span class="o">=</span><span class="n">half_time</span><span class="p">,</span>
+    <span class="p">))</span>
     <span class="n">mean_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">median_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">max_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -324,13 +346,16 @@
 
     <span class="n">od</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">od</span>
     <span class="n">ar</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">ar</span>
+    <span class="n">cs</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">cs</span>
 
     <span class="k">if</span> <span class="n">easy</span><span class="p">:</span>
         <span class="n">od</span> <span class="o">/=</span> <span class="mi">2</span>
         <span class="n">ar</span> <span class="o">/=</span> <span class="mi">2</span>
+        <span class="n">cs</span> <span class="o">/=</span> <span class="mi">2</span>
     <span class="k">elif</span> <span class="n">hard_rock</span><span class="p">:</span>
         <span class="n">od</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">od</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
         <span class="n">ar</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">ar</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="n">cs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">cs</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
 
     <span class="n">bpm_min</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">bpm_min</span>
     <span class="n">bpm_max</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">bpm_max</span>
@@ -347,7 +372,7 @@
     <span class="k">return</span> <span class="p">{</span>
         <span class="c1"># basic stats</span>
         <span class="s1">&#39;HP&#39;</span><span class="p">:</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">hp</span><span class="p">,</span>
-        <span class="s1">&#39;CS&#39;</span><span class="p">:</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">cs</span><span class="p">,</span>
+        <span class="s1">&#39;CS&#39;</span><span class="p">:</span> <span class="n">cs</span><span class="p">,</span>
         <span class="s1">&#39;OD&#39;</span><span class="p">:</span> <span class="n">od</span><span class="p">,</span>
         <span class="s1">&#39;AR&#39;</span><span class="p">:</span> <span class="n">ar</span><span class="p">,</span>
 
