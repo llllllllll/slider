@@ -1,23 +1,18 @@
 from datetime import timedelta
+from enum import unique, IntEnum
 from functools import partial
+import inspect
+import itertools
 import operator as op
 import re
 from zipfile import ZipFile
+
+import numpy as np
 
 from .game_mode import GameMode
 from .mod import ar_to_ms, ms_to_ar, circle_radius
 from .position import Position
 from .utils import accuracy as calculate_accuracy, lazyval
-
-try:
-    import numpy as np
-except ModuleNotFoundError:
-    from math import log10, ceil
-else:
-    max = np.max
-    min = np.min
-    log10 = np.log10
-    ceil = np.ceil
 
 
 class _no_default:
@@ -136,9 +131,13 @@ class TimingPoint:
         return round(60000 / ms_per_beat)
 
     def __repr__(self):
+        if self.parent is None:
+            inherited = 'inherited '
+        else:
+            inherited = ''
         return (
             f'<{type(self).__qualname__}:'
-            f' {self.offset.total_seconds() * 1000:g}ms>'
+            f' {inherited}{self.offset.total_seconds() * 1000:g}ms>'
         )
 
     @classmethod
@@ -260,11 +259,14 @@ class HitObject:
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.half_time` enabled.
         """
-        kwargs = vars(self)
-        kwargs['time'] = 4 * kwargs['time'] / 3
+        kwargs = {
+            k: getattr(self, k)
+            for k in inspect.signature(type(self)).parameters
+        }
+        kwargs['time'] = 4 * self.time / 3
         try:
-            end_time = kwargs['end_time']
-        except KeyError:
+            end_time = self.end_time
+        except AttributeError:
             pass
         else:
             kwargs['end_time'] = 4 * end_time / 3
@@ -275,12 +277,14 @@ class HitObject:
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.double_time` enabled.
         """
-        kwargs = vars(self)
-        kwargs['time'] = 2 * kwargs['time'] / 3
-        kwargs['time'] = 4 * kwargs['time'] / 3
+        kwargs = {
+            k: getattr(self, k)
+            for k in inspect.signature(type(self)).parameters
+        }
+        kwargs['time'] = 2 * self.time / 3
         try:
-            end_time = kwargs['end_time']
-        except KeyError:
+            end_time = self.end_time
+        except AttributeError:
             pass
         else:
             kwargs['end_time'] = 2 * end_time / 3
@@ -578,8 +582,8 @@ class Slider(HitObject):
         if len(rest) > 1:
             raise ValueError(f'extra data: {rest!r}')
 
-        for tp in timing_points:
-            if tp.offset < time:
+        for tp in reversed(timing_points):
+            if tp.offset <= time:
                 break
         else:
             tp = timing_points[0]
@@ -593,10 +597,13 @@ class Slider(HitObject):
 
         pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
         num_beats = (pixel_length * repeat) / pixels_per_beat
-        duration = timedelta(milliseconds=ceil(num_beats * ms_per_beat))
+        duration = timedelta(milliseconds=np.ceil(num_beats * ms_per_beat))
 
         ticks = int(
-            ((ceil(num_beats / repeat * slider_tick_rate) - 1) * repeat) +
+            (
+                (np.ceil((num_beats - 0.1) / repeat * slider_tick_rate) - 1)
+            ) *
+            repeat +
             repeat +
             1
         )
@@ -814,6 +821,131 @@ def _get_as_bool(groups, section, field, default=_no_default):
         )
 
 
+class _DifficultyHitObject:
+    """An object used to accumulate the strain information for calculating
+    stars.
+
+    Parameters
+    ----------
+    hit_object : HitObject
+        The hit object to wrap.
+    radius : int
+        The circle radius
+    previous : _DifficultyHitObject, optional
+        The previous difficulty hit object.
+    """
+    decay_base = 0.3, 0.15
+
+    almost_diameter = 90
+
+    stream_spacing = 110
+    single_spacing = 125
+
+    weight_scaling = 1400, 26.25
+
+    circle_size_buffer_threshold = 30
+
+    @unique
+    class Strain(IntEnum):
+        """Indices for the strain specific values.
+        """
+        speed = 0
+        aim = 1
+
+    def __init__(self, hit_object, radius, previous=None):
+        self.hit_object = hit_object
+
+        scaling_factor = 52 / radius
+        if radius < self.circle_size_buffer_threshold:
+            scaling_factor *= 1 + min(
+                self.circle_size_buffer_threshold - radius,
+                5,
+            ) / 50
+
+        # this currently ignores slider length
+        self.normalized_start = self.normalized_end = Position(
+            hit_object.position.x * scaling_factor,
+            hit_object.position.y * scaling_factor,
+        )
+
+        if previous is None:
+            self.strains = 0, 0
+        else:
+            self.strains = (
+                self._calculate_strain(previous, self.Strain.speed),
+                self._calculate_strain(previous, self.Strain.aim),
+            )
+
+    def _calculate_strain(self, previous, strain):
+        result = 0
+        scaling = self.weight_scaling[strain]
+
+        hit_object = self.hit_object
+        if isinstance(hit_object, (Circle, Slider)):
+            result = self._spacing_weight(
+                self._distance(previous),
+                strain
+            ) * scaling
+
+        time_elapsed = (
+            self.hit_object.time -
+            previous.hit_object.time
+        ).total_seconds() * 1000
+        result /= max(time_elapsed, 50)
+        decay = (
+            self.decay_base[strain] **
+            (time_elapsed / 1000)
+        )
+        return previous.strains[strain] * decay + result
+
+    def _distance(self, previous):
+        """The magnitude of distance between the current object and the
+        previous.
+
+        Parameters
+        ----------
+        previous : _DifficultyHitObject
+            The previous difficulty hit object.
+
+        Returns
+        -------
+        distance : float
+            The absolute difference between the two hit objects.
+        """
+        start = self.normalized_start
+        end = previous.normalized_end
+        return np.sqrt((start.x - end.x) ** 2 + (start.y - end.y) ** 2)
+
+    def _spacing_weight(self, distance, strain):
+        if strain == self.Strain.speed:
+            if distance > self.single_spacing:
+                return 2.5
+            elif distance > self.stream_spacing:
+                return (
+                    1.6 +
+                    0.9 *
+                    (distance - self.stream_spacing) /
+                    (self.single_spacing - self.stream_spacing)
+                )
+            elif distance > self.almost_diameter:
+                return (
+                    1.2 +
+                    0.4 *
+                    (distance - self.almost_diameter) /
+                    (self.stream_spacing - self.almost_diameter)
+                )
+            elif distance > self.almost_diameter / 2:
+                return (
+                    0.95 +
+                    0.25 *
+                    (distance - self.almost_diameter / 2) /
+                    (self.almost_diameter / 2.0)
+                )
+            return 0.95
+
+        return distance ** 0.99
+
+
 class Beatmap:
     """A beatmap for osu! standard.
 
@@ -966,19 +1098,22 @@ class Beatmap:
         self.timing_points = timing_points
         self.hit_objects = hit_objects
 
+        # cache the stars with different mod combinations
+        self._stars_cache = {}
+        self._aim_stars_cache = {}
+        self._speed_stars_cache = {}
+
     @lazyval
     def bpm_min(self):
         """The minimum bpm in this beatmap.
         """
-        # use list comprehension for when this is np.min
-        return min([p.bpm for p in self.timing_points if p.bpm])
+        return min(p.bpm for p in self.timing_points if p.bpm)
 
     @lazyval
     def bpm_max(self):
         """The maximum bpm in this beatmap.
         """
-        # use list comprehension for when this is np.max
-        return max([p.bpm for p in self.timing_points if p.bpm])
+        return max(p.bpm for p in self.timing_points if p.bpm)
 
     @lazyval
     def hp(self):
@@ -1233,7 +1368,7 @@ class Beatmap:
         parent = None
         for raw_timing_point in groups['TimingPoints']:
             timing_point = TimingPoint.parse(raw_timing_point, parent)
-            if parent is not None and timing_point.parent is None:
+            if timing_point.parent is None:
                 # we have a new parent node, pass that along to the new
                 # timing points
                 parent = timing_point
@@ -1366,8 +1501,8 @@ class Beatmap:
         timing_point : TimingPoint
             The :class:`slider.beatmap.TimingPoint` at the given time.
         """
-        for tp in self.timing_points:
-            if tp.offset < time:
+        for tp in reversed(self.timing_points):
+            if tp.offset <= time:
                 return tp
 
         return self.timing_points[0]
@@ -1376,69 +1511,325 @@ class Beatmap:
     def _base_strain(strain):
         """Scale up the base attribute
         """
-        return ((5 * max(1, strain / 0.0675) - 4) ** 3) / 100000
+        return ((5 * np.maximum(1, strain / 0.0675) - 4) ** 3) / 100000
 
-    def _star_calc(self):
-        # radius = circle_radius(self.cs)
+    @staticmethod
+    def _handle_group(group):
+        inner = range(1, len(group))
+        for n in range(len(group)):
+            for m in inner:
+                if n == m:
+                    continue
 
-        # hit_objects = iter(self.hit_objects)
-        # previous = next(hit_objects)
-        # for hit_object in hit_objects:
-        #     ...
+                a = group[n]
+                b = group[m]
 
-        raise NotImplementedError('_star_calc')
+                ratio = a / b if a > b else b / a
+                closest_power_of_two = 2 ** round(np.log2(ratio))
+                offset = (
+                    abs(closest_power_of_two - ratio) /
+                    closest_power_of_two
+                )
+                yield offset ** 2
 
-    def _round_hitcounts(self, accuracy, count_miss=0):
+    _strain_step = timedelta(milliseconds=400)
+    _decay_weight = 0.9
+
+    def _calculate_difficulty(self, strain, difficulty_hit_objects):
+        highest_strains = []
+        append_highest_strain = highest_strains.append
+
+        strain_step = self._strain_step
+        interval_end = strain_step
+        max_strain = 0
+
+        previous = None
+        for difficulty_hit_object in difficulty_hit_objects:
+            while difficulty_hit_object.hit_object.time > interval_end:
+                append_highest_strain(max_strain)
+
+                if previous is None:
+                    max_strain = 0
+                else:
+                    decay = (
+                        _DifficultyHitObject.decay_base[strain] ** (
+                            interval_end -
+                            previous.hit_object.time
+                        ).total_seconds()
+                    )
+                    max_strain = previous.strains[strain] * decay
+
+                interval_end += strain_step
+
+            max_strain = max(max_strain, difficulty_hit_object.strains[strain])
+            previous = difficulty_hit_object
+
+        difficulty = 0
+        weight = 1
+
+        decay_weight = self._decay_weight
+        for strain in sorted(highest_strains, reverse=True):
+            difficulty += weight * strain
+            weight *= decay_weight
+
+        return difficulty
+
+    _star_scaling_factor = 0.0675
+    _extreme_scaling_factor = 0.5
+
+    @staticmethod
+    def _product_no_diagonal(sequence):
+        inner = range(1, len(sequence))
+        for n in range(len(sequence)):
+            for m in inner:
+                if n == m:
+                    continue
+
+                yield sequence[n], sequence[m]
+
+    def _calculate_stars(self,
+                         easy,
+                         hard_rock,
+                         double_time,
+                         half_time):
+        cs = self.cs
+        if easy:
+            cs /= 2
+        elif hard_rock:
+            cs *= 1.3
+
+        radius = circle_radius(cs)
+
+        difficulty_hit_objects = []
+        append_difficulty_hit_object = difficulty_hit_objects.append
+
+        intervals = []
+        append_interval = intervals.append
+
+        hit_objects = iter(self.hit_objects)
+        previous = _DifficultyHitObject(next(hit_objects), radius)
+        append_difficulty_hit_object(previous)
+        if double_time:
+            modify = op.attrgetter('double_time')
+        elif half_time:
+            modify = op.attrgetter('half_time')
+        else:
+            def modify(e):
+                return e
+
+        for hit_object in hit_objects:
+            new = _DifficultyHitObject(
+                modify(hit_object),
+                radius,
+                previous,
+            )
+            append_interval(new.hit_object.time - previous.hit_object.time)
+            append_difficulty_hit_object(new)
+            previous = new
+
+        group = []
+        append_group_member = group.append
+        clear_group = group.clear
+
+        # todo: compute break time from ar
+        break_threshhold = timedelta(milliseconds=1200)
+
+        count_offsets = 0
+        rhythm_awkwardness = 0
+
+        for interval in intervals:
+            is_break = interval >= break_threshhold
+
+            if not is_break:
+                append_group_member(interval)
+
+            if is_break or len(group) == 5:
+                for awk in self._handle_group(group):
+                    count_offsets += 1
+                    rhythm_awkwardness += awk
+
+                clear_group()
+
+
+        for awk in self._handle_group(group):
+            count_offsets += 1
+            rhythm_awkwardness += awk
+
+        rhythm_awkwardness /= count_offsets
+        rhythm_awkwardness *= 82
+
+        aim = self._calculate_difficulty(
+            _DifficultyHitObject.Strain.aim,
+            difficulty_hit_objects,
+        )
+        speed = self._calculate_difficulty(
+            _DifficultyHitObject.Strain.speed,
+            difficulty_hit_objects,
+        )
+
+        key = easy, hard_rock, double_time, half_time
+        self._aim_stars_cache[key] = aim = (
+            np.sqrt(aim) * self._star_scaling_factor
+        )
+        self._speed_stars_cache[key] = speed = (
+            np.sqrt(speed) * self._star_scaling_factor
+        )
+
+        self._stars_cache[key] = (
+            aim +
+            speed +
+            abs(speed - aim) *
+            self._extreme_scaling_factor
+        )
+
+    def speed_stars(self,
+                    *,
+                    easy=False,
+                    hard_rock=False,
+                    double_time=False,
+                    half_time=False):
+        """The speed part of the stars.
+
+        Parameters
+        ----------
+        easy : bool, optional
+            Stars with the easy mod applied.
+        hard_rock : bool, optional
+            Stars with the hard rock mod applied.
+        double_time : bool, optional
+            Stars with the double time mod applied.
+        half_time : bool, optional
+            Stars with the half time mod applied.
+        """
+        key = (
+            bool(easy),
+            bool(hard_rock),
+            bool(double_time),
+            bool(half_time),
+        )
+        try:
+            return self._speed_stars_cache[key]
+        except KeyError:
+            self._calculate_stars(*key)
+
+        return self._speed_stars_cache[key]
+
+    def aim_stars(self,
+                  *,
+                  easy=False,
+                  hard_rock=False,
+                  double_time=False,
+                  half_time=False):
+        """The aim part of the stars.
+
+        Parameters
+        ----------
+        easy : bool, optional
+            Stars with the easy mod applied.
+        hard_rock : bool, optional
+            Stars with the hard rock mod applied.
+        double_time : bool, optional
+            Stars with the double time mod applied.
+        half_time : bool, optional
+            Stars with the half time mod applied.
+        """
+        key = (
+            bool(easy),
+            bool(hard_rock),
+            bool(double_time),
+            bool(half_time),
+        )
+        try:
+            return self._aim_stars_cache[key]
+        except KeyError:
+            self._calculate_stars(*key)
+
+        return self._aim_stars_cache[key]
+
+    def stars(self,
+              *,
+              easy=False,
+              hard_rock=False,
+              double_time=False,
+              half_time=False):
+        """The stars as seen in osu!.
+
+        Parameters
+        ----------
+        easy : bool, optional
+            Stars with the easy mod applied.
+        hard_rock : bool, optional
+            Stars with the hard rock mod applied.
+        double_time : bool, optional
+            Stars with the double time mod applied.
+        half_time : bool, optional
+            Stars with the half time mod applied.
+        """
+        key = (
+            bool(easy),
+            bool(hard_rock),
+            bool(double_time),
+            bool(half_time),
+        )
+        try:
+            return self._stars_cache[key]
+        except KeyError:
+            self._calculate_stars(*key)
+
+        return self._stars_cache[key]
+
+    def _round_hitcounts(self, accuracy, count_miss=None):
         """Round the accuracy to the nearest hit counts.
 
         Parameters
         ----------
-        accuracy : float
+        accuracy : np.ndarray[float]
             The accuracy to round in the range [0, 1]
-        count_miss : int, optional
+        count_miss : np.ndarray[int]int, optional
             The number of misses to fix.
 
         Returns
         -------
-        count_300 : int
+        count_300 : np.ndarray[int]
             The number of 300s.
-        count_100 : int
+        count_100 : np.ndarray[int]
             The number of 100s.
-        count_50 : int
+        count_50 : np.ndarray[int]
             The number of 50s.
-        count_miss : int
+        count_miss : np.ndarray[int]
             The number of misses.
         """
+        if count_miss is None:
+            count_miss = np.full_like(accuracy, 0)
+
         max_300 = len(self.hit_objects) - count_miss
 
-        accuracy = max(
+        accuracy = np.maximum(
             0.0,
-            min(
+            np.minimum(
                 calculate_accuracy(max_300, 0, 0, count_miss) * 100.0,
                 accuracy * 100,
             ),
         )
 
-        count_50 = 0
-        count_100 = round(
+        count_50 = np.full_like(accuracy, 0)
+        count_100 = np.round(
             -3.0 *
             ((accuracy * 0.01 - 1.0) * len(self.hit_objects) + count_miss) *
             0.5,
         )
 
-        if count_100 > len(self.hit_objects) - count_miss:
-            # accuracy lower than all 100s, use 50s
-            count_100 = 0
-            count_50 = round(
+        mask = count_100 > len(self.hit_objects) - count_miss
+        count_100[mask] = 0
+        count_50[mask] = np.round(
                 -6.0 *
-                ((accuracy * 0.01 - 1.0) * len(self.hit_objects) +
-                 count_miss) *
+                ((accuracy[mask] * 0.01 - 1.0) * len(self.hit_objects) +
+                 count_miss[mask]) *
                 0.2,
             )
+        count_50[mask] = np.minimum(max_300[mask], count_50[mask])
 
-            count_50 = min(max_300, count_50)
-        else:
-            count_100 = min(max_300, count_100)
+        count_100[~mask] = np.minimum(max_300[~mask], count_100[~mask])
 
         count_300 = (
             len(self.hit_objects) -
@@ -1456,7 +1847,7 @@ class Beatmap:
                            count_300=None,
                            count_100=None,
                            count_50=None,
-                           count_miss=0,
+                           count_miss=None,
                            no_fail=False,
                            easy=False,
                            hidden=False,
@@ -1508,8 +1899,6 @@ class Beatmap:
         pp : float
             The performance points awarded for the specified play.
         """
-        raise NotImplementedError('pp calculation is not done')
-
         if version not in {1, 2}:
             raise ValueError(f'unknown PP version: {version}')
 
@@ -1522,16 +1911,22 @@ class Beatmap:
                     count_50 is not None):
                 raise ValueError('cannot pass accuracy and hit counts')
             # compute the closest hit counts for the accuracy
+            accuracy = np.array(accuracy, ndmin=1, copy=False)
             count_300, count_100, count_50, count_miss = self._round_hitcounts(
                 accuracy,
+                np.full_like(accuracy, 0)
+                if count_miss is None else
                 count_miss,
             )
 
         elif (count_300 is None and
               count_100 is None and
               count_50 is not None):
+            accuracy = np.array(accuracy, ndmin=1, copy=False)
             count_300, count_100, count_50, count_miss = self._round_hitcounts(
                 accuracy,
+                np.full_like(accuracy, 0)
+                if count_miss is None else
                 count_miss,
             )
 
@@ -1550,20 +1945,21 @@ class Beatmap:
         elif double_time:
             ar = ms_to_ar(2 * ar_to_ms(ar) / 3)
 
-        accuracy = calculate_accuracy(
+        accuracy_scaled = calculate_accuracy(
             count_300,
             count_100,
             count_50,
             count_miss,
-        ) * 100
-        accuracy_bonus = 0.5 + accuracy / 2
+        )
+        accuracy = accuracy_scaled * 100
+        accuracy_bonus = 0.5 + accuracy_scaled / 2
 
         count_hit_objects = len(self.hit_objects)
         count_hit_objects_over_2000 = count_hit_objects / 2000
         length_bonus = (
             0.95 +
-            0.4 * min(1.0, count_hit_objects_over_2000) + (
-                log10(count_hit_objects_over_2000) * 0.5
+            0.4 * np.minimum(1.0, count_hit_objects_over_2000) + (
+                np.log10(count_hit_objects_over_2000) * 0.5
                 if count_hit_objects > 2000 else
                 0
             )
@@ -1585,9 +1981,10 @@ class Beatmap:
             ar_bonus += low_ar_bonus
 
         hidden_bonus = 1.18 if hidden else 1
-        flashlight_bonus = 1.45 * length_bonus if flashlight else 1
+        flashlight_bonus = (1.45 * length_bonus) if flashlight else 1
         od_bonus = 0.98 + od ** 2 / 2500
 
+        print(ar_bonus, accuracy_bonus, od_bonus)
         aim_score = (
             self._base_strain(self.aim_stars) *
             length_bonus *
@@ -1620,7 +2017,7 @@ class Beatmap:
                     count_100 * 100.0 +
                     count_50 * 50.0
                 ) / (count_circles * 300)
-                real_accuracy = max(real_accuracy, 0)
+                real_accuracy = np.maximum(real_accuracy, 0)
             else:
                 real_accuracy = 0
 
@@ -1641,8 +2038,12 @@ class Beatmap:
         if spun_out:
             final_multiplier *= 0.95
 
-        return (
+        out = (
             (aim_score ** 1.1) +
             (speed_score ** 1.1) +
             (accuracy_score ** 1.1)
         ) ** (1 / 1.1) * final_multiplier
+        if len(out) == 1:
+            out = np.asscalar(out)
+
+        return out
