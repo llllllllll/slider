@@ -107,3 +107,20 @@ def circle_radius(cs):
         The radius in osu! pixels.
     """
     return (512 / 16) * (1 - 0.7 * (cs - 5) / 5)
+
+
+def od_to_ms(od):
+    """Convert an overall difficulty value into milliseconds to hit an object at
+    maximum accuracy.
+
+    Parameters
+    ----------
+    od : float
+        The overall difficulty.
+
+    Returns
+    -------
+    ms : float
+        The number of milliseconds to hit an object at maximum accuracy.
+    """
+    return 79.5 - 6 * od

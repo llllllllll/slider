@@ -2,7 +2,6 @@ from datetime import timedelta
 from enum import unique, IntEnum
 from functools import partial
 import inspect
-import itertools
 import operator as op
 import re
 from zipfile import ZipFile
@@ -1649,7 +1648,6 @@ class Beatmap:
                     rhythm_awkwardness += awk
 
                 clear_group()
-
 
         for awk in self._handle_group(group):
             count_offsets += 1
