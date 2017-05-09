@@ -109,12 +109,16 @@
 <li class="toctree-l3"><a class="reference internal" href="#id3">Rationale</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#slider-speed">Slider Speed</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#note-angles">Note Angles</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id4">Rationale</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#note-angles">Note Angles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#osu-difficulty-metrics">Osu! Difficulty Metrics</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id5">Rationale</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-points-curve">Performance Points Curve</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Rationale</a></li>
 </ul>
 </li>
 </ul>
@@ -185,16 +189,15 @@
             
   <div class="section" id="model-features">
 <h1>Model Features<a class="headerlink" href="#model-features" title="Permalink to this headline">¶</a></h1>
-<p>The slider model currently reduces <code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code>s into 27
+<p>The slider model currently reduces <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a>s into 31
 features.</p>
-<p>These features can extracted from a <code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code> with
-<code class="xref py py-func docutils literal"><span class="pre">extract_features()</span></code>.</p>
+<p>These features can extracted from a <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a> with
+<a class="reference internal" href="appendix.html#slider.model.features.extract_features" title="slider.model.features.extract_features"><code class="xref py py-func docutils literal"><span class="pre">extract_features()</span></code></a>.</p>
 <div class="section" id="basic-attributes">
 <h2>Basic Attributes<a class="headerlink" href="#basic-attributes" title="Permalink to this headline">¶</a></h2>
 <p>The first set of features are the basic attributes of the map&#8217;s basic attributes
 that you would see in the osu! client. These include:</p>
 <ul class="simple">
-<li>hp drain rate (<code class="docutils literal"><span class="pre">HP</span></code>)</li>
 <li>circle size (<code class="docutils literal"><span class="pre">CS</span></code>)</li>
 <li>overall difficulty (<code class="docutils literal"><span class="pre">OD</span></code>)</li>
 <li>approach rate (<code class="docutils literal"><span class="pre">AR</span></code>)</li>
@@ -202,7 +205,8 @@ that you would see in the osu! client. These include:</p>
 <div class="section" id="rationale">
 <h3>Rationale<a class="headerlink" href="#rationale" title="Permalink to this headline">¶</a></h3>
 <p>These metrics affect how hard it is to make jumps, read the map, or accurately
-hit elements.</p>
+hit elements. Health drain (<code class="docutils literal"><span class="pre">HP</span></code>) is not included because it does not affect
+accuracy.</p>
 </div>
 </div>
 <div class="section" id="mods">
@@ -250,24 +254,14 @@ give a sense of the &#8220;kind&#8221; of map. For example, a high bpm song with
 circles and few sliders is probably very stream heavy.</p>
 </div>
 </div>
-<div class="section" id="slider-speed">
-<h2>Slider Speed<a class="headerlink" href="#slider-speed" title="Permalink to this headline">¶</a></h2>
-<p>The model holds represents the slider speed with <code class="docutils literal"><span class="pre">slider-multiplier</span></code> and
-<code class="docutils literal"><span class="pre">slider-tick-rate</span></code>.</p>
-<div class="section" id="id4">
-<h3>Rationale<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
-<p>Fast sliders make it hard to hit the end without releasing early. This affects
-accuracy and max combo.</p>
-</div>
-</div>
 <div class="section" id="note-angles">
 <h2>Note Angles<a class="headerlink" href="#note-angles" title="Permalink to this headline">¶</a></h2>
 <p>Imagine an osu! standard beatmap in 3d space as <code class="docutils literal"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">time)</span></code>, where the hit
 elements form a path through this space. We can look at the angle from hit
 object to hit object about each axis to get a sense of how &#8220;far&#8221; a jump is.</p>
 <p>The model looks at the median, mean, and max angle magnitude about each axis.</p>
-<div class="section" id="id5">
-<h3>Rationale<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id4">
+<h3>Rationale<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
 <p>More extreme jumps are harder to hit and make maps harder to read. Maps with
 small angles are likely stream maps where the element to element distance is
 very small.</p>
@@ -276,6 +270,35 @@ very small.</p>
 two very hard jumps that cause misses. The hardest jump should account for that.</p>
 <p>The mean shows how hard the jumps are across all of the notes. Comparing this to
 median can give us a sense of how much more extreme the outliers are.</p>
+</div>
+</div>
+<div class="section" id="osu-difficulty-metrics">
+<h2>Osu! Difficulty Metrics<a class="headerlink" href="#osu-difficulty-metrics" title="Permalink to this headline">¶</a></h2>
+<p>Osu! itself has a couple of metrics for measuring difficulty, these include:</p>
+<ul class="simple">
+<li>speed stars: a measure of how hard a song is from speed</li>
+<li>aim stars: a measure of how hard a song is to aim and accurately hit each
+object.</li>
+<li>rhythm awkwardness: how difficult is the rhythm of the beatmap</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The speed and aim stars add up to the final value shown in the osu! client.</p>
+</div>
+<div class="section" id="id5">
+<h3>Rationale<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>The osu! team put a lot of work into these criteria, they are what I as a player
+mainly use to know how hard a song is.</p>
+</div>
+</div>
+<div class="section" id="performance-points-curve">
+<h2>Performance Points Curve<a class="headerlink" href="#performance-points-curve" title="Permalink to this headline">¶</a></h2>
+<p>The model takes into account the performance points awarded for 95%-100%
+accuracies at 1% steps.</p>
+<div class="section" id="id6">
+<h3>Rationale<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<p>Like the raw difficulty metrics, the osu! team put a lot of work into defining
+the performance points algorithm and I believe there is predictive power in it.</p>
 </div>
 </div>
 </div>
@@ -334,7 +357,7 @@ median can give us a sense of how much more extreme the outliers are.</p>
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

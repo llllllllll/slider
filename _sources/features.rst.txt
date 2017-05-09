@@ -1,7 +1,7 @@
 Model Features
 ==============
 
-The slider model currently reduces :class:`~slider.beatmap.Beatmap`\s into 27
+The slider model currently reduces :class:`~slider.beatmap.Beatmap`\s into 31
 features.
 
 These features can extracted from a :class:`~slider.beatmap.Beatmap` with
@@ -13,7 +13,6 @@ Basic Attributes
 The first set of features are the basic attributes of the map's basic attributes
 that you would see in the osu! client. These include:
 
-- hp drain rate (``HP``)
 - circle size (``CS``)
 - overall difficulty (``OD``)
 - approach rate (``AR``)
@@ -22,7 +21,8 @@ Rationale
 ~~~~~~~~~
 
 These metrics affect how hard it is to make jumps, read the map, or accurately
-hit elements.
+hit elements. Health drain (``HP``) is not included because it does not affect
+accuracy.
 
 Mods
 ----
@@ -75,18 +75,6 @@ The number of each kind of hit element in combination with other metrics can
 give a sense of the "kind" of map. For example, a high bpm song with many
 circles and few sliders is probably very stream heavy.
 
-Slider Speed
-------------
-
-The model holds represents the slider speed with ``slider-multiplier`` and
-``slider-tick-rate``.
-
-Rationale
-~~~~~~~~~
-
-Fast sliders make it hard to hit the end without releasing early. This affects
-accuracy and max combo.
-
 Note Angles
 -----------
 
@@ -110,3 +98,35 @@ two very hard jumps that cause misses. The hardest jump should account for that.
 
 The mean shows how hard the jumps are across all of the notes. Comparing this to
 median can give us a sense of how much more extreme the outliers are.
+
+Osu! Difficulty Metrics
+-----------------------
+
+Osu! itself has a couple of metrics for measuring difficulty, these include:
+
+- speed stars: a measure of how hard a song is from speed
+- aim stars: a measure of how hard a song is to aim and accurately hit each
+  object.
+- rhythm awkwardness: how difficult is the rhythm of the beatmap
+
+.. note::
+
+   The speed and aim stars add up to the final value shown in the osu! client.
+
+Rationale
+~~~~~~~~~
+
+The osu! team put a lot of work into these criteria, they are what I as a player
+mainly use to know how hard a song is.
+
+Performance Points Curve
+------------------------
+
+The model takes into account the performance points awarded for 95%-100%
+accuracies at 1% steps.
+
+Rationale
+~~~~~~~~~
+
+Like the raw difficulty metrics, the osu! team put a lot of work into defining
+the performance points algorithm and I believe there is predictive power in it.

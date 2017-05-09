@@ -158,25 +158,19 @@
             
   <h1>Source code for slider.beatmap</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">unique</span><span class="p">,</span> <span class="n">IntEnum</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">operator</span> <span class="k">as</span> <span class="nn">op</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">zipfile</span> <span class="k">import</span> <span class="n">ZipFile</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
 <span class="kn">from</span> <span class="nn">.game_mode</span> <span class="k">import</span> <span class="n">GameMode</span>
 <span class="kn">from</span> <span class="nn">.mod</span> <span class="k">import</span> <span class="n">ar_to_ms</span><span class="p">,</span> <span class="n">ms_to_ar</span><span class="p">,</span> <span class="n">circle_radius</span>
 <span class="kn">from</span> <span class="nn">.position</span> <span class="k">import</span> <span class="n">Position</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">accuracy</span> <span class="k">as</span> <span class="n">calculate_accuracy</span><span class="p">,</span> <span class="n">lazyval</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="k">except</span> <span class="n">ModuleNotFoundError</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">log10</span><span class="p">,</span> <span class="n">ceil</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="nb">max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span>
-    <span class="nb">min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span>
-    <span class="n">log10</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span>
-    <span class="n">ceil</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">accuracy</span> <span class="k">as</span> <span class="n">calculate_accuracy</span><span class="p">,</span> <span class="n">lazyval</span><span class="p">,</span> <span class="n">memoize</span>
 
 
 <span class="k">class</span> <span class="nc">_no_default</span><span class="p">:</span>
@@ -295,9 +289,13 @@
         <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="mi">60000</span> <span class="o">/</span> <span class="n">ms_per_beat</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">inherited</span> <span class="o">=</span> <span class="s1">&#39;inherited &#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inherited</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">f</span><span class="s1">&#39;&lt;{type(self).__qualname__}:&#39;</span>
-            <span class="n">f</span><span class="s1">&#39; {self.offset.total_seconds() * 1000:g}ms&gt;&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; </span><span class="si">{inherited}</span><span class="s1">{self.offset.total_seconds() * 1000:g}ms&gt;&#39;</span>
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
@@ -419,11 +417,14 @@
         <span class="sd">&quot;&quot;&quot;The ``HitObject`` as it would appear with</span>
 <span class="sd">        :data:`~slider.mod.Mod.half_time` enabled.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="p">}</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">/</span> <span class="mi">3</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">end_time</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">end_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">end_time</span> <span class="o">/</span> <span class="mi">3</span>
@@ -434,12 +435,14 @@
         <span class="sd">&quot;&quot;&quot;The ``HitObject`` as it would appear with</span>
 <span class="sd">        :data:`~slider.mod.Mod.double_time` enabled.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="p">}</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">/</span> <span class="mi">3</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">end_time</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">end_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">end_time</span> <span class="o">/</span> <span class="mi">3</span>
@@ -737,8 +740,8 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;extra data: </span><span class="si">{rest!r}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">tp</span> <span class="ow">in</span> <span class="n">timing_points</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;</span> <span class="n">time</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">tp</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">timing_points</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;=</span> <span class="n">time</span><span class="p">:</span>
                 <span class="k">break</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">tp</span> <span class="o">=</span> <span class="n">timing_points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -752,10 +755,13 @@
 
         <span class="n">pixels_per_beat</span> <span class="o">=</span> <span class="n">slider_multiplier</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">velocity_multiplier</span>
         <span class="n">num_beats</span> <span class="o">=</span> <span class="p">(</span><span class="n">pixel_length</span> <span class="o">*</span> <span class="n">repeat</span><span class="p">)</span> <span class="o">/</span> <span class="n">pixels_per_beat</span>
-        <span class="n">duration</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_beats</span> <span class="o">*</span> <span class="n">ms_per_beat</span><span class="p">))</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_beats</span> <span class="o">*</span> <span class="n">ms_per_beat</span><span class="p">))</span>
 
         <span class="n">ticks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="p">((</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_beats</span> <span class="o">/</span> <span class="n">repeat</span> <span class="o">*</span> <span class="n">slider_tick_rate</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">repeat</span><span class="p">)</span> <span class="o">+</span>
+            <span class="p">(</span>
+                <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">num_beats</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">/</span> <span class="n">repeat</span> <span class="o">*</span> <span class="n">slider_tick_rate</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span> <span class="o">*</span>
+            <span class="n">repeat</span> <span class="o">+</span>
             <span class="n">repeat</span> <span class="o">+</span>
             <span class="mi">1</span>
         <span class="p">)</span>
@@ -973,6 +979,131 @@
         <span class="p">)</span>
 
 
+<span class="k">class</span> <span class="nc">_DifficultyHitObject</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;An object used to accumulate the strain information for calculating</span>
+<span class="sd">    stars.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    hit_object : HitObject</span>
+<span class="sd">        The hit object to wrap.</span>
+<span class="sd">    radius : int</span>
+<span class="sd">        The circle radius</span>
+<span class="sd">    previous : _DifficultyHitObject, optional</span>
+<span class="sd">        The previous difficulty hit object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">decay_base</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.15</span>
+
+    <span class="n">almost_diameter</span> <span class="o">=</span> <span class="mi">90</span>
+
+    <span class="n">stream_spacing</span> <span class="o">=</span> <span class="mi">110</span>
+    <span class="n">single_spacing</span> <span class="o">=</span> <span class="mi">125</span>
+
+    <span class="n">weight_scaling</span> <span class="o">=</span> <span class="mi">1400</span><span class="p">,</span> <span class="mf">26.25</span>
+
+    <span class="n">circle_size_buffer_threshold</span> <span class="o">=</span> <span class="mi">30</span>
+
+    <span class="nd">@unique</span>
+    <span class="k">class</span> <span class="nc">Strain</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Indices for the strain specific values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">speed</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">aim</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hit_object</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">previous</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hit_object</span> <span class="o">=</span> <span class="n">hit_object</span>
+
+        <span class="n">scaling_factor</span> <span class="o">=</span> <span class="mi">52</span> <span class="o">/</span> <span class="n">radius</span>
+        <span class="k">if</span> <span class="n">radius</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">circle_size_buffer_threshold</span><span class="p">:</span>
+            <span class="n">scaling_factor</span> <span class="o">*=</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">circle_size_buffer_threshold</span> <span class="o">-</span> <span class="n">radius</span><span class="p">,</span>
+                <span class="mi">5</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">/</span> <span class="mi">50</span>
+
+        <span class="c1"># this currently ignores slider length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalized_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalized_end</span> <span class="o">=</span> <span class="n">Position</span><span class="p">(</span>
+            <span class="n">hit_object</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">scaling_factor</span><span class="p">,</span>
+            <span class="n">hit_object</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">*</span> <span class="n">scaling_factor</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">strains</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">strains</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_strain</span><span class="p">(</span><span class="n">previous</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Strain</span><span class="o">.</span><span class="n">speed</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_strain</span><span class="p">(</span><span class="n">previous</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Strain</span><span class="o">.</span><span class="n">aim</span><span class="p">),</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_strain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">previous</span><span class="p">,</span> <span class="n">strain</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">scaling</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_scaling</span><span class="p">[</span><span class="n">strain</span><span class="p">]</span>
+
+        <span class="n">hit_object</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_object</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hit_object</span><span class="p">,</span> <span class="p">(</span><span class="n">Circle</span><span class="p">,</span> <span class="n">Slider</span><span class="p">)):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spacing_weight</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_distance</span><span class="p">(</span><span class="n">previous</span><span class="p">),</span>
+                <span class="n">strain</span>
+            <span class="p">)</span> <span class="o">*</span> <span class="n">scaling</span>
+
+        <span class="n">time_elapsed</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hit_object</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span>
+            <span class="n">previous</span><span class="o">.</span><span class="n">hit_object</span><span class="o">.</span><span class="n">time</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span>
+        <span class="n">result</span> <span class="o">/=</span> <span class="nb">max</span><span class="p">(</span><span class="n">time_elapsed</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+        <span class="n">decay</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decay_base</span><span class="p">[</span><span class="n">strain</span><span class="p">]</span> <span class="o">**</span>
+            <span class="p">(</span><span class="n">time_elapsed</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">previous</span><span class="o">.</span><span class="n">strains</span><span class="p">[</span><span class="n">strain</span><span class="p">]</span> <span class="o">*</span> <span class="n">decay</span> <span class="o">+</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_distance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">previous</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The magnitude of distance between the current object and the</span>
+<span class="sd">        previous.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        previous : _DifficultyHitObject</span>
+<span class="sd">            The previous difficulty hit object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        distance : float</span>
+<span class="sd">            The absolute difference between the two hit objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalized_start</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">normalized_end</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">start</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">end</span><span class="o">.</span><span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">start</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="n">end</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_spacing_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">strain</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">strain</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Strain</span><span class="o">.</span><span class="n">speed</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">single_spacing</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mf">2.5</span>
+            <span class="k">elif</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_spacing</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="mf">1.6</span> <span class="o">+</span>
+                    <span class="mf">0.9</span> <span class="o">*</span>
+                    <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_spacing</span><span class="p">)</span> <span class="o">/</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_spacing</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_spacing</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">almost_diameter</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="mf">1.2</span> <span class="o">+</span>
+                    <span class="mf">0.4</span> <span class="o">*</span>
+                    <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">almost_diameter</span><span class="p">)</span> <span class="o">/</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stream_spacing</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">almost_diameter</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">almost_diameter</span> <span class="o">/</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="mf">0.95</span> <span class="o">+</span>
+                    <span class="mf">0.25</span> <span class="o">*</span>
+                    <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">almost_diameter</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">almost_diameter</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="mf">0.95</span>
+
+        <span class="k">return</span> <span class="n">distance</span> <span class="o">**</span> <span class="mf">0.99</span>
+
+
 <div class="viewcode-block" id="Beatmap"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap">[docs]</a><span class="k">class</span> <span class="nc">Beatmap</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A beatmap for osu! standard.</span>
 
@@ -1125,43 +1256,160 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="o">=</span> <span class="n">timing_points</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span> <span class="o">=</span> <span class="n">hit_objects</span>
 
-    <span class="nd">@lazyval</span>
-    <span class="k">def</span> <span class="nf">bpm_min</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The minimum bpm in this beatmap.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># use list comprehension for when this is np.min</span>
-        <span class="k">return</span> <span class="nb">min</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bpm</span><span class="p">])</span>
+        <span class="c1"># cache the stars with different mod combinations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stars_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aim_stars_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_speed_stars_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rhythm_awkwardness_cache</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="nd">@lazyval</span>
-    <span class="k">def</span> <span class="nf">bpm_max</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The maximum bpm in this beatmap.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># use list comprehension for when this is np.max</span>
-        <span class="k">return</span> <span class="nb">max</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bpm</span><span class="p">])</span>
+    <span class="nd">@memoize</span>
+<div class="viewcode-block" id="Beatmap.bpm_min"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.bpm_min">[docs]</a>    <span class="k">def</span> <span class="nf">bpm_min</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The minimum BPM in this beatmap.</span>
 
-    <span class="nd">@lazyval</span>
-    <span class="k">def</span> <span class="nf">hp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Alias for ``hp_drain_rate``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hp_drain_rate</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        half_time : bool</span>
+<span class="sd">            The BPM with half time enabled.</span>
+<span class="sd">        double_time : bool</span>
+<span class="sd">            The BPM with double time enabled.</span>
 
-    <span class="nd">@lazyval</span>
-    <span class="k">def</span> <span class="nf">cs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Alias for ``circle_size``.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bpm : float</span>
+<span class="sd">            The minimum BPM in this beatmap.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">circle_size</span>
+        <span class="n">bpm</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bpm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">double_time</span><span class="p">:</span>
+            <span class="n">bpm</span> <span class="o">*=</span> <span class="mf">1.5</span>
+        <span class="k">elif</span> <span class="n">half_time</span><span class="p">:</span>
+            <span class="n">bpm</span> <span class="o">*=</span> <span class="mf">0.75</span>
+        <span class="k">return</span> <span class="n">bpm</span></div>
 
-    <span class="nd">@lazyval</span>
-    <span class="k">def</span> <span class="nf">od</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Alias for ``overall_difficulty``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_difficulty</span>
+    <span class="nd">@memoize</span>
+<div class="viewcode-block" id="Beatmap.bpm_max"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.bpm_max">[docs]</a>    <span class="k">def</span> <span class="nf">bpm_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The maximum BPM in this beatmap.</span>
 
-    <span class="nd">@lazyval</span>
-    <span class="k">def</span> <span class="nf">ar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Alias for ``approach_rate``.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        half_time : bool</span>
+<span class="sd">            The BPM with half time enabled.</span>
+<span class="sd">        double_time : bool</span>
+<span class="sd">            The BPM with double time enabled.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bpm : float</span>
+<span class="sd">            The maximum BPM in this beatmap.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">approach_rate</span>
+        <span class="n">bpm</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bpm</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bpm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">double_time</span><span class="p">:</span>
+            <span class="n">bpm</span> <span class="o">*=</span> <span class="mf">1.5</span>
+        <span class="k">elif</span> <span class="n">half_time</span><span class="p">:</span>
+            <span class="n">bpm</span> <span class="o">*=</span> <span class="mf">0.75</span>
+        <span class="k">return</span> <span class="n">bpm</span></div>
+
+<div class="viewcode-block" id="Beatmap.hp"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.hp">[docs]</a>    <span class="k">def</span> <span class="nf">hp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">easy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the Health Drain (HP) value for different mods.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            HP with the easy mod enabled.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            HP with the hard rock mod enabled.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        hp : float</span>
+<span class="sd">            The HP value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">circle_size</span>
+        <span class="k">if</span> <span class="n">hard_rock</span><span class="p">:</span>
+            <span class="n">hp</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">hp</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">easy</span><span class="p">:</span>
+            <span class="n">hp</span> <span class="o">/=</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">hp</span></div>
+
+<div class="viewcode-block" id="Beatmap.cs"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.cs">[docs]</a>    <span class="k">def</span> <span class="nf">cs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">easy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the Circle Size (CS) value for different mods.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            CS with the easy mod enabled.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            CS with the hard rock mod enabled.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        cs : float</span>
+<span class="sd">            The CS value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">circle_size</span>
+        <span class="k">if</span> <span class="n">hard_rock</span><span class="p">:</span>
+            <span class="n">cs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">cs</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">easy</span><span class="p">:</span>
+            <span class="n">cs</span> <span class="o">/=</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">cs</span></div>
+
+<div class="viewcode-block" id="Beatmap.od"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.od">[docs]</a>    <span class="k">def</span> <span class="nf">od</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">easy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the Overall Difficulty (OD) value for different mods.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            OD with the easy mod enabled.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            OD with the hard rock mod enabled.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        od : float</span>
+<span class="sd">            The OD value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">od</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_difficulty</span>
+        <span class="k">if</span> <span class="n">hard_rock</span><span class="p">:</span>
+            <span class="n">od</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">od</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">easy</span><span class="p">:</span>
+            <span class="n">od</span> <span class="o">/=</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">od</span></div>
+
+<div class="viewcode-block" id="Beatmap.ar"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.Beatmap.ar">[docs]</a>    <span class="k">def</span> <span class="nf">ar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+           <span class="o">*</span><span class="p">,</span>
+           <span class="n">easy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+           <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+           <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+           <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the Approach Rate (AR) value for different mods.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            AR with the easy mod enabled.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            AR with the hard rock mod enabled.</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Effective AR with the half time mod enabled.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Effective AR with the double time mod enabled.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ar : float</span>
+<span class="sd">            The effective AR value.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        ``double_time`` and ``half_time`` do not actually affect the in game</span>
+<span class="sd">        AR; however, because the map is sped up or slowed down, the effective</span>
+<span class="sd">        approach rate is changed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">approach_rate</span>
+        <span class="k">if</span> <span class="n">double_time</span><span class="p">:</span>
+            <span class="n">ar</span> <span class="o">=</span> <span class="n">ms_to_ar</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ar_to_ms</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">half_time</span><span class="p">:</span>
+            <span class="n">ar</span> <span class="o">=</span> <span class="n">ms_to_ar</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">ar_to_ms</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ar</span></div>
 
     <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">hit_objects_no_spinners</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1392,7 +1640,7 @@
         <span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">raw_timing_point</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">[</span><span class="s1">&#39;TimingPoints&#39;</span><span class="p">]:</span>
             <span class="n">timing_point</span> <span class="o">=</span> <span class="n">TimingPoint</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">raw_timing_point</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">timing_point</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">timing_point</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># we have a new parent node, pass that along to the new</span>
                 <span class="c1"># timing points</span>
                 <span class="n">parent</span> <span class="o">=</span> <span class="n">timing_point</span>
@@ -1525,8 +1773,8 @@
 <span class="sd">        timing_point : TimingPoint</span>
 <span class="sd">            The :class:`slider.beatmap.TimingPoint` at the given time.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">tp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;</span> <span class="n">time</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">tp</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;=</span> <span class="n">time</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">tp</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">timing_points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
@@ -1535,69 +1783,357 @@
     <span class="k">def</span> <span class="nf">_base_strain</span><span class="p">(</span><span class="n">strain</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Scale up the base attribute</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">((</span><span class="mi">5</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">strain</span> <span class="o">/</span> <span class="mf">0.0675</span><span class="p">)</span> <span class="o">-</span> <span class="mi">4</span><span class="p">)</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100000</span>
+        <span class="k">return</span> <span class="p">((</span><span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">strain</span> <span class="o">/</span> <span class="mf">0.0675</span><span class="p">)</span> <span class="o">-</span> <span class="mi">4</span><span class="p">)</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100000</span>
 
-    <span class="k">def</span> <span class="nf">_star_calc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># radius = circle_radius(self.cs)</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_handle_group</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+        <span class="n">inner</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">inner</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="n">m</span><span class="p">:</span>
+                    <span class="k">continue</span>
 
-        <span class="c1"># hit_objects = iter(self.hit_objects)</span>
-        <span class="c1"># previous = next(hit_objects)</span>
-        <span class="c1"># for hit_object in hit_objects:</span>
-        <span class="c1">#     ...</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                <span class="n">b</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
 
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_star_calc&#39;</span><span class="p">)</span>
+                <span class="n">ratio</span> <span class="o">=</span> <span class="n">a</span> <span class="o">/</span> <span class="n">b</span> <span class="k">if</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="n">b</span> <span class="k">else</span> <span class="n">b</span> <span class="o">/</span> <span class="n">a</span>
+                <span class="n">closest_power_of_two</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">ratio</span><span class="p">))</span>
+                <span class="n">offset</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">abs</span><span class="p">(</span><span class="n">closest_power_of_two</span> <span class="o">-</span> <span class="n">ratio</span><span class="p">)</span> <span class="o">/</span>
+                    <span class="n">closest_power_of_two</span>
+                <span class="p">)</span>
+                <span class="k">yield</span> <span class="n">offset</span> <span class="o">**</span> <span class="mi">2</span>
 
-    <span class="k">def</span> <span class="nf">_round_hitcounts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">accuracy</span><span class="p">,</span> <span class="n">count_miss</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">_strain_step</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+    <span class="n">_decay_weight</span> <span class="o">=</span> <span class="mf">0.9</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_difficulty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strain</span><span class="p">,</span> <span class="n">difficulty_hit_objects</span><span class="p">):</span>
+        <span class="n">highest_strains</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_highest_strain</span> <span class="o">=</span> <span class="n">highest_strains</span><span class="o">.</span><span class="n">append</span>
+
+        <span class="n">strain_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strain_step</span>
+        <span class="n">interval_end</span> <span class="o">=</span> <span class="n">strain_step</span>
+        <span class="n">max_strain</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">previous</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">difficulty_hit_object</span> <span class="ow">in</span> <span class="n">difficulty_hit_objects</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">difficulty_hit_object</span><span class="o">.</span><span class="n">hit_object</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;</span> <span class="n">interval_end</span><span class="p">:</span>
+                <span class="n">append_highest_strain</span><span class="p">(</span><span class="n">max_strain</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">max_strain</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">decay</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">_DifficultyHitObject</span><span class="o">.</span><span class="n">decay_base</span><span class="p">[</span><span class="n">strain</span><span class="p">]</span> <span class="o">**</span> <span class="p">(</span>
+                            <span class="n">interval_end</span> <span class="o">-</span>
+                            <span class="n">previous</span><span class="o">.</span><span class="n">hit_object</span><span class="o">.</span><span class="n">time</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+                    <span class="p">)</span>
+                    <span class="n">max_strain</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">strains</span><span class="p">[</span><span class="n">strain</span><span class="p">]</span> <span class="o">*</span> <span class="n">decay</span>
+
+                <span class="n">interval_end</span> <span class="o">+=</span> <span class="n">strain_step</span>
+
+            <span class="n">max_strain</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_strain</span><span class="p">,</span> <span class="n">difficulty_hit_object</span><span class="o">.</span><span class="n">strains</span><span class="p">[</span><span class="n">strain</span><span class="p">])</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="n">difficulty_hit_object</span>
+
+        <span class="n">difficulty</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">decay_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decay_weight</span>
+        <span class="k">for</span> <span class="n">strain</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">highest_strains</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">difficulty</span> <span class="o">+=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">strain</span>
+            <span class="n">weight</span> <span class="o">*=</span> <span class="n">decay_weight</span>
+
+        <span class="k">return</span> <span class="n">difficulty</span>
+
+    <span class="n">_star_scaling_factor</span> <span class="o">=</span> <span class="mf">0.0675</span>
+    <span class="n">_extreme_scaling_factor</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_product_no_diagonal</span><span class="p">(</span><span class="n">sequence</span><span class="p">):</span>
+        <span class="n">inner</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">inner</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="n">m</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">yield</span> <span class="n">sequence</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">sequence</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_stars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">easy</span><span class="p">,</span>
+                         <span class="n">hard_rock</span><span class="p">,</span>
+                         <span class="n">double_time</span><span class="p">,</span>
+                         <span class="n">half_time</span><span class="p">):</span>
+        <span class="n">cs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cs</span><span class="p">()</span>
+        <span class="c1"># NOTE: This is different than normal conversion</span>
+        <span class="k">if</span> <span class="n">hard_rock</span><span class="p">:</span>
+            <span class="n">cs</span> <span class="o">*=</span> <span class="mf">1.3</span>
+        <span class="k">elif</span> <span class="n">easy</span><span class="p">:</span>
+            <span class="n">cs</span> <span class="o">/=</span> <span class="mi">2</span>
+        <span class="n">radius</span> <span class="o">=</span> <span class="n">circle_radius</span><span class="p">(</span><span class="n">cs</span><span class="p">)</span>
+
+        <span class="n">difficulty_hit_objects</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_difficulty_hit_object</span> <span class="o">=</span> <span class="n">difficulty_hit_objects</span><span class="o">.</span><span class="n">append</span>
+
+        <span class="n">intervals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_interval</span> <span class="o">=</span> <span class="n">intervals</span><span class="o">.</span><span class="n">append</span>
+
+        <span class="n">hit_objects</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">_DifficultyHitObject</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">hit_objects</span><span class="p">),</span> <span class="n">radius</span><span class="p">)</span>
+        <span class="n">append_difficulty_hit_object</span><span class="p">(</span><span class="n">previous</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">double_time</span><span class="p">:</span>
+            <span class="n">modify</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;double_time&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">half_time</span><span class="p">:</span>
+            <span class="n">modify</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;half_time&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">modify</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">e</span>
+
+        <span class="k">for</span> <span class="n">hit_object</span> <span class="ow">in</span> <span class="n">hit_objects</span><span class="p">:</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">_DifficultyHitObject</span><span class="p">(</span>
+                <span class="n">modify</span><span class="p">(</span><span class="n">hit_object</span><span class="p">),</span>
+                <span class="n">radius</span><span class="p">,</span>
+                <span class="n">previous</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">append_interval</span><span class="p">(</span><span class="n">new</span><span class="o">.</span><span class="n">hit_object</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="n">previous</span><span class="o">.</span><span class="n">hit_object</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+            <span class="n">append_difficulty_hit_object</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="n">new</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_group_member</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">append</span>
+        <span class="n">clear_group</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">clear</span>
+
+        <span class="c1"># todo: compute break time from ar</span>
+        <span class="n">break_threshhold</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="mi">1200</span><span class="p">)</span>
+
+        <span class="n">count_offsets</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">rhythm_awkwardness</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">interval</span> <span class="ow">in</span> <span class="n">intervals</span><span class="p">:</span>
+            <span class="n">is_break</span> <span class="o">=</span> <span class="n">interval</span> <span class="o">&gt;=</span> <span class="n">break_threshhold</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_break</span><span class="p">:</span>
+                <span class="n">append_group_member</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">is_break</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">awk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_group</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+                    <span class="n">count_offsets</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">rhythm_awkwardness</span> <span class="o">+=</span> <span class="n">awk</span>
+
+                <span class="n">clear_group</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">awk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_group</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+            <span class="n">count_offsets</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">rhythm_awkwardness</span> <span class="o">+=</span> <span class="n">awk</span>
+
+        <span class="n">rhythm_awkwardness</span> <span class="o">/=</span> <span class="n">count_offsets</span>
+        <span class="n">rhythm_awkwardness</span> <span class="o">*=</span> <span class="mi">82</span>
+
+        <span class="n">aim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_difficulty</span><span class="p">(</span>
+            <span class="n">_DifficultyHitObject</span><span class="o">.</span><span class="n">Strain</span><span class="o">.</span><span class="n">aim</span><span class="p">,</span>
+            <span class="n">difficulty_hit_objects</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">speed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_difficulty</span><span class="p">(</span>
+            <span class="n">_DifficultyHitObject</span><span class="o">.</span><span class="n">Strain</span><span class="o">.</span><span class="n">speed</span><span class="p">,</span>
+            <span class="n">difficulty_hit_objects</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">key</span> <span class="o">=</span> <span class="n">easy</span><span class="p">,</span> <span class="n">hard_rock</span><span class="p">,</span> <span class="n">double_time</span><span class="p">,</span> <span class="n">half_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aim_stars_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">aim</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">aim</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_star_scaling_factor</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_speed_stars_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">speed</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">speed</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_star_scaling_factor</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stars_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">aim</span> <span class="o">+</span>
+            <span class="n">speed</span> <span class="o">+</span>
+            <span class="nb">abs</span><span class="p">(</span><span class="n">speed</span> <span class="o">-</span> <span class="n">aim</span><span class="p">)</span> <span class="o">*</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extreme_scaling_factor</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rhythm_awkwardness_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">rhythm_awkwardness</span>
+
+    <span class="k">def</span> <span class="nf">_stars_cache_value</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a cached function from pulling from the values generated</span>
+<span class="sd">        in ``_calculate_stars``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the attribute.</span>
+<span class="sd">        doc : str</span>
+<span class="sd">            The docstring for the attribute.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        getter : function</span>
+<span class="sd">            The getter function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache_name</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;_</span><span class="si">{name}</span><span class="s1">_cache&#39;</span>
+
+        <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="o">*</span><span class="p">,</span>
+                <span class="n">easy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">bool</span><span class="p">(</span><span class="n">easy</span><span class="p">),</span>
+                <span class="nb">bool</span><span class="p">(</span><span class="n">hard_rock</span><span class="p">),</span>
+                <span class="nb">bool</span><span class="p">(</span><span class="n">double_time</span><span class="p">),</span>
+                <span class="nb">bool</span><span class="p">(</span><span class="n">half_time</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache_name</span><span class="p">)[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_stars</span><span class="p">(</span><span class="o">*</span><span class="n">key</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache_name</span><span class="p">)[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="n">get</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="n">get</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+        <span class="k">return</span> <span class="n">get</span>
+
+    <span class="n">speed_stars</span> <span class="o">=</span> <span class="n">_stars_cache_value</span><span class="p">(</span>
+        <span class="s1">&#39;speed_stars&#39;</span><span class="p">,</span>
+        <span class="sd">&quot;&quot;&quot;The speed part of the stars.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            Stars with the easy mod applied.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            Stars with the hard rock mod applied.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Stars with the double time mod applied.</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Stars with the half time mod applied.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        speed_stars : float</span>
+<span class="sd">            The aim component of the stars.</span>
+<span class="sd">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">aim_stars</span> <span class="o">=</span> <span class="n">_stars_cache_value</span><span class="p">(</span>
+        <span class="s1">&#39;aim_stars&#39;</span><span class="p">,</span>
+        <span class="sd">&quot;&quot;&quot;The aim part of the stars.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            Stars with the easy mod applied.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            Stars with the hard rock mod applied.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Stars with the double time mod applied.</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Stars with the half time mod applied.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        aim_stars : float</span>
+<span class="sd">            The aim component of the stars.</span>
+<span class="sd">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">stars</span> <span class="o">=</span> <span class="n">_stars_cache_value</span><span class="p">(</span>
+        <span class="s1">&#39;stars&#39;</span><span class="p">,</span>
+        <span class="sd">&quot;&quot;&quot;The stars as seen in osu!.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            Stars with the easy mod applied.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            Stars with the hard rock mod applied.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Stars with the double time mod applied.</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Stars with the half time mod applied.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        stars : float</span>
+<span class="sd">            The total stars for the map.</span>
+<span class="sd">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">rhythm_awkwardness</span> <span class="o">=</span> <span class="n">_stars_cache_value</span><span class="p">(</span>
+        <span class="s1">&#39;rhythm_awkwardness&#39;</span><span class="p">,</span>
+        <span class="sd">&quot;&quot;&quot;The rhythm awkwardness component of the song.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        easy : bool, optional</span>
+<span class="sd">            Rhythm awkwardness with the easy mod applied.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            Rhythm awkwardness with the hard rock mod applied.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Rhythm awkwardness with the double time mod applied.</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Rhythm awkwardness with the half time mod applied.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        rhythm_awkwardness : float</span>
+<span class="sd">            The rhythm awkwardness score.</span>
+<span class="sd">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">del</span> <span class="n">_stars_cache_value</span>
+
+
+    <span class="k">def</span> <span class="nf">_round_hitcounts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">accuracy</span><span class="p">,</span> <span class="n">count_miss</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Round the accuracy to the nearest hit counts.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        accuracy : float</span>
+<span class="sd">        accuracy : np.ndarray[float]</span>
 <span class="sd">            The accuracy to round in the range [0, 1]</span>
-<span class="sd">        count_miss : int, optional</span>
+<span class="sd">        count_miss : np.ndarray[int]int, optional</span>
 <span class="sd">            The number of misses to fix.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        count_300 : int</span>
+<span class="sd">        count_300 : np.ndarray[int]</span>
 <span class="sd">            The number of 300s.</span>
-<span class="sd">        count_100 : int</span>
+<span class="sd">        count_100 : np.ndarray[int]</span>
 <span class="sd">            The number of 100s.</span>
-<span class="sd">        count_50 : int</span>
+<span class="sd">        count_50 : np.ndarray[int]</span>
 <span class="sd">            The number of 50s.</span>
-<span class="sd">        count_miss : int</span>
+<span class="sd">        count_miss : np.ndarray[int]</span>
 <span class="sd">            The number of misses.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">count_miss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">count_miss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
         <span class="n">max_300</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">-</span> <span class="n">count_miss</span>
 
-        <span class="n">accuracy</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
             <span class="mf">0.0</span><span class="p">,</span>
-            <span class="nb">min</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
                 <span class="n">calculate_accuracy</span><span class="p">(</span><span class="n">max_300</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">count_miss</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">,</span>
                 <span class="n">accuracy</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">)</span>
 
-        <span class="n">count_50</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">count_100</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span>
+        <span class="n">count_50</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">count_100</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
             <span class="o">-</span><span class="mf">3.0</span> <span class="o">*</span>
             <span class="p">((</span><span class="n">accuracy</span> <span class="o">*</span> <span class="mf">0.01</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">+</span> <span class="n">count_miss</span><span class="p">)</span> <span class="o">*</span>
             <span class="mf">0.5</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">count_100</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">-</span> <span class="n">count_miss</span><span class="p">:</span>
-            <span class="c1"># accuracy lower than all 100s, use 50s</span>
-            <span class="n">count_100</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">count_50</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">count_100</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">-</span> <span class="n">count_miss</span>
+        <span class="n">count_100</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">count_50</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
                 <span class="o">-</span><span class="mf">6.0</span> <span class="o">*</span>
-                <span class="p">((</span><span class="n">accuracy</span> <span class="o">*</span> <span class="mf">0.01</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">+</span>
-                 <span class="n">count_miss</span><span class="p">)</span> <span class="o">*</span>
+                <span class="p">((</span><span class="n">accuracy</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.01</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">+</span>
+                 <span class="n">count_miss</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span> <span class="o">*</span>
                 <span class="mf">0.2</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="n">count_50</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">max_300</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">count_50</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
 
-            <span class="n">count_50</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_300</span><span class="p">,</span> <span class="n">count_50</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">count_100</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_300</span><span class="p">,</span> <span class="n">count_100</span><span class="p">)</span>
+        <span class="n">count_100</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">max_300</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">],</span> <span class="n">count_100</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">])</span>
 
         <span class="n">count_300</span> <span class="o">=</span> <span class="p">(</span>
             <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">-</span>
@@ -1615,7 +2151,7 @@
                            <span class="n">count_300</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">count_100</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">count_50</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                           <span class="n">count_miss</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                           <span class="n">count_miss</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">no_fail</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">easy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">hidden</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1667,8 +2203,6 @@
 <span class="sd">        pp : float</span>
 <span class="sd">            The performance points awarded for the specified play.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;pp calculation is not done&#39;</span><span class="p">)</span>
-
         <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">}:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;unknown PP version: </span><span class="si">{version}</span><span class="s1">&#39;</span><span class="p">)</span>
 
@@ -1681,48 +2215,48 @@
                     <span class="n">count_50</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot pass accuracy and hit counts&#39;</span><span class="p">)</span>
             <span class="c1"># compute the closest hit counts for the accuracy</span>
+            <span class="n">accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">count_300</span><span class="p">,</span> <span class="n">count_100</span><span class="p">,</span> <span class="n">count_50</span><span class="p">,</span> <span class="n">count_miss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_round_hitcounts</span><span class="p">(</span>
                 <span class="n">accuracy</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">count_miss</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
                 <span class="n">count_miss</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">elif</span> <span class="p">(</span><span class="n">count_300</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
               <span class="n">count_100</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
               <span class="n">count_50</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">count_300</span><span class="p">,</span> <span class="n">count_100</span><span class="p">,</span> <span class="n">count_50</span><span class="p">,</span> <span class="n">count_miss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_round_hitcounts</span><span class="p">(</span>
                 <span class="n">accuracy</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">count_miss</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
                 <span class="n">count_miss</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">od</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">od</span>
-        <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ar</span>
+        <span class="n">od</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">od</span><span class="p">(</span><span class="n">easy</span><span class="o">=</span><span class="n">easy</span><span class="p">,</span> <span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">)</span>
+        <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ar</span><span class="p">(</span>
+            <span class="n">easy</span><span class="o">=</span><span class="n">easy</span><span class="p">,</span>
+            <span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">,</span>
+            <span class="n">half_time</span><span class="o">=</span><span class="n">half_time</span><span class="p">,</span>
+            <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
+        <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">easy</span><span class="p">:</span>
-            <span class="n">od</span> <span class="o">/=</span> <span class="mi">2</span>
-            <span class="n">ar</span> <span class="o">/=</span> <span class="mi">2</span>
-        <span class="k">elif</span> <span class="n">hard_rock</span><span class="p">:</span>
-            <span class="n">od</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">od</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-            <span class="n">ar</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.4</span> <span class="o">*</span> <span class="n">ar</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">half_time</span><span class="p">:</span>
-            <span class="n">ar</span> <span class="o">=</span> <span class="n">ms_to_ar</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">ar_to_ms</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">double_time</span><span class="p">:</span>
-            <span class="n">ar</span> <span class="o">=</span> <span class="n">ms_to_ar</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ar_to_ms</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
-
-        <span class="n">accuracy</span> <span class="o">=</span> <span class="n">calculate_accuracy</span><span class="p">(</span>
+        <span class="n">accuracy_scaled</span> <span class="o">=</span> <span class="n">calculate_accuracy</span><span class="p">(</span>
             <span class="n">count_300</span><span class="p">,</span>
             <span class="n">count_100</span><span class="p">,</span>
             <span class="n">count_50</span><span class="p">,</span>
             <span class="n">count_miss</span><span class="p">,</span>
-        <span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
-        <span class="n">accuracy_bonus</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="n">accuracy</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="n">accuracy</span> <span class="o">=</span> <span class="n">accuracy_scaled</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="n">accuracy_bonus</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="n">accuracy_scaled</span> <span class="o">/</span> <span class="mi">2</span>
 
         <span class="n">count_hit_objects</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span>
         <span class="n">count_hit_objects_over_2000</span> <span class="o">=</span> <span class="n">count_hit_objects</span> <span class="o">/</span> <span class="mi">2000</span>
         <span class="n">length_bonus</span> <span class="o">=</span> <span class="p">(</span>
             <span class="mf">0.95</span> <span class="o">+</span>
-            <span class="mf">0.4</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">count_hit_objects_over_2000</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
-                <span class="n">log10</span><span class="p">(</span><span class="n">count_hit_objects_over_2000</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+            <span class="mf">0.4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">count_hit_objects_over_2000</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">count_hit_objects_over_2000</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
                 <span class="k">if</span> <span class="n">count_hit_objects</span> <span class="o">&gt;</span> <span class="mi">2000</span> <span class="k">else</span>
                 <span class="mi">0</span>
             <span class="p">)</span>
@@ -1744,9 +2278,10 @@
             <span class="n">ar_bonus</span> <span class="o">+=</span> <span class="n">low_ar_bonus</span>
 
         <span class="n">hidden_bonus</span> <span class="o">=</span> <span class="mf">1.18</span> <span class="k">if</span> <span class="n">hidden</span> <span class="k">else</span> <span class="mi">1</span>
-        <span class="n">flashlight_bonus</span> <span class="o">=</span> <span class="mf">1.45</span> <span class="o">*</span> <span class="n">length_bonus</span> <span class="k">if</span> <span class="n">flashlight</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">flashlight_bonus</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.45</span> <span class="o">*</span> <span class="n">length_bonus</span><span class="p">)</span> <span class="k">if</span> <span class="n">flashlight</span> <span class="k">else</span> <span class="mi">1</span>
         <span class="n">od_bonus</span> <span class="o">=</span> <span class="mf">0.98</span> <span class="o">+</span> <span class="n">od</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">2500</span>
 
+        <span class="nb">print</span><span class="p">(</span><span class="n">ar_bonus</span><span class="p">,</span> <span class="n">accuracy_bonus</span><span class="p">,</span> <span class="n">od_bonus</span><span class="p">)</span>
         <span class="n">aim_score</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_base_strain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aim_stars</span><span class="p">)</span> <span class="o">*</span>
             <span class="n">length_bonus</span> <span class="o">*</span>
@@ -1779,7 +2314,7 @@
                     <span class="n">count_100</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">+</span>
                     <span class="n">count_50</span> <span class="o">*</span> <span class="mf">50.0</span>
                 <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">count_circles</span> <span class="o">*</span> <span class="mi">300</span><span class="p">)</span>
-                <span class="n">real_accuracy</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">real_accuracy</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">real_accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">real_accuracy</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">real_accuracy</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -1800,11 +2335,15 @@
         <span class="k">if</span> <span class="n">spun_out</span><span class="p">:</span>
             <span class="n">final_multiplier</span> <span class="o">*=</span> <span class="mf">0.95</span>
 
-        <span class="k">return</span> <span class="p">(</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">(</span>
             <span class="p">(</span><span class="n">aim_score</span> <span class="o">**</span> <span class="mf">1.1</span><span class="p">)</span> <span class="o">+</span>
             <span class="p">(</span><span class="n">speed_score</span> <span class="o">**</span> <span class="mf">1.1</span><span class="p">)</span> <span class="o">+</span>
             <span class="p">(</span><span class="n">accuracy_score</span> <span class="o">**</span> <span class="mf">1.1</span><span class="p">)</span>
-        <span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">1.1</span><span class="p">)</span> <span class="o">*</span> <span class="n">final_multiplier</span></div></div>
+        <span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">1.1</span><span class="p">)</span> <span class="o">*</span> <span class="n">final_multiplier</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asscalar</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span></div></div>
 </pre></div>
 
            </div>

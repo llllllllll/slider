@@ -266,6 +266,23 @@
 <span class="sd">        The radius in osu! pixels.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">(</span><span class="mi">512</span> <span class="o">/</span> <span class="mi">16</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="p">(</span><span class="n">cs</span> <span class="o">-</span> <span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="mi">5</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">od_to_ms</span><span class="p">(</span><span class="n">od</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert an overall difficulty value into milliseconds to hit an object at</span>
+<span class="sd">    maximum accuracy.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    od : float</span>
+<span class="sd">        The overall difficulty.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ms : float</span>
+<span class="sd">        The number of milliseconds to hit an object at maximum accuracy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mf">79.5</span> <span class="o">-</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">od</span>
 </pre></div>
 
            </div>
