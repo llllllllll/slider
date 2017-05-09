@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import datetime
+from enum import unique, IntEnum
 import os
 
 import numpy as np
@@ -9,10 +10,13 @@ from ..mod import ar_to_ms, ms_to_ar
 from ..replay import Replay
 
 
-# axis indices
-_x = 0
-_y = 1
-_z = 2
+@unique
+class Axis(IntEnum):
+    """Axis indices.
+    """
+    x = 0
+    y = 1
+    z = 2
 
 
 def hit_object_coordinates(hit_objects, *, double_time=False, half_time=False):
@@ -57,17 +61,19 @@ def hit_object_coordinates(hit_objects, *, double_time=False, half_time=False):
     coords = np.array([xs, ys, zs], dtype=np.float64)
 
     if double_time:
-        coords[_z] *= 4 / 3
+        coords[Axis.z] *= 4 / 3
     elif half_time:
-        coords[_z] *= 2 / 3
+        coords[Axis.z] *= 2 / 3
 
     return coords
 
 
-# angle indices
-pitch = 0
-roll = 1
-yaw = 2
+class Angle(IntEnum):
+    """Angle indices.
+    """
+    pitch = 0
+    roll = 1
+    yaw = 2
 
 
 def hit_object_angles(hit_objects, *, double_time=False, half_time=False):
@@ -98,9 +104,9 @@ def hit_object_angles(hit_objects, *, double_time=False, half_time=False):
 
     # (pitch, roll, yaw) x transitions
     out = np.empty((3, len(hit_objects) - 1), dtype=np.float64)
-    np.arctan2(diff[_y], diff[_z], out=out[pitch])
-    np.arctan2(diff[_y], diff[_x], out=out[roll])
-    np.arctan2(diff[_z], diff[_x], out=out[yaw])
+    np.arctan2(diff[Axis.y], diff[Axis.z], out=out[Angle.pitch])
+    np.arctan2(diff[Axis.y], diff[Axis.x], out=out[Angle.roll])
+    np.arctan2(diff[Axis.z], diff[Axis.x], out=out[Angle.yaw])
 
     return out
 
@@ -185,37 +191,20 @@ def extract_features(beatmap,
 
     circles, sliders, spinners = count_hit_objects(beatmap.hit_objects)
 
-    od = beatmap.od
-    ar = beatmap.ar
-    cs = beatmap.cs
-
-    if easy:
-        od /= 2
-        ar /= 2
-        cs /= 2
-    elif hard_rock:
-        od = min(1.4 * od, 10)
-        ar = min(1.4 * ar, 10)
-        cs = min(1.4 * cs, 10)
-
-    bpm_min = beatmap.bpm_min
-    bpm_max = beatmap.bpm_max
-
-    if half_time:
-        ar = ms_to_ar(4 * ar_to_ms(ar) / 3)
-        bpm_min *= 0.75
-        bpm_max *= 0.75
-    elif double_time:
-        ar = ms_to_ar(2 * ar_to_ms(ar) / 3)
-        bpm_min *= 1.5
-        bpm_max *= 1.5
+    pp_95, pp_96, pp_97, pp_98, pp_99, pp_100 = beatmap.pp(
+        accuracy=[0.95, 0.96, 0.97, 0.98, 0.99],
+    )
 
     return {
         # basic stats
-        'HP': beatmap.hp,
-        'CS': cs,
-        'OD': od,
-        'AR': ar,
+        'OD': beatmap.od(easy=easy, hard_rock=hard_rock),
+        'CS': beatmap.cs(easy=easy, hard_rock=hard_rock),
+        'AR': beatmap.ar(
+            easy=easy,
+            hard_rock=hard_rock,
+            half_time=half_time,
+            double_time=double_time,
+        ),
 
         # mods
         'easy': float(easy),
@@ -226,28 +215,59 @@ def extract_features(beatmap,
         'flashlight': float(flashlight),
 
         # bpm
-        'bpm-min': bpm_min,
-        'bpm-max': bpm_max,
+        'bpm-min': beatmap.bpm_min(
+            half_time=half_time,
+            double_time=double_time,
+        ),
+        'bpm-max': beatmap.bpm_max(
+            half_time=half_time,
+            double_time=double_time,
+        ),
 
         # hit objects
         'circle-count': circles,
         'slider-count': sliders,
         'spinner-count': spinners,
 
-        # slider info
-        'slider-multiplier': beatmap.slider_multiplier,
-        'slider-tick-rate': beatmap.slider_tick_rate,
-
         # hit object angles
-        'mean-pitch': mean_angles[pitch],
-        'mean-roll': mean_angles[roll],
-        'mean-yaw': mean_angles[yaw],
-        'median-pitch': median_angles[pitch],
-        'median-roll': median_angles[roll],
-        'median-yaw': median_angles[yaw],
-        'max-pitch': max_angles[pitch],
-        'max-roll': max_angles[roll],
-        'max-yaw': max_angles[yaw],
+        'mean-pitch': mean_angles[Angle.pitch],
+        'mean-roll': mean_angles[Angle.roll],
+        'mean-yaw': mean_angles[Angle.yaw],
+        'median-pitch': median_angles[Angle.pitch],
+        'median-roll': median_angles[Angle.roll],
+        'median-yaw': median_angles[Angle.yaw],
+        'max-pitch': max_angles[Angle.pitch],
+        'max-roll': max_angles[Angle.roll],
+        'max-yaw': max_angles[Angle.yaw],
+
+        # stars
+        'speed-stars': beatmap.speed_stars(
+            easy=easy,
+            hard_rock=hard_rock,
+            half_time=half_time,
+            double_time=double_time,
+        ),
+        'aim-stars': beatmap.aim_stars(
+            easy=easy,
+            hard_rock=hard_rock,
+            half_time=half_time,
+            double_time=double_time,
+        ),
+        'rhythm-awkwardness': beatmap.rhythm_awkwardness(
+            easy=easy,
+            hard_rock=hard_rock,
+            half_time=half_time,
+            double_time=double_time,
+        ),
+
+        # pp
+        'PP-95%': pp_95,
+        'PP-96%': pp_96,
+        'PP-97%': pp_97,
+        'PP-98%': pp_98,
+        'PP-99%': pp_99,
+        'PP-100%': pp_100,
+
     }
 
 

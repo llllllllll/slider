@@ -11,7 +11,7 @@ import numpy as np
 from .game_mode import GameMode
 from .mod import ar_to_ms, ms_to_ar, circle_radius
 from .position import Position
-from .utils import accuracy as calculate_accuracy, lazyval
+from .utils import accuracy as calculate_accuracy, lazyval, memoize
 
 
 class _no_default:
@@ -1101,42 +1101,156 @@ class Beatmap:
         self._stars_cache = {}
         self._aim_stars_cache = {}
         self._speed_stars_cache = {}
+        self._rhythm_awkwardness_cache = {}
 
-    @lazyval
-    def bpm_min(self):
-        """The minimum bpm in this beatmap.
-        """
-        return min(p.bpm for p in self.timing_points if p.bpm)
+    @memoize
+    def bpm_min(self, *, half_time=False, double_time=False):
+        """The minimum BPM in this beatmap.
 
-    @lazyval
-    def bpm_max(self):
-        """The maximum bpm in this beatmap.
-        """
-        return max(p.bpm for p in self.timing_points if p.bpm)
+        Parameters
+        ----------
+        half_time : bool
+            The BPM with half time enabled.
+        double_time : bool
+            The BPM with double time enabled.
 
-    @lazyval
-    def hp(self):
-        """Alias for ``hp_drain_rate``.
+        Returns
+        -------
+        bpm : float
+            The minimum BPM in this beatmap.
         """
-        return self.hp_drain_rate
+        bpm = min(p.bpm for p in self.timing_points if p.bpm)
+        if double_time:
+            bpm *= 1.5
+        elif half_time:
+            bpm *= 0.75
+        return bpm
 
-    @lazyval
-    def cs(self):
-        """Alias for ``circle_size``.
-        """
-        return self.circle_size
+    @memoize
+    def bpm_max(self, *, half_time=False, double_time=False):
+        """The maximum BPM in this beatmap.
 
-    @lazyval
-    def od(self):
-        """Alias for ``overall_difficulty``.
-        """
-        return self.overall_difficulty
+        Parameters
+        ----------
+        half_time : bool
+            The BPM with half time enabled.
+        double_time : bool
+            The BPM with double time enabled.
 
-    @lazyval
-    def ar(self):
-        """Alias for ``approach_rate``.
+        Returns
+        -------
+        bpm : float
+            The maximum BPM in this beatmap.
         """
-        return self.approach_rate
+        bpm = max(p.bpm for p in self.timing_points if p.bpm)
+        if double_time:
+            bpm *= 1.5
+        elif half_time:
+            bpm *= 0.75
+        return bpm
+
+    def hp(self, *, easy=False, hard_rock=False):
+        """Compute the Health Drain (HP) value for different mods.
+
+        Parameters
+        ----------
+        easy : bool, optional
+            HP with the easy mod enabled.
+        hard_rock : bool, optional
+            HP with the hard rock mod enabled.
+
+        Returns
+        -------
+        hp : float
+            The HP value.
+        """
+        hp = self.circle_size
+        if hard_rock:
+            hp = min(1.4 * hp, 10)
+        elif easy:
+            hp /= 2
+        return hp
+
+    def cs(self, *, easy=False, hard_rock=False):
+        """Compute the Circle Size (CS) value for different mods.
+
+        Parameters
+        ----------
+        easy : bool, optional
+            CS with the easy mod enabled.
+        hard_rock : bool, optional
+            CS with the hard rock mod enabled.
+
+        Returns
+        -------
+        cs : float
+            The CS value.
+        """
+        cs = self.circle_size
+        if hard_rock:
+            cs = min(1.4 * cs, 10)
+        elif easy:
+            cs /= 2
+        return cs
+
+    def od(self, *, easy=False, hard_rock=False):
+        """Compute the Overall Difficulty (OD) value for different mods.
+
+        Parameters
+        ----------
+        easy : bool, optional
+            OD with the easy mod enabled.
+        hard_rock : bool, optional
+            OD with the hard rock mod enabled.
+
+        Returns
+        -------
+        od : float
+            The OD value.
+        """
+        od = self.overall_difficulty
+        if hard_rock:
+            od = min(1.4 * od, 10)
+        elif easy:
+            od /= 2
+        return od
+
+    def ar(self,
+           *,
+           easy=False,
+           hard_rock=False,
+           half_time=False,
+           double_time=False):
+        """Compute the Approach Rate (AR) value for different mods.
+
+        Parameters
+        ----------
+        easy : bool, optional
+            AR with the easy mod enabled.
+        hard_rock : bool, optional
+            AR with the hard rock mod enabled.
+        half_time : bool, optional
+            Effective AR with the half time mod enabled.
+        double_time : bool, optional
+            Effective AR with the double time mod enabled.
+
+        Returns
+        -------
+        ar : float
+            The effective AR value.
+
+        Notes
+        -----
+        ``double_time`` and ``half_time`` do not actually affect the in game
+        AR; however, because the map is sped up or slowed down, the effective
+        approach rate is changed.
+        """
+        ar = self.approach_rate
+        if double_time:
+            ar = ms_to_ar(2 * ar_to_ms(ar) / 3)
+        elif half_time:
+            ar = ms_to_ar(4 * ar_to_ms(ar) / 3)
+        return ar
 
     @lazyval
     def hit_objects_no_spinners(self):
@@ -1591,12 +1705,12 @@ class Beatmap:
                          hard_rock,
                          double_time,
                          half_time):
-        cs = self.cs
-        if easy:
-            cs /= 2
-        elif hard_rock:
+        cs = self.cs()
+        # NOTE: This is different than normal conversion
+        if hard_rock:
             cs *= 1.3
-
+        elif easy:
+            cs /= 2
         radius = circle_radius(cs)
 
         difficulty_hit_objects = []
@@ -1672,20 +1786,57 @@ class Beatmap:
         self._speed_stars_cache[key] = speed = (
             np.sqrt(speed) * self._star_scaling_factor
         )
-
         self._stars_cache[key] = (
             aim +
             speed +
             abs(speed - aim) *
             self._extreme_scaling_factor
         )
+        self._rhythm_awkwardness_cache[key] = rhythm_awkwardness
 
-    def speed_stars(self,
-                    *,
-                    easy=False,
-                    hard_rock=False,
-                    double_time=False,
-                    half_time=False):
+    def _stars_cache_value(name, doc):
+        """Create a cached function from pulling from the values generated
+        in ``_calculate_stars``.
+
+        Parameters
+        ----------
+        name : str
+            The name of the attribute.
+        doc : str
+            The docstring for the attribute.
+
+        Returns
+        -------
+        getter : function
+            The getter function.
+        """
+        cache_name = f'_{name}_cache'
+
+        def get(self,
+                *,
+                easy=False,
+                hard_rock=False,
+                double_time=False,
+                half_time=False):
+            key = (
+                bool(easy),
+                bool(hard_rock),
+                bool(double_time),
+                bool(half_time),
+            )
+            try:
+                return getattr(self, cache_name)[key]
+            except KeyError:
+                self._calculate_stars(*key)
+
+            return getattr(self, cache_name)[key]
+
+        get.__name__ = name
+        get.__doc__ = doc
+        return get
+
+    speed_stars = _stars_cache_value(
+        'speed_stars',
         """The speed part of the stars.
 
         Parameters
@@ -1698,26 +1849,15 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
-        """
-        key = (
-            bool(easy),
-            bool(hard_rock),
-            bool(double_time),
-            bool(half_time),
-        )
-        try:
-            return self._speed_stars_cache[key]
-        except KeyError:
-            self._calculate_stars(*key)
 
-        return self._speed_stars_cache[key]
-
-    def aim_stars(self,
-                  *,
-                  easy=False,
-                  hard_rock=False,
-                  double_time=False,
-                  half_time=False):
+        Returns
+        -------
+        speed_stars : float
+            The aim component of the stars.
+        """,
+    )
+    aim_stars = _stars_cache_value(
+        'aim_stars',
         """The aim part of the stars.
 
         Parameters
@@ -1730,26 +1870,15 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
-        """
-        key = (
-            bool(easy),
-            bool(hard_rock),
-            bool(double_time),
-            bool(half_time),
-        )
-        try:
-            return self._aim_stars_cache[key]
-        except KeyError:
-            self._calculate_stars(*key)
 
-        return self._aim_stars_cache[key]
-
-    def stars(self,
-              *,
-              easy=False,
-              hard_rock=False,
-              double_time=False,
-              half_time=False):
+        Returns
+        -------
+        aim_stars : float
+            The aim component of the stars.
+        """,
+    )
+    stars = _stars_cache_value(
+        'stars',
         """The stars as seen in osu!.
 
         Parameters
@@ -1762,19 +1891,37 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
-        """
-        key = (
-            bool(easy),
-            bool(hard_rock),
-            bool(double_time),
-            bool(half_time),
-        )
-        try:
-            return self._stars_cache[key]
-        except KeyError:
-            self._calculate_stars(*key)
 
-        return self._stars_cache[key]
+        Returns
+        -------
+        stars : float
+            The total stars for the map.
+        """,
+    )
+    rhythm_awkwardness = _stars_cache_value(
+        'rhythm_awkwardness',
+        """The rhythm awkwardness component of the song.
+
+        Parameters
+        ----------
+        easy : bool, optional
+            Rhythm awkwardness with the easy mod applied.
+        hard_rock : bool, optional
+            Rhythm awkwardness with the hard rock mod applied.
+        double_time : bool, optional
+            Rhythm awkwardness with the double time mod applied.
+        half_time : bool, optional
+            Rhythm awkwardness with the half time mod applied.
+
+        Returns
+        -------
+        rhythm_awkwardness : float
+            The rhythm awkwardness score.
+        """,
+    )
+
+    del _stars_cache_value
+
 
     def _round_hitcounts(self, accuracy, count_miss=None):
         """Round the accuracy to the nearest hit counts.
@@ -1928,20 +2075,13 @@ class Beatmap:
                 count_miss,
             )
 
-        od = self.od
-        ar = self.ar
-
-        if easy:
-            od /= 2
-            ar /= 2
-        elif hard_rock:
-            od = min(1.4 * od, 10)
-            ar = min(1.4 * ar, 10)
-
-        if half_time:
-            ar = ms_to_ar(4 * ar_to_ms(ar) / 3)
-        elif double_time:
-            ar = ms_to_ar(2 * ar_to_ms(ar) / 3)
+        od = self.od(easy=easy, hard_rock=hard_rock)
+        ar = self.ar(
+            easy=easy,
+            hard_rock=hard_rock,
+            half_time=half_time,
+            double_time=double_time,
+        )
 
         accuracy_scaled = calculate_accuracy(
             count_300,

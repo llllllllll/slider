@@ -1,3 +1,6 @@
+from functools import lru_cache
+
+
 class lazyval:
     """Decorator to lazily compute and cache a value.
     """
@@ -15,6 +18,9 @@ class lazyval:
         value = self._fget(instance)
         setattr(instance, self._name, value)
         return value
+
+
+memoize = lru_cache(None)
 
 
 def accuracy(count_300, count_100, count_50, count_miss):
