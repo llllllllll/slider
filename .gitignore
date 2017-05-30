@@ -16,3 +16,6 @@ output/
 .api-key
 
 .params
+
+.ipynb_checkpoints/*
+*.ipynb
