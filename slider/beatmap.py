@@ -6,34 +6,18 @@ import operator as op
 import re
 from zipfile import ZipFile
 
-import numpy as np
-
+from . import numpy as np
 from .game_mode import GameMode
 from .mod import ar_to_ms, ms_to_ar, circle_radius
 from .position import Position
-from .utils import accuracy as calculate_accuracy, lazyval, memoize
+from .utils import accuracy as calculate_accuracy, lazyval, memoize, no_default
 
 
-class _no_default:
-    """Sentinel type; this should not be instantiated.
-
-    This type is used so functions can tell the difference between no argument
-    passed and an explicit value passed even if ``None`` is a valid value.
-
-    Notes
-    -----
-    This is implemented as a type to make functions which use this as a default
-    argument serializable.
-    """
-    def __new__(cls):
-        raise TypeError('cannot create instances of sentinel type')
-
-
-def _get(cs, ix, default=_no_default):
+def _get(cs, ix, default=no_default):
     try:
         return cs[ix]
     except IndexError:
-        if default is _no_default:
+        if default is no_default:
             raise
         return default
 
@@ -647,7 +631,7 @@ class HoldNote(HitObject):
         return cls(position, time, hitsound, *rest)
 
 
-def _get_as_str(groups, section, field, default=_no_default):
+def _get_as_str(groups, section, field, default=no_default):
     """Lookup a field from a given section.
 
     Parameters
@@ -670,19 +654,19 @@ def _get_as_str(groups, section, field, default=_no_default):
     try:
         mapping = groups[section]
     except KeyError:
-        if default is _no_default:
+        if default is no_default:
             raise ValueError(f'missing section {section!r}')
         return default
 
     try:
         return mapping[field]
     except KeyError:
-        if default is _no_default:
+        if default is no_default:
             raise ValueError(f'missing field {field!r} in section {section!r}')
         return default
 
 
-def _get_as_int(groups, section, field, default=_no_default):
+def _get_as_int(groups, section, field, default=no_default):
     """Lookup a field from a given section and parse it as an integer.
 
     Parameters
@@ -716,7 +700,7 @@ def _get_as_int(groups, section, field, default=_no_default):
         )
 
 
-def _get_as_int_list(groups, section, field, default=_no_default):
+def _get_as_int_list(groups, section, field, default=no_default):
     """Lookup a field from a given section and parse it as an integer list.
 
     Parameters
@@ -750,7 +734,7 @@ def _get_as_int_list(groups, section, field, default=_no_default):
         )
 
 
-def _get_as_float(groups, section, field, default=_no_default):
+def _get_as_float(groups, section, field, default=no_default):
     """Lookup a field from a given section and parse it as an float
 
     Parameters
@@ -784,7 +768,7 @@ def _get_as_float(groups, section, field, default=_no_default):
         )
 
 
-def _get_as_bool(groups, section, field, default=_no_default):
+def _get_as_bool(groups, section, field, default=no_default):
     """Lookup a field from a given section and parse it as an float
 
     Parameters
@@ -1922,7 +1906,6 @@ class Beatmap:
 
     del _stars_cache_value
 
-
     def _round_hitcounts(self, accuracy, count_miss=None):
         """Round the accuracy to the nearest hit counts.
 
@@ -2122,9 +2105,14 @@ class Beatmap:
         flashlight_bonus = (1.45 * length_bonus) if flashlight else 1
         od_bonus = 0.98 + od ** 2 / 2500
 
-        print(ar_bonus, accuracy_bonus, od_bonus)
+        mods = {
+            'easy': easy,
+            'hard_rock': hard_rock,
+            'half_time': half_time,
+            'double_time': double_time,
+        }
         aim_score = (
-            self._base_strain(self.aim_stars) *
+            self._base_strain(self.aim_stars(**mods)) *
             length_bonus *
             miss_penalty *
             combo_break_penalty *
@@ -2136,7 +2124,7 @@ class Beatmap:
         )
 
         speed_score = (
-            self._base_strain(self.speed_stars) *
+            self._base_strain(self.speed_stars(**mods)) *
             length_bonus *
             miss_penalty *
             combo_break_penalty *
@@ -2183,5 +2171,7 @@ class Beatmap:
         ) ** (1 / 1.1) * final_multiplier
         if len(out) == 1:
             out = np.asscalar(out)
+        else:
+            out = np.finalize(out)
 
         return out
