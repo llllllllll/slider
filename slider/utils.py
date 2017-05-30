@@ -16,8 +16,26 @@ class lazyval:
             return self
 
         value = self._fget(instance)
-        setattr(instance, self._name, value)
+        vars(instance)[self._name] =  value
         return value
+
+    def __set__(self, instance, value):
+        vars(instance)[self._name] = value
+
+
+class no_default:
+    """Sentinel type; this should not be instantiated.
+
+    This type is used so functions can tell the difference between no argument
+    passed and an explicit value passed even if ``None`` is a valid value.
+
+    Notes
+    -----
+    This is implemented as a type to make functions which use this as a default
+    argument serializable.
+    """
+    def __new__(cls):
+        raise TypeError('cannot create instances of sentinel type')
 
 
 memoize = lru_cache(None)

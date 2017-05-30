@@ -22,24 +22,41 @@ Beatmap
 .. autoclass:: slider.beatmap.HoldNote
    :members:
 
-Client
-------
-
-.. autoclass:: slider.client.Client
-   :members:
-
 Library
 -------
 
 .. autoclass:: slider.library.Library
    :members:
 
-.. autoclass:: slider.library.LocalLibrary
-   :members: beatmaps
+Client
+------
 
-.. autoclass:: slider.library.ClientLibrary
+.. autoclass:: slider.client.Client
+   :members:
 
-.. autoclass:: slider.library.ChainedLibrary
+.. autoclass:: slider.client.BeatmapResult
+   :members:
+
+.. autoclass:: slider.client.User
+   :members:
+
+.. autoclass:: slider.client.UserEvent
+   :members:
+
+.. autoclass:: slider.client.HighScore
+   :members:
+
+.. autoclass:: slider.client.ApprovedState
+   :members:
+   :undoc-members:
+
+.. autoclass:: slider.client.Genre
+   :members:
+   :undoc-members:
+
+.. autoclass:: slider.client.Language
+   :members:
+   :undoc-members:
 
 Replay
 ------
@@ -51,13 +68,14 @@ Game Modes
 ----------
 
 .. autoclass:: slider.game_mode.GameMode
+   :members:
    :undoc-members:
-
 
 Mods
 ----
 
 .. autoclass:: slider.mod.Mod
+   :members:
    :undoc-members:
 
 .. autofunction:: slider.mod.ar_to_ms
