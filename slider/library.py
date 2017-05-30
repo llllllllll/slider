@@ -69,7 +69,7 @@ class Library:
             The default location to download beatmaps from.
         """
         self = cls(path)
-        save = self.save
+        write_to_cache = self._write_to_cache
 
         for entry in os.scandir(path):
             path = entry.path
@@ -80,9 +80,11 @@ class Library:
                 data = f.read()
 
             try:
-                save(data, path)
+                beatmap = Beatmap.parse(data.decode('utf-8-sig'))
             except ValueError as e:
-                raise ValueError(f'failed to save {entry.path}') from e
+                raise ValueError(f'failed to parse {entry.path}') from e
+
+            write_to_cache(beatmap, data, path)
 
         return self
 
@@ -179,15 +181,28 @@ class Library:
         with open(path, 'w') as f:
             f.write(data)
 
-        cache[f'md5:{md5(data).hexdigest()}'] = path
+        self._write_to_cache(beatmap, data, path)
+        return beatmap
+
+    def _write_to_cache(self, beatmap, data, path):
+        """Write data to the cache.
+
+        Parameters
+        ----------
+        beatmap : Beatmap
+            The beatmap being stored.
+        data : bytes
+            The raw data for the beatmap
+        path : str
+            The path to save
+        """
+        self._cache[f'md5:{md5(data).hexdigest()}'] = path
 
         beatmap_id = beatmap.beatmap_id
         if beatmap_id is not None:
             # very old beatmaps didn't store the id in the ``.osu``
             # file
-            cache[f'id:{beatmap_id}'] = path
-
-        return beatmap
+            self._cache[f'id:{beatmap_id}'] = path
 
     def download(self, beatmap_id, *, save=False):
         """Download a beatmap.
@@ -214,3 +229,17 @@ class Library:
             self.save(data, beatmap=beatmap)
 
         return beatmap
+
+    @property
+    def md5s(self):
+        return tuple(
+            key[4:] for key in self._cache.keys() if key.startswith(b'md5:')
+        )
+
+    @property
+    def ids(self):
+        return tuple(
+            int(key[3:])
+            for key in self._cache.keys()
+            if key.startswith(b'id:')
+        )
