@@ -1,5 +1,6 @@
 import datetime
 from enum import unique
+import os
 import lzma
 
 from .bit_enum import BitEnum
@@ -108,9 +109,12 @@ def _consume_string(buffer):
     return data.decode('utf-8')
 
 
+_windows_epoch = datetime.datetime(1, 1, 1)
+
+
 def _consume_datetime(buffer):
     windows_ticks = _consume_long(buffer)
-    return datetime.datetime.utcfromtimestamp(windows_ticks / 10000000)
+    return _windows_epoch + datetime.timedelta(microseconds=windows_ticks / 10)
 
 
 def _consume_life_bar_graph(buffer):
@@ -366,14 +370,32 @@ class Replay:
             self.count_miss,
         )
 
+    @lazyval
+    def performance_points(self):
+        return self.beatmap.performance_points(
+            count_300=self.count_300,
+            count_100=self.count_100,
+            count_50=self.count_50,
+            count_miss=self.count_miss,
+            easy=self.easy,
+            hard_rock=self.hard_rock,
+            half_time=self.half_time,
+            double_time=self.double_time,
+            hidden=self.hidden,
+            flashlight=self.flashlight,
+            spun_out=self.spun_out,
+        )
+
     @classmethod
-    def from_path(cls, path, library=None):
+    def from_path(cls, path, library):
         """Read in a ``Replay`` object from a ``.osr`` file on disk.
 
         Parameters
         ----------
         path : str or pathlib.Path
             The path to the file to read from.
+        library : Library
+            The library of beatmaps.
 
         Returns
         -------
@@ -383,19 +405,49 @@ class Replay:
         Raises
         ------
         ValueError
-            Raised when the file cannot be parsed as a ``.osr`` file.
+            Raised when the file cannot be parsed as an ``.osr`` file.
         """
         with open(path, 'rb') as f:
             return cls.from_file(f, library=library)
 
     @classmethod
-    def from_file(cls, file, library=None):
+    def from_directory(cls, path, library):
+        """Read in a list of ``Replay`` objects from a directory of ``.osr``
+        files.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            The path to the directory to read from.
+        library : Library
+            The library of beatmaps.
+
+        Returns
+        -------
+        replays : list[Replay]
+            The parsed replay objects.
+
+        Raises
+        ------
+        ValueError
+            Raised when any file cannot be parsed as an ``.osr`` file.
+        """
+        return [
+            cls.from_path(p, library)
+            for p in os.scandir(path)
+            if p.name.endswith('.osr')
+        ]
+
+    @classmethod
+    def from_file(cls, file, library):
         """Read in a ``Replay`` object from an open file object.
 
         Parameters
         ----------
         file : file-like
             The file object to read from.
+        library : Library
+            The library of beatmaps.
 
         Returns
         -------
@@ -410,7 +462,7 @@ class Replay:
         return cls.parse(file.read(), library=library)
 
     @classmethod
-    def parse(cls, data, library=None):
+    def parse(cls, data, library):
         """Parse a replay from ``.osr`` file data.
 
         Parameters
@@ -422,6 +474,8 @@ class Replay:
         -------
         replay : Replay
             The parsed replay.
+        library : Library
+            The library of beatmaps.
 
         Raises
         ------
@@ -454,11 +508,6 @@ class Replay:
         del mod_kwargs['relax2']
         del mod_kwargs['last_mod']
 
-        if library is not None:
-            beatmap = library.lookup_by_md5(beatmap_md5)
-        else:
-            beatmap = None
-
         return cls(
             mode=mode,
             version=version,
@@ -477,7 +526,7 @@ class Replay:
             life_bar_graph=life_bar_graph,
             timestamp=timestamp,
             actions=actions,
-            beatmap=beatmap,
+            beatmap=library.lookup_by_md5(beatmap_md5),
             **mod_kwargs,
         )
 
