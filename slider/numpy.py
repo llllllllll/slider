@@ -1,7 +1,7 @@
 import os
 
 try:
-    if os.environ['SLIDER_NO_NUMPY']:
+    if os.environ.get('SLIDER_NO_NUMPY', False):
         raise ImportError('use element_wise impl')
 
     from numpy import *

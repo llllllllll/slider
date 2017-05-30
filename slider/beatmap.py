@@ -2169,7 +2169,8 @@ class Beatmap:
             (speed_score ** 1.1) +
             (accuracy_score ** 1.1)
         ) ** (1 / 1.1) * final_multiplier
-        if len(out) == 1:
+
+        if np.shape(out) == (1,):
             out = np.asscalar(out)
         else:
             out = np.finalize(out)

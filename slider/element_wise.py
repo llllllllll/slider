@@ -16,6 +16,7 @@ __all__ = [
     'log2',
     'log10',
     'asscalar',
+    'shape',
 ]
 
 binops = frozenset({
@@ -433,3 +434,22 @@ def asscalar(elemwise):
     """
     elem, = elemwise
     return elem
+
+
+def shape(ob):
+    """The shape of an object.
+
+    Parameters
+    ----------
+    ob : any
+        The object to take the shape of.
+
+    Returns
+    -------
+    shape : tuple
+        The shape.
+    """
+    if isinstance(ob, (list, ElementWise)):
+        return (len(ob),)
+
+    return ()
