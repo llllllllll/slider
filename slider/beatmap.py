@@ -1589,6 +1589,7 @@ class Beatmap:
                 ),
                 groups['HitObjects'],
             )),
+
         )
 
     def timing_point_at(self, time):
@@ -1627,10 +1628,7 @@ class Beatmap:
                 a = group[n]
                 b = group[m]
 
-                try:
-                    ratio = a / b if a > b else b / a
-                except ZeroDivisionError:
-                    ratio = 1
+                ratio = a / b if a > b else b / a
 
                 closest_power_of_two = 2 ** round(np.log2(ratio))
                 offset = (
@@ -1713,9 +1711,6 @@ class Beatmap:
         intervals = []
         append_interval = intervals.append
 
-        hit_objects = iter(self.hit_objects)
-        previous = _DifficultyHitObject(next(hit_objects), radius)
-        append_difficulty_hit_object(previous)
         if double_time:
             modify = op.attrgetter('double_time')
         elif half_time:
@@ -1724,13 +1719,18 @@ class Beatmap:
             def modify(e):
                 return e
 
+        hit_objects = map(modify, self.hit_objects)
+        previous = _DifficultyHitObject(next(hit_objects), radius)
+        append_difficulty_hit_object(previous)
         for hit_object in hit_objects:
             new = _DifficultyHitObject(
-                modify(hit_object),
+                hit_object,
                 radius,
                 previous,
             )
             append_interval(new.hit_object.time - previous.hit_object.time)
+            if intervals[-1].total_seconds() < 0:
+                from nose.tools import set_trace;set_trace()
             append_difficulty_hit_object(new)
             previous = new
 
