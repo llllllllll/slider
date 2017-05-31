@@ -94,8 +94,8 @@
 <li class="toctree-l1"><a class="reference internal" href="features.html">Model Features</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#beatmap">Beatmap</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#client">Client</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#library">Library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#client">Client</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#replay">Replay</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#game-modes">Game Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#mods">Mods</a></li>
@@ -1112,17 +1112,209 @@ the type.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="library">
+<h2>Library<a class="headerlink" href="#library" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="slider.library.Library">
+<em class="property">class </em><code class="descclassname">slider.library.</code><code class="descname">Library</code><span class="sig-paren">(</span><em>path</em>, <em>*</em>, <em>cache=2048</em>, <em>download_url='https://osu.ppy.sh/osu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library" title="Permalink to this definition">¶</a></dt>
+<dd><p>A library of beatmaps backed by a local directory.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : path-like</p>
+<blockquote>
+<div><p>The path to a local library directory.</p>
+</div></blockquote>
+<p><strong>cache</strong> : int, optional</p>
+<blockquote>
+<div><p>The amount of beatmaps to cache in memory. This uses
+<code class="xref py py-func docutils literal"><span class="pre">functools.lru_cache()</span></code>, and if set to None will cache everything.</p>
+</div></blockquote>
+<p><strong>download_url</strong> : str, optional</p>
+<blockquote class="last">
+<div><p>The default location to download beatmaps from.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="slider.library.Library.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close any resources used by this library.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="slider.library.Library.create_db">
+<em class="property">classmethod </em><code class="descname">create_db</code><span class="sig-paren">(</span><em>path</em>, <em>*</em>, <em>cache=2048</em>, <em>download_url='https://osu.ppy.sh/osu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.create_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.create_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Library from a directory of <code class="docutils literal"><span class="pre">.osu</span></code> files.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : path-like</p>
+<blockquote>
+<div><p>The path to the directory to read.</p>
+</div></blockquote>
+<p><strong>cache</strong> : int, optional</p>
+<blockquote>
+<div><p>The amount of beatmaps to cache in memory. This uses
+<code class="xref py py-func docutils literal"><span class="pre">functools.lru_cache()</span></code>, and if set to None will cache
+everything.</p>
+</div></blockquote>
+<p><strong>download_url</strong> : str, optional</p>
+<blockquote class="last">
+<div><p>The default location to download beatmaps from.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="slider.library.Library.download">
+<code class="descname">download</code><span class="sig-paren">(</span><em>beatmap_id</em>, <em>*</em>, <em>save=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.download" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download a beatmap.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_id</strong> : int</p>
+<blockquote>
+<div><p>The id of the beatmap to download.</p>
+</div></blockquote>
+<p><strong>save</strong> : bool, optional</p>
+<blockquote>
+<div><p>Save the beatmap to disk?</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>beatmap</strong> : Beatmap</p>
+<blockquote class="last">
+<div><p>The downloaded beatmap.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="slider.library.Library.lookup_by_id">
+<code class="descname">lookup_by_id</code><span class="sig-paren">(</span><em>beatmap_id</em>, <em>*</em>, <em>download=False</em>, <em>save=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.lookup_by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.lookup_by_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a beatmap by its beatmap id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_id</strong> : int</p>
+<blockquote>
+<div><p>The id of the beatmap to lookup.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>beatmap</strong> : Beatmap</p>
+<blockquote>
+<div><p>The beatmap with the given id.</p>
+</div></blockquote>
+<p><strong>download</strong> : bool. optional</p>
+<blockquote>
+<div><p>Download the map if it doesn&#8217;t exist.</p>
+</div></blockquote>
+<p><strong>save</strong> : bool, optional</p>
+<blockquote>
+<div><p>If the lookup falls back to a download, should the result be saved?</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>KeyError</strong></p>
+<blockquote class="last">
+<div><p>Raised when the given id is not in the library.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="slider.library.Library.lookup_by_md5">
+<code class="descname">lookup_by_md5</code><span class="sig-paren">(</span><em>beatmap_md5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.lookup_by_md5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.lookup_by_md5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a beatmap by its md5 hash.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_md5</strong> : bytes</p>
+<blockquote>
+<div><p>The md5 hash of the beatmap to lookup.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>beatmap</strong> : Beatmap</p>
+<blockquote>
+<div><p>The beatmap with the given md5 hash.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>KeyError</strong></p>
+<blockquote class="last">
+<div><p>Raised when the given md5 hash is not in the library.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="slider.library.Library.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>data</em>, <em>*</em>, <em>beatmap=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save raw data for a beatmap at a given location.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>data</strong> : bytes</p>
+<blockquote>
+<div><p>The unparsed beatmap data.</p>
+</div></blockquote>
+<p><strong>beatmap</strong> : Beatmap, optional</p>
+<blockquote>
+<div><p>The parsed beatmap. If not provided, the raw data will be parsed.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>beatmap</strong> : Beatmap</p>
+<blockquote class="last">
+<div><p>The parsed beatmap.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="client">
 <h2>Client<a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="slider.client.Client">
-<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">Client</code><span class="sig-paren">(</span><em>api_key</em>, <em>api_url='https://osu.ppy.sh/'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.Client" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">Client</code><span class="sig-paren">(</span><em>library</em>, <em>api_key</em>, <em>api_url='https://osu.ppy.sh/api'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.Client" title="Permalink to this definition">¶</a></dt>
 <dd><p>A client for interacting with the osu! rest API.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>api_key</strong> : str</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>library</strong> : Library</p>
+<blockquote>
+<div><p>The library used to look up or cache beatmap objects.</p>
+</div></blockquote>
+<p><strong>api_key</strong> : str</p>
 <blockquote class="last">
 <div><p>The api key to use.</p>
 </div></blockquote>
@@ -1183,38 +1375,38 @@ game modes.</p>
 </table>
 </dd></dl>
 
-</dd></dl>
-
-</div>
-<div class="section" id="library">
-<h2>Library<a class="headerlink" href="#library" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="slider.library.Library">
-<em class="property">class </em><code class="descclassname">slider.library.</code><code class="descname">Library</code><a class="reference internal" href="_modules/slider/library.html#Library"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library" title="Permalink to this definition">¶</a></dt>
-<dd><p>A collection of beatmaps.</p>
 <dl class="method">
-<dt id="slider.library.Library.lookup_by_id">
-<code class="descname">lookup_by_id</code><span class="sig-paren">(</span><em>beatmap_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.lookup_by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.lookup_by_id" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve a beatmap by its beatmap id.</p>
+<dt id="slider.client.Client.user">
+<code class="descname">user</code><span class="sig-paren">(</span><em>*</em>, <em>user_name=None</em>, <em>user_id=None</em>, <em>game_mode=&lt;GameMode.standard: 0&gt;</em>, <em>event_days=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#Client.user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.Client.user" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve information about a user.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_id</strong> : int</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>user_name</strong> : str</p>
 <blockquote>
-<div><p>The id of the beatmap to lookup.</p>
+<div><p>The name of the user to look up. This cannot be passed with
+<code class="docutils literal"><span class="pre">user_id</span></code>.</p>
+</div></blockquote>
+<p><strong>user_id</strong> : int</p>
+<blockquote>
+<div><p>The id of the user to look up. This cannot be passed with
+<code class="docutils literal"><span class="pre">user_name</span></code></p>
+</div></blockquote>
+<p><strong>game_mode</strong> : GameMode, optional</p>
+<blockquote>
+<div><p>The game mode to look up stats for.</p>
+</div></blockquote>
+<p><strong>event_days</strong> : int, optional</p>
+<blockquote>
+<div><p>Max number of days between now and last event date in the range
+[1, 31].</p>
 </div></blockquote>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>beatmap</strong> : Beatmap</p>
-<blockquote>
-<div><p>The beatmap with the given id.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>KeyError</strong></p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>user</strong> : User</p>
 <blockquote class="last">
-<div><p>Raised when the given id is not in the library.</p>
+<div><p>The requested user.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1223,28 +1415,36 @@ game modes.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="slider.library.Library.lookup_by_md5">
-<code class="descname">lookup_by_md5</code><span class="sig-paren">(</span><em>beatmap_md5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.lookup_by_md5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.lookup_by_md5" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve a beatmap by its md5 hash.</p>
+<dt id="slider.client.Client.user_best">
+<code class="descname">user_best</code><span class="sig-paren">(</span><em>*</em>, <em>user_name=None</em>, <em>user_id=None</em>, <em>game_mode=&lt;GameMode.standard: 0&gt;</em>, <em>limit=10</em>, <em>_user_ob=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#Client.user_best"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.Client.user_best" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve information about a user&#8217;s best scores.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_md5</strong> : bytes</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>user_name</strong> : str</p>
 <blockquote>
-<div><p>The md5 hash of the beatmap to lookup.</p>
+<div><p>The name of the user to look up. This cannot be passed with
+<code class="docutils literal"><span class="pre">user_id</span></code>.</p>
+</div></blockquote>
+<p><strong>user_id</strong> : int</p>
+<blockquote>
+<div><p>The id of the user to look up. This cannot be passed with
+<code class="docutils literal"><span class="pre">user_name</span></code></p>
+</div></blockquote>
+<p><strong>game_mode</strong> : GameMode, optional</p>
+<blockquote>
+<div><p>The game mode to look up stats for. Defaults to osu! standard.</p>
+</div></blockquote>
+<p><strong>limit</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of results to return in the range [1, 100].</p>
 </div></blockquote>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>beatmap</strong> : Beatmap</p>
-<blockquote>
-<div><p>The beatmap with the given md5 hash.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>KeyError</strong></p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>high_scores</strong> : list[HighScore]</p>
 <blockquote class="last">
-<div><p>Raised when the given md5 hash is not in the library.</p>
+<div><p>The user&#8217;s best scores.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1255,48 +1455,238 @@ game modes.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="slider.library.LocalLibrary">
-<em class="property">class </em><code class="descclassname">slider.library.</code><code class="descname">LocalLibrary</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#LocalLibrary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.LocalLibrary" title="Permalink to this definition">¶</a></dt>
-<dd><p>A library backed by a local directory.</p>
+<dt id="slider.client.BeatmapResult">
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">BeatmapResult</code><span class="sig-paren">(</span><em>library</em>, <em>title</em>, <em>version</em>, <em>beatmap_id</em>, <em>approved</em>, <em>approved_date</em>, <em>last_update</em>, <em>star_rating</em>, <em>hit_length</em>, <em>genre</em>, <em>language</em>, <em>total_length</em>, <em>beatmap_md5</em>, <em>favourite_count</em>, <em>play_count</em>, <em>pass_count</em>, <em>max_combo</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#BeatmapResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.BeatmapResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>A beatmap as represented by the osu! API.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : str or pathlib.Path</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>library</strong> : Library</p>
+<blockquote>
+<div><p>The library used to store the Beatmap object.</p>
+</div></blockquote>
+<p><strong>title</strong> : str</p>
+<blockquote>
+<div><p>The beatmap&#8217;s title.</p>
+</div></blockquote>
+<p><strong>version</strong> : str</p>
+<blockquote>
+<div><p>The beatmap&#8217;s version.</p>
+</div></blockquote>
+<p><strong>beatmap_id</strong> : int</p>
+<blockquote>
+<div><p>The beatmap_id.</p>
+</div></blockquote>
+<p><strong>approved</strong> : ApprovedState</p>
+<blockquote>
+<div><p>The state of the beatmap&#8217;s approved.</p>
+</div></blockquote>
+<p><strong>approved_date</strong> : datetime.datetime</p>
+<blockquote>
+<div><p>The date when this map was approved.</p>
+</div></blockquote>
+<p><strong>last_update</strong> : datetime.datetime</p>
+<blockquote>
+<div><p>The last date when this map was updated.</p>
+</div></blockquote>
+<p><strong>star_rating</strong> : float</p>
+<blockquote>
+<div><p>The star rating for the song.</p>
+</div></blockquote>
+<p><strong>hit_length</strong> : datetime.timedelta</p>
+<blockquote>
+<div><p>The amount of time from the first element to the last, not counting
+breaks.</p>
+</div></blockquote>
+<p><strong>genre</strong> : Genre</p>
+<blockquote>
+<div><p>The genre that appears on the osu! website.</p>
+</div></blockquote>
+<p><strong>language</strong> : Language</p>
+<blockquote>
+<div><p>The language that appears on the osu! website.</p>
+</div></blockquote>
+<p><strong>total_length</strong> : datetime.timedelta</p>
+<blockquote>
+<div><p>The amount of time from the first element to the last, counting breaks.</p>
+</div></blockquote>
+<p><strong>beatmap_md5</strong> : str</p>
+<blockquote>
+<div><p>The md5 hash of the beatmap.</p>
+</div></blockquote>
+<p><strong>favourite_count</strong> : int</p>
+<blockquote>
+<div><p>The number of times the beatmap has been favorited.</p>
+</div></blockquote>
+<p><strong>play_count</strong> : int</p>
+<blockquote>
+<div><p>The number of times this beatmap has been played.</p>
+</div></blockquote>
+<p><strong>pass_count</strong> : int</p>
+<blockquote>
+<div><p>The number of times this beatmap has been passed.</p>
+</div></blockquote>
+<p><strong>max_combo</strong> : int</p>
 <blockquote class="last">
-<div><p>The path to a directory of <code class="docutils literal"><span class="pre">.osu</span></code> files.</p>
+<div><p>The maximum combo that could be achieved on this beatmap.</p>
 </div></blockquote>
 </td>
 </tr>
 </tbody>
 </table>
-<dl class="attribute">
-<dt id="slider.library.LocalLibrary.beatmaps">
-<code class="descname">beatmaps</code><a class="headerlink" href="#slider.library.LocalLibrary.beatmaps" title="Permalink to this definition">¶</a></dt>
-<dd><p>All of the beatmaps available locally.</p>
-<p class="rubric">Notes</p>
-<p>This is specific to the <a class="reference internal" href="#slider.library.LocalLibrary" title="slider.library.LocalLibrary"><code class="xref py py-class docutils literal"><span class="pre">LocalLibrary</span></code></a> type.</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="class">
-<dt id="slider.library.ClientLibrary">
-<em class="property">class </em><code class="descclassname">slider.library.</code><code class="descname">ClientLibrary</code><span class="sig-paren">(</span><em>client</em>, <em>cache=2048</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#ClientLibrary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.ClientLibrary" title="Permalink to this definition">¶</a></dt>
-<dd><p>A library backed by a <a class="reference internal" href="#slider.client.Client" title="slider.client.Client"><code class="xref py py-class docutils literal"><span class="pre">Client</span></code></a>. This can fetch
-any beatmap that exists on the osu! servers.</p>
+<dt id="slider.client.User">
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">User</code><span class="sig-paren">(</span><em>client</em>, <em>user_id</em>, <em>user_name</em>, <em>count_300</em>, <em>count_100</em>, <em>count_50</em>, <em>play_count</em>, <em>ranked_score</em>, <em>total_score</em>, <em>pp_rank</em>, <em>level</em>, <em>pp_raw</em>, <em>accuracy</em>, <em>count_ss</em>, <em>count_s</em>, <em>count_a</em>, <em>country</em>, <em>pp_country_rank</em>, <em>events</em>, <em>game_mode</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#User"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.User" title="Permalink to this definition">¶</a></dt>
+<dd><p>Information about an osu! user.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>client</strong> : Client</p>
 <blockquote>
-<div><p>The osu! client to use when downloading beatmaps.</p>
+<div><p>The client needed to make further requests.</p>
 </div></blockquote>
-<p><strong>cache</strong> : int, optional</p>
+<p><strong>user_id</strong> : int</p>
+<blockquote>
+<div><p>The user id.</p>
+</div></blockquote>
+<p><strong>user_name</strong> : str</p>
+<blockquote>
+<div><p>The user name.</p>
+</div></blockquote>
+<p><strong>count_300</strong> : int</p>
+<blockquote>
+<div><p>The total number of 300s ever hit.</p>
+</div></blockquote>
+<p><strong>count_100</strong> : int</p>
+<blockquote>
+<div><p>The total number of 100s ever hit.</p>
+</div></blockquote>
+<p><strong>count_50</strong> : int</p>
+<blockquote>
+<div><p>The total number of 50s ever hit.</p>
+</div></blockquote>
+<p><strong>play_count</strong> : int</p>
+<blockquote>
+<div><p>The total number of plays.</p>
+</div></blockquote>
+<p><strong>ranked_score</strong> : int</p>
+<blockquote>
+<div><p>The user&#8217;s ranked score.</p>
+</div></blockquote>
+<p><strong>total_score</strong> : int</p>
+<blockquote>
+<div><p>The user&#8217;s total score.</p>
+</div></blockquote>
+<p><strong>pp_rank</strong> : int</p>
+<blockquote>
+<div><p>The user&#8217;s rank with the PP system.</p>
+</div></blockquote>
+<p><strong>level</strong> : float</p>
+<blockquote>
+<div><p>The user&#8217;s level.</p>
+</div></blockquote>
+<p><strong>pp_raw</strong> : float</p>
+<blockquote>
+<div><p>The user&#8217;s total unweighted PP.</p>
+</div></blockquote>
+<p><strong>accuracy</strong> : float</p>
+<blockquote>
+<div><p>The user&#8217;s ranked accuracy.</p>
+</div></blockquote>
+<p><strong>count_ss</strong> : int</p>
+<blockquote>
+<div><p>The number of SSs scored.</p>
+</div></blockquote>
+<p><strong>count_s</strong> : int</p>
+<blockquote>
+<div><p>The number of Ss scored.</p>
+</div></blockquote>
+<p><strong>count_a</strong> : int</p>
+<blockquote>
+<div><p>The number of As scored.</p>
+</div></blockquote>
+<p><strong>country</strong> : str</p>
+<blockquote>
+<div><p>The country code for the user&#8217;s home country.</p>
+</div></blockquote>
+<p><strong>pp_country_rank</strong> : int</p>
+<blockquote>
+<div><p>The user&#8217;s rank with the PP system limited to other players in their
+country.</p>
+</div></blockquote>
+<p><strong>events</strong> : list[UserEvent]</p>
+<blockquote>
+<div><p>Recent user events.</p>
+</div></blockquote>
+<p><strong>game_mode</strong> : GameMode</p>
 <blockquote class="last">
-<div><p>The amount of beatmaps to cache in memory. This uses
-<code class="xref py py-func docutils literal"><span class="pre">functools.lru_cache()</span></code>, and if set to None will cache everything.</p>
+<div><p>The game mode the user information is for.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="slider.client.User.high_scores">
+<code class="descname">high_scores</code><span class="sig-paren">(</span><em>limit=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#User.high_scores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.User.high_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lookup the user&#8217;s high scores.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>limit</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of scores to look up.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>high_scores</strong> : list[HighScore]</p>
+<blockquote class="last">
+<div><p>The user&#8217;s high scores.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="slider.client.UserEvent">
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">UserEvent</code><span class="sig-paren">(</span><em>library</em>, <em>display_html</em>, <em>beatmap_id</em>, <em>beatmapset_id</em>, <em>date</em>, <em>epic_factor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#UserEvent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.UserEvent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recent events for a user.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>library</strong> : Library</p>
+<blockquote>
+<div><p>The library used to store the Beatmap object.</p>
+</div></blockquote>
+<p><strong>display_html</strong> : str</p>
+<blockquote>
+<div><p>The html to display on the osu! site.</p>
+</div></blockquote>
+<p><strong>beatmap_id</strong> : int</p>
+<blockquote>
+<div><p>The beatmap_id of the event.</p>
+</div></blockquote>
+<p><strong>beatmapset_id</strong> : int</p>
+<blockquote>
+<div><p>The beatmapset_id of the event.</p>
+</div></blockquote>
+<p><strong>date</strong> : datetime.date</p>
+<blockquote>
+<div><p>The date of the event.</p>
+</div></blockquote>
+<p><strong>epic_factor</strong> : int</p>
+<blockquote class="last">
+<div><p>How epic was this event.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1305,21 +1695,241 @@ any beatmap that exists on the osu! servers.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="slider.library.ChainedLibrary">
-<em class="property">class </em><code class="descclassname">slider.library.</code><code class="descname">ChainedLibrary</code><span class="sig-paren">(</span><em>*libraries</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#ChainedLibrary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.ChainedLibrary" title="Permalink to this definition">¶</a></dt>
-<dd><p>A library that tries to read from multiple libraries in priority order.</p>
+<dt id="slider.client.HighScore">
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">HighScore</code><span class="sig-paren">(</span><em>client</em>, <em>beatmap_id</em>, <em>score</em>, <em>max_combo</em>, <em>count_300</em>, <em>count_100</em>, <em>count_50</em>, <em>count_miss</em>, <em>count_katu</em>, <em>count_geki</em>, <em>perfect</em>, <em>mods</em>, <em>user_id</em>, <em>date</em>, <em>rank</em>, <em>pp</em>, <em>_user=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#HighScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.HighScore" title="Permalink to this definition">¶</a></dt>
+<dd><p>A high score for a user or beatmap.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>*libraries</strong></p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>client</strong> : Client</p>
+<blockquote>
+<div><p>The client used to make further requests.</p>
+</div></blockquote>
+<p><strong>beatmap_id</strong> : int</p>
+<blockquote>
+<div><p>The beatmap_id of the map this is a score for.</p>
+</div></blockquote>
+<p><strong>score</strong> : int</p>
+<blockquote>
+<div><p>The score earned in this high score.</p>
+</div></blockquote>
+<p><strong>max_combo</strong> : int</p>
+<blockquote>
+<div><p>The max combo.</p>
+</div></blockquote>
+<p><strong>count_300</strong> : int</p>
+<blockquote>
+<div><p>The number of 300s in the high score.</p>
+</div></blockquote>
+<p><strong>count_100</strong> : int</p>
+<blockquote>
+<div><p>The number of 100s in the high score.</p>
+</div></blockquote>
+<p><strong>count_50</strong> : int</p>
+<blockquote>
+<div><p>The number of 50s in the high score.</p>
+</div></blockquote>
+<p><strong>count_miss</strong> : int</p>
+<blockquote>
+<div><p>The number of misses in the high score.</p>
+</div></blockquote>
+<p><strong>count_katu</strong> : int</p>
+<blockquote>
+<div><p>The number of katu in the high score.</p>
+</div></blockquote>
+<p><strong>count_geki</strong> : int</p>
+<blockquote>
+<div><p>The number of geki in the high score.</p>
+</div></blockquote>
+<p><strong>perfect</strong> : bool</p>
+<blockquote>
+<div><p>Did the user fc the map?</p>
+</div></blockquote>
+<p><strong>mods</strong> : set[Mod]</p>
+<blockquote>
+<div><p>The mods used.</p>
+</div></blockquote>
+<p><strong>user_id</strong> : int</p>
+<blockquote>
+<div><p>The id of the user who earned this high score.</p>
+</div></blockquote>
+<p><strong>rank</strong> : str</p>
+<blockquote>
+<div><p>The letter rank earned. A suffix <code class="docutils literal"><span class="pre">H</span></code> means hidden or flashlight was
+used, like a silver S(S).</p>
+</div></blockquote>
+<p><strong>pp</strong> : float</p>
 <blockquote class="last">
-<div><p>The libraries to read from in the order to search.</p>
+<div><p>The unweighted PP earned for this high score.</p>
 </div></blockquote>
 </td>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="class">
+<dt id="slider.client.ApprovedState">
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">ApprovedState</code><a class="reference internal" href="_modules/slider/client.html#ApprovedState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.ApprovedState" title="Permalink to this definition">¶</a></dt>
+<dd><p>The state of a beatmap&#8217;s approval.</p>
+<dl class="attribute">
+<dt id="slider.client.ApprovedState.WIP">
+<code class="descname">WIP</code><em class="property"> = -1</em><a class="headerlink" href="#slider.client.ApprovedState.WIP" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.ApprovedState.approved">
+<code class="descname">approved</code><em class="property"> = 2</em><a class="headerlink" href="#slider.client.ApprovedState.approved" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.ApprovedState.graveyard">
+<code class="descname">graveyard</code><em class="property"> = -2</em><a class="headerlink" href="#slider.client.ApprovedState.graveyard" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.ApprovedState.loved">
+<code class="descname">loved</code><em class="property"> = 4</em><a class="headerlink" href="#slider.client.ApprovedState.loved" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.ApprovedState.pending">
+<code class="descname">pending</code><em class="property"> = 0</em><a class="headerlink" href="#slider.client.ApprovedState.pending" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.ApprovedState.qualified">
+<code class="descname">qualified</code><em class="property"> = 3</em><a class="headerlink" href="#slider.client.ApprovedState.qualified" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.ApprovedState.ranked">
+<code class="descname">ranked</code><em class="property"> = 1</em><a class="headerlink" href="#slider.client.ApprovedState.ranked" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="slider.client.Genre">
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">Genre</code><a class="reference internal" href="_modules/slider/client.html#Genre"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.Genre" title="Permalink to this definition">¶</a></dt>
+<dd><p>The genres that appear on the osu! website.</p>
+<dl class="attribute">
+<dt id="slider.client.Genre.anime">
+<code class="descname">anime</code><em class="property"> = 3</em><a class="headerlink" href="#slider.client.Genre.anime" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.any">
+<code class="descname">any</code><em class="property"> = 0</em><a class="headerlink" href="#slider.client.Genre.any" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.electronic">
+<code class="descname">electronic</code><em class="property"> = 10</em><a class="headerlink" href="#slider.client.Genre.electronic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.hip_hop">
+<code class="descname">hip_hop</code><em class="property"> = 9</em><a class="headerlink" href="#slider.client.Genre.hip_hop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.novelty">
+<code class="descname">novelty</code><em class="property"> = 7</em><a class="headerlink" href="#slider.client.Genre.novelty" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.other">
+<code class="descname">other</code><em class="property"> = 6</em><a class="headerlink" href="#slider.client.Genre.other" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.pop">
+<code class="descname">pop</code><em class="property"> = 5</em><a class="headerlink" href="#slider.client.Genre.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.rock">
+<code class="descname">rock</code><em class="property"> = 4</em><a class="headerlink" href="#slider.client.Genre.rock" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.unspecified">
+<code class="descname">unspecified</code><em class="property"> = 1</em><a class="headerlink" href="#slider.client.Genre.unspecified" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Genre.video_game">
+<code class="descname">video_game</code><em class="property"> = 2</em><a class="headerlink" href="#slider.client.Genre.video_game" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="slider.client.Language">
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">Language</code><a class="reference internal" href="_modules/slider/client.html#Language"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.Language" title="Permalink to this definition">¶</a></dt>
+<dd><p>The languages that appear on the osu! website.</p>
+<dl class="attribute">
+<dt id="slider.client.Language.any">
+<code class="descname">any</code><em class="property"> = 0</em><a class="headerlink" href="#slider.client.Language.any" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.chinese">
+<code class="descname">chinese</code><em class="property"> = 4</em><a class="headerlink" href="#slider.client.Language.chinese" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.english">
+<code class="descname">english</code><em class="property"> = 2</em><a class="headerlink" href="#slider.client.Language.english" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.french">
+<code class="descname">french</code><em class="property"> = 7</em><a class="headerlink" href="#slider.client.Language.french" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.german">
+<code class="descname">german</code><em class="property"> = 8</em><a class="headerlink" href="#slider.client.Language.german" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.instrumental">
+<code class="descname">instrumental</code><em class="property"> = 5</em><a class="headerlink" href="#slider.client.Language.instrumental" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.italian">
+<code class="descname">italian</code><em class="property"> = 11</em><a class="headerlink" href="#slider.client.Language.italian" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.japanese">
+<code class="descname">japanese</code><em class="property"> = 3</em><a class="headerlink" href="#slider.client.Language.japanese" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.korean">
+<code class="descname">korean</code><em class="property"> = 6</em><a class="headerlink" href="#slider.client.Language.korean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.other">
+<code class="descname">other</code><em class="property"> = 1</em><a class="headerlink" href="#slider.client.Language.other" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.spanish">
+<code class="descname">spanish</code><em class="property"> = 10</em><a class="headerlink" href="#slider.client.Language.spanish" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.client.Language.swedish">
+<code class="descname">swedish</code><em class="property"> = 9</em><a class="headerlink" href="#slider.client.Language.swedish" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -1535,8 +2145,43 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 </tbody>
 </table>
 <dl class="classmethod">
+<dt id="slider.replay.Replay.from_directory">
+<em class="property">classmethod </em><code class="descname">from_directory</code><span class="sig-paren">(</span><em>path</em>, <em>library</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_directory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read in a list of <code class="docutils literal"><span class="pre">Replay</span></code> objects from a directory of <code class="docutils literal"><span class="pre">.osr</span></code>
+files.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : str or pathlib.Path</p>
+<blockquote>
+<div><p>The path to the directory to read from.</p>
+</div></blockquote>
+<p><strong>library</strong> : Library</p>
+<blockquote>
+<div><p>The library of beatmaps.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>replays</strong> : list[Replay]</p>
+<blockquote>
+<div><p>The parsed replay objects.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>ValueError</strong></p>
+<blockquote class="last">
+<div><p>Raised when any file cannot be parsed as an <code class="docutils literal"><span class="pre">.osr</span></code> file.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
 <dt id="slider.replay.Replay.from_file">
-<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>file</em>, <em>library=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_file" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>file</em>, <em>library</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read in a <code class="docutils literal"><span class="pre">Replay</span></code> object from an open file object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1545,6 +2190,10 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>file</strong> : file-like</p>
 <blockquote>
 <div><p>The file object to read from.</p>
+</div></blockquote>
+<p><strong>library</strong> : Library</p>
+<blockquote>
+<div><p>The library of beatmaps.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1566,7 +2215,7 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 
 <dl class="classmethod">
 <dt id="slider.replay.Replay.from_path">
-<em class="property">classmethod </em><code class="descname">from_path</code><span class="sig-paren">(</span><em>path</em>, <em>library=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_path" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_path</code><span class="sig-paren">(</span><em>path</em>, <em>library</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_path" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read in a <code class="docutils literal"><span class="pre">Replay</span></code> object from a <code class="docutils literal"><span class="pre">.osr</span></code> file on disk.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1575,6 +2224,10 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : str or pathlib.Path</p>
 <blockquote>
 <div><p>The path to the file to read from.</p>
+</div></blockquote>
+<p><strong>library</strong> : Library</p>
+<blockquote>
+<div><p>The library of beatmaps.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1586,7 +2239,7 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 </tr>
 <tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>ValueError</strong></p>
 <blockquote class="last">
-<div><p>Raised when the file cannot be parsed as a <code class="docutils literal"><span class="pre">.osr</span></code> file.</p>
+<div><p>Raised when the file cannot be parsed as an <code class="docutils literal"><span class="pre">.osr</span></code> file.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1596,7 +2249,7 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 
 <dl class="classmethod">
 <dt id="slider.replay.Replay.parse">
-<em class="property">classmethod </em><code class="descname">parse</code><span class="sig-paren">(</span><em>data</em>, <em>library=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.parse" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">parse</code><span class="sig-paren">(</span><em>data</em>, <em>library</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse a replay from <code class="docutils literal"><span class="pre">.osr</span></code> file data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1611,6 +2264,10 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>replay</strong> : Replay</p>
 <blockquote>
 <div><p>The parsed replay.</p>
+</div></blockquote>
+<p><strong>library</strong> : Library</p>
+<blockquote>
+<div><p>The library of beatmaps.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1633,6 +2290,26 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 <dt id="slider.game_mode.GameMode">
 <em class="property">class </em><code class="descclassname">slider.game_mode.</code><code class="descname">GameMode</code><a class="reference internal" href="_modules/slider/game_mode.html#GameMode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.game_mode.GameMode" title="Permalink to this definition">¶</a></dt>
 <dd><p>The various game modes in osu!.</p>
+<dl class="attribute">
+<dt id="slider.game_mode.GameMode.ctb">
+<code class="descname">ctb</code><em class="property"> = 2</em><a class="headerlink" href="#slider.game_mode.GameMode.ctb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.game_mode.GameMode.mania">
+<code class="descname">mania</code><em class="property"> = 3</em><a class="headerlink" href="#slider.game_mode.GameMode.mania" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.game_mode.GameMode.standard">
+<code class="descname">standard</code><em class="property"> = 0</em><a class="headerlink" href="#slider.game_mode.GameMode.standard" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.game_mode.GameMode.taiko">
+<code class="descname">taiko</code><em class="property"> = 1</em><a class="headerlink" href="#slider.game_mode.GameMode.taiko" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -1642,6 +2319,190 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 <dt id="slider.mod.Mod">
 <em class="property">class </em><code class="descclassname">slider.mod.</code><code class="descname">Mod</code><a class="reference internal" href="_modules/slider/mod.html#Mod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.mod.Mod" title="Permalink to this definition">¶</a></dt>
 <dd><p>The mods in osu!</p>
+<dl class="attribute">
+<dt id="slider.mod.Mod.auto_pilot">
+<code class="descname">auto_pilot</code><em class="property"> = 8192</em><a class="headerlink" href="#slider.mod.Mod.auto_pilot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.autoplay">
+<code class="descname">autoplay</code><em class="property"> = 2048</em><a class="headerlink" href="#slider.mod.Mod.autoplay" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.cinema">
+<code class="descname">cinema</code><em class="property"> = 4194304</em><a class="headerlink" href="#slider.mod.Mod.cinema" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.coop">
+<code class="descname">coop</code><em class="property"> = 33554432</em><a class="headerlink" href="#slider.mod.Mod.coop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.double_time">
+<code class="descname">double_time</code><em class="property"> = 64</em><a class="headerlink" href="#slider.mod.Mod.double_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.easy">
+<code class="descname">easy</code><em class="property"> = 2</em><a class="headerlink" href="#slider.mod.Mod.easy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.fade_in">
+<code class="descname">fade_in</code><em class="property"> = 1048576</em><a class="headerlink" href="#slider.mod.Mod.fade_in" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.flashlight">
+<code class="descname">flashlight</code><em class="property"> = 1024</em><a class="headerlink" href="#slider.mod.Mod.flashlight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.half_time">
+<code class="descname">half_time</code><em class="property"> = 256</em><a class="headerlink" href="#slider.mod.Mod.half_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.hard_rock">
+<code class="descname">hard_rock</code><em class="property"> = 16</em><a class="headerlink" href="#slider.mod.Mod.hard_rock" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.hidden">
+<code class="descname">hidden</code><em class="property"> = 8</em><a class="headerlink" href="#slider.mod.Mod.hidden" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key1">
+<code class="descname">key1</code><em class="property"> = 67108864</em><a class="headerlink" href="#slider.mod.Mod.key1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key2">
+<code class="descname">key2</code><em class="property"> = 268435456</em><a class="headerlink" href="#slider.mod.Mod.key2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key3">
+<code class="descname">key3</code><em class="property"> = 134217728</em><a class="headerlink" href="#slider.mod.Mod.key3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key4">
+<code class="descname">key4</code><em class="property"> = 32768</em><a class="headerlink" href="#slider.mod.Mod.key4" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key5">
+<code class="descname">key5</code><em class="property"> = 65536</em><a class="headerlink" href="#slider.mod.Mod.key5" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key6">
+<code class="descname">key6</code><em class="property"> = 131072</em><a class="headerlink" href="#slider.mod.Mod.key6" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key7">
+<code class="descname">key7</code><em class="property"> = 262144</em><a class="headerlink" href="#slider.mod.Mod.key7" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key8">
+<code class="descname">key8</code><em class="property"> = 524288</em><a class="headerlink" href="#slider.mod.Mod.key8" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.key9">
+<code class="descname">key9</code><em class="property"> = 16777216</em><a class="headerlink" href="#slider.mod.Mod.key9" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.last_mod">
+<code class="descname">last_mod</code><em class="property"> = 4194304</em><a class="headerlink" href="#slider.mod.Mod.last_mod" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.nightcore">
+<code class="descname">nightcore</code><em class="property"> = 512</em><a class="headerlink" href="#slider.mod.Mod.nightcore" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.no_fail">
+<code class="descname">no_fail</code><em class="property"> = 1</em><a class="headerlink" href="#slider.mod.Mod.no_fail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.no_video">
+<code class="descname">no_video</code><em class="property"> = 4</em><a class="headerlink" href="#slider.mod.Mod.no_video" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="slider.mod.Mod.parse">
+<em class="property">classmethod </em><code class="descname">parse</code><span class="sig-paren">(</span><em>cs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/mod.html#Mod.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.mod.Mod.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a mod mask out of a list of shortened mod names.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>cs</strong> : str</p>
+<blockquote>
+<div><p>The mod string.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>mod_mask</strong> : int</p>
+<blockquote class="last">
+<div><p>The mod mask.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.perfect">
+<code class="descname">perfect</code><em class="property"> = 16384</em><a class="headerlink" href="#slider.mod.Mod.perfect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.random">
+<code class="descname">random</code><em class="property"> = 2097152</em><a class="headerlink" href="#slider.mod.Mod.random" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.relax">
+<code class="descname">relax</code><em class="property"> = 128</em><a class="headerlink" href="#slider.mod.Mod.relax" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.relax2">
+<code class="descname">relax2</code><em class="property"> = 8192</em><a class="headerlink" href="#slider.mod.Mod.relax2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.scoreV2">
+<code class="descname">scoreV2</code><em class="property"> = 536870912</em><a class="headerlink" href="#slider.mod.Mod.scoreV2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.spun_out">
+<code class="descname">spun_out</code><em class="property"> = 4096</em><a class="headerlink" href="#slider.mod.Mod.spun_out" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.sudden_death">
+<code class="descname">sudden_death</code><em class="property"> = 32</em><a class="headerlink" href="#slider.mod.Mod.sudden_death" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="slider.mod.Mod.target_practice">
+<code class="descname">target_practice</code><em class="property"> = 8388608</em><a class="headerlink" href="#slider.mod.Mod.target_practice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="function">
@@ -1990,7 +2851,7 @@ for this beatmap.</p>
 <code class="docutils literal"><span class="pre">predict_beatmap</span></code> method.</p>
 <dl class="method">
 <dt id="slider.model.model.OsuModel.predict_beatmap">
-<code class="descname">predict_beatmap</code><span class="sig-paren">(</span><em>beatmap</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/model.html#OsuModel.predict_beatmap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.model.OsuModel.predict_beatmap" title="Permalink to this definition">¶</a></dt>
+<code class="descname">predict_beatmap</code><span class="sig-paren">(</span><em>beatmap</em>, <em>*mods</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/model.html#OsuModel.predict_beatmap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.model.OsuModel.predict_beatmap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Predict the user&#8217;s score for the given beatmap.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />

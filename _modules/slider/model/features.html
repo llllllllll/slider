@@ -341,8 +341,8 @@
     <span class="c1"># ignore the direction of the angle, just take the magnitude</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hit_object_angles</span><span class="p">(</span>
         <span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects_no_spinners</span><span class="p">,</span>
-        <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
         <span class="n">half_time</span><span class="o">=</span><span class="n">half_time</span><span class="p">,</span>
+        <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
     <span class="p">))</span>
     <span class="n">mean_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">median_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -350,8 +350,14 @@
 
     <span class="n">circles</span><span class="p">,</span> <span class="n">sliders</span><span class="p">,</span> <span class="n">spinners</span> <span class="o">=</span> <span class="n">count_hit_objects</span><span class="p">(</span><span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span>
 
-    <span class="n">pp_95</span><span class="p">,</span> <span class="n">pp_96</span><span class="p">,</span> <span class="n">pp_97</span><span class="p">,</span> <span class="n">pp_98</span><span class="p">,</span> <span class="n">pp_99</span><span class="p">,</span> <span class="n">pp_100</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">pp</span><span class="p">(</span>
-        <span class="n">accuracy</span><span class="o">=</span><span class="p">[</span><span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.96</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">],</span>
+    <span class="n">pp_95</span><span class="p">,</span> <span class="n">pp_96</span><span class="p">,</span> <span class="n">pp_97</span><span class="p">,</span> <span class="n">pp_98</span><span class="p">,</span> <span class="n">pp_99</span><span class="p">,</span> <span class="n">pp_100</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">performance_points</span><span class="p">(</span>
+        <span class="n">accuracy</span><span class="o">=</span><span class="p">[</span><span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.96</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">,</span> <span class="mf">1.00</span><span class="p">],</span>
+        <span class="n">easy</span><span class="o">=</span><span class="n">easy</span><span class="p">,</span>
+        <span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">,</span>
+        <span class="n">half_time</span><span class="o">=</span><span class="n">half_time</span><span class="p">,</span>
+        <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
+        <span class="n">hidden</span><span class="o">=</span><span class="n">hidden</span><span class="p">,</span>
+        <span class="n">flashlight</span><span class="o">=</span><span class="n">flashlight</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
@@ -457,7 +463,6 @@
                 <span class="p">)</span>
             <span class="p">]</span>
             <span class="k">for</span> <span class="n">beatmap</span><span class="p">,</span> <span class="n">mods</span> <span class="ow">in</span> <span class="n">beatmaps_and_mods</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span>
         <span class="p">]</span>
     <span class="p">)</span></div>
 
@@ -509,6 +514,9 @@
             <span class="c1"># ignore plays with mods that are not representative of user skill</span>
             <span class="k">continue</span>
 
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">continue</span>
+
         <span class="n">beatmap_and_mod_append</span><span class="p">((</span>
             <span class="n">replay</span><span class="o">.</span><span class="n">beatmap</span><span class="p">,</span> <span class="p">{</span>
                 <span class="s1">&#39;easy&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">easy</span><span class="p">,</span>
@@ -521,7 +529,9 @@
         <span class="p">))</span>
         <span class="n">accuracy_append</span><span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">accuracy</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">extract_feature_array</span><span class="p">(</span><span class="n">beatmaps_and_mods</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">accuracies</span><span class="p">)</span></div>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">extract_feature_array</span><span class="p">(</span><span class="n">beatmaps_and_mods</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fs</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">accuracies</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span></div>
 </pre></div>
 
            </div>

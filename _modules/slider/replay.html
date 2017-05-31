@@ -159,6 +159,7 @@
   <h1>Source code for slider.replay</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">unique</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">lzma</span>
 
 <span class="kn">from</span> <span class="nn">.bit_enum</span> <span class="k">import</span> <span class="n">BitEnum</span>
@@ -267,9 +268,12 @@
     <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
 
 
+<span class="n">_windows_epoch</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+
 <span class="k">def</span> <span class="nf">_consume_datetime</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
     <span class="n">windows_ticks</span> <span class="o">=</span> <span class="n">_consume_long</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">windows_ticks</span> <span class="o">/</span> <span class="mi">10000000</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_windows_epoch</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">microseconds</span><span class="o">=</span><span class="n">windows_ticks</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_consume_life_bar_graph</span><span class="p">(</span><span class="n">buffer</span><span class="p">):</span>
@@ -525,14 +529,32 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">count_miss</span><span class="p">,</span>
         <span class="p">)</span>
 
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">performance_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beatmap</span><span class="o">.</span><span class="n">performance_points</span><span class="p">(</span>
+            <span class="n">count_300</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">count_300</span><span class="p">,</span>
+            <span class="n">count_100</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">count_100</span><span class="p">,</span>
+            <span class="n">count_50</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">count_50</span><span class="p">,</span>
+            <span class="n">count_miss</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">count_miss</span><span class="p">,</span>
+            <span class="n">easy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">easy</span><span class="p">,</span>
+            <span class="n">hard_rock</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hard_rock</span><span class="p">,</span>
+            <span class="n">half_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">half_time</span><span class="p">,</span>
+            <span class="n">double_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">double_time</span><span class="p">,</span>
+            <span class="n">hidden</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden</span><span class="p">,</span>
+            <span class="n">flashlight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">flashlight</span><span class="p">,</span>
+            <span class="n">spun_out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spun_out</span><span class="p">,</span>
+        <span class="p">)</span>
+
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Replay.from_path"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_path">[docs]</a>    <span class="k">def</span> <span class="nf">from_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Replay.from_path"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_path">[docs]</a>    <span class="k">def</span> <span class="nf">from_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">library</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Read in a ``Replay`` object from a ``.osr`` file on disk.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        path : str or pathlib.Path</span>
 <span class="sd">            The path to the file to read from.</span>
+<span class="sd">        library : Library</span>
+<span class="sd">            The library of beatmaps.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -542,19 +564,49 @@
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
 <span class="sd">        ValueError</span>
-<span class="sd">            Raised when the file cannot be parsed as a ``.osr`` file.</span>
+<span class="sd">            Raised when the file cannot be parsed as an ``.osr`` file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Replay.from_file"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Replay.from_directory"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_directory">[docs]</a>    <span class="k">def</span> <span class="nf">from_directory</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">library</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read in a list of ``Replay`` objects from a directory of ``.osr``</span>
+<span class="sd">        files.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or pathlib.Path</span>
+<span class="sd">            The path to the directory to read from.</span>
+<span class="sd">        library : Library</span>
+<span class="sd">            The library of beatmaps.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        replays : list[Replay]</span>
+<span class="sd">            The parsed replay objects.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when any file cannot be parsed as an ``.osr`` file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">library</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osr&#39;</span><span class="p">)</span>
+        <span class="p">]</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Replay.from_file"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">library</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Read in a ``Replay`` object from an open file object.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        file : file-like</span>
 <span class="sd">            The file object to read from.</span>
+<span class="sd">        library : Library</span>
+<span class="sd">            The library of beatmaps.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -569,7 +621,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Replay.parse"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Replay.parse"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">library</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Parse a replay from ``.osr`` file data.</span>
 
 <span class="sd">        Parameters</span>
@@ -581,6 +633,8 @@
 <span class="sd">        -------</span>
 <span class="sd">        replay : Replay</span>
 <span class="sd">            The parsed replay.</span>
+<span class="sd">        library : Library</span>
+<span class="sd">            The library of beatmaps.</span>
 
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
@@ -613,11 +667,6 @@
         <span class="k">del</span> <span class="n">mod_kwargs</span><span class="p">[</span><span class="s1">&#39;relax2&#39;</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">mod_kwargs</span><span class="p">[</span><span class="s1">&#39;last_mod&#39;</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">library</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">beatmap</span> <span class="o">=</span> <span class="n">library</span><span class="o">.</span><span class="n">lookup_by_md5</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">beatmap</span> <span class="o">=</span> <span class="kc">None</span>
-
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
             <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
@@ -636,7 +685,7 @@
             <span class="n">life_bar_graph</span><span class="o">=</span><span class="n">life_bar_graph</span><span class="p">,</span>
             <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
             <span class="n">actions</span><span class="o">=</span><span class="n">actions</span><span class="p">,</span>
-            <span class="n">beatmap</span><span class="o">=</span><span class="n">beatmap</span><span class="p">,</span>
+            <span class="n">beatmap</span><span class="o">=</span><span class="n">library</span><span class="o">.</span><span class="n">lookup_by_md5</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="p">),</span>
             <span class="o">**</span><span class="n">mod_kwargs</span><span class="p">,</span>
         <span class="p">)</span></div>
 

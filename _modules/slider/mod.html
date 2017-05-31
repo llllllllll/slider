@@ -194,7 +194,45 @@
     <span class="n">key1</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">26</span>
     <span class="n">key3</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">27</span>
     <span class="n">key2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">28</span>
-    <span class="n">scoreV2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">29</span></div>
+    <span class="n">scoreV2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">29</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Mod.parse"><a class="viewcode-back" href="../../appendix.html#slider.mod.Mod.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parse a mod mask out of a list of shortened mod names.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cs : str</span>
+<span class="sd">            The mod string.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mod_mask : int</span>
+<span class="sd">            The mod mask.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cs</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;malformed mods: </span><span class="si">{cs!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">cs</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;ez&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">easy</span><span class="p">,</span>
+            <span class="s1">&#39;hr&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">hard_rock</span><span class="p">,</span>
+            <span class="s1">&#39;ht&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">half_time</span><span class="p">,</span>
+            <span class="s1">&#39;dt&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">double_time</span><span class="p">,</span>
+            <span class="s1">&#39;hd&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">hidden</span><span class="p">,</span>
+            <span class="s1">&#39;fl&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">flashlight</span><span class="p">,</span>
+            <span class="s1">&#39;so&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">spun_out</span><span class="p">,</span>
+            <span class="s1">&#39;nf&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">no_fail</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">mod</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cs</span><span class="p">),</span> <span class="n">step</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">mod</span> <span class="o">|=</span> <span class="n">mapping</span><span class="p">[</span><span class="n">cs</span><span class="p">[</span><span class="n">n</span><span class="p">:</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;unknown mod: </span><span class="si">{cs[n:n + 2]!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mod</span></div></div>
 
 
 <div class="viewcode-block" id="ar_to_ms"><a class="viewcode-back" href="../../appendix.html#slider.mod.ar_to_ms">[docs]</a><span class="k">def</span> <span class="nf">ar_to_ms</span><span class="p">(</span><span class="n">ar</span><span class="p">):</span>

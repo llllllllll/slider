@@ -175,8 +175,26 @@
             <span class="k">return</span> <span class="bp">self</span>
 
         <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fget</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="nb">vars</span><span class="p">(</span><span class="n">instance</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">]</span> <span class="o">=</span>  <span class="n">value</span>
         <span class="k">return</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="nb">vars</span><span class="p">(</span><span class="n">instance</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+
+<span class="k">class</span> <span class="nc">no_default</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Sentinel type; this should not be instantiated.</span>
+
+<span class="sd">    This type is used so functions can tell the difference between no argument</span>
+<span class="sd">    passed and an explicit value passed even if ``None`` is a valid value.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This is implemented as a type to make functions which use this as a default</span>
+<span class="sd">    argument serializable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;cannot create instances of sentinel type&#39;</span><span class="p">)</span>
 
 
 <span class="n">memoize</span> <span class="o">=</span> <span class="n">lru_cache</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
