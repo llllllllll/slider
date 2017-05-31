@@ -145,6 +145,9 @@ class BeatmapResult:
                  pass_count,
                  max_combo):
         self._library = library
+        self.title = title
+        self.version = version
+        self.beatmap_id = beatmap_id
         self.approved = approved
         self.approved_date = approved_date
         self.last_update = last_update
@@ -161,7 +164,7 @@ class BeatmapResult:
 
         self._beatmap = None
 
-    beatmap = _beatmap
+    beatmap = lazyval(_beatmap)
 
     def __repr__(self):
         return f'<{type(self).__qualname__}: {self.title} [{self.version}]>'
@@ -201,7 +204,7 @@ class UserEvent:
 
         self._beatmap = None
 
-    beatmap = _beatmap
+    beatmap = lazyval(_beatmap)
 
 
 class User:
@@ -398,7 +401,7 @@ class HighScore:
 
         self._beatmap = None
 
-    beatmap = _beatmap
+    beatmap = lazyval(_beatmap)
 
     @lazyval
     def user(self):
@@ -489,6 +492,9 @@ class Client:
 
     def _parse_date(cs, *, _tz=pytz.FixedOffset(8 * 60)):
         # _tz is UTC+8
+        if cs is None:
+            return None
+
         return _tz.localize(
             datetime.datetime.strptime(cs, '%Y-%m-%f %H:%M:%S'),
         )
@@ -513,7 +519,7 @@ class Client:
         'favourite_count': int,
         'play_count': int,
         'pass_count': int,
-        'max_combo': int,
+        'max_combo': lambda cs: cs if cs is None else int(cs),
         'title': _identity,
         'version': _identity,
     }

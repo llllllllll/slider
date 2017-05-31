@@ -31,8 +31,9 @@ class Library:
                  cache=DEFAULT_CACHE_SIZE,
                  download_url=DEFAULT_DOWNLOAD_URL):
         self.path = path = pathlib.Path(path)
-        self._cache = dbm.open(str(path / '.db'), 'c')
+
         self._read_beatmap = lru_cache(cache)(self._raw_read_beatmap)
+        self._cache = dbm.open(str(path / '.db'), 'c')
         self._download_url = download_url
 
     def close(self):
@@ -196,6 +197,8 @@ class Library:
         path : str
             The path to save
         """
+        path = os.path.abspath(path)
+
         self._cache[f'md5:{md5(data).hexdigest()}'] = path
 
         beatmap_id = beatmap.beatmap_id

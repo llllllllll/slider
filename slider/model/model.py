@@ -1,3 +1,5 @@
+from itertools import chain
+
 import numpy as np
 from sklearn.neural_network import MLPRegressor as _MLPRegressor
 from sklearn.preprocessing import StandardScaler
@@ -12,7 +14,7 @@ class OsuModel:
     def predict(self, *args, **kwargs):
         return np.clip(super().predict(*args, **kwargs), 0, 1)
 
-    def predict_beatmap(self, beatmap, **kwargs):
+    def predict_beatmap(self, beatmap, *mods, **kwargs):
         """Predict the user's score for the given beatmap.
 
         Parameters
@@ -27,7 +29,10 @@ class OsuModel:
         accuracy : float
             The user's expected accuracy in the range [0, 1].
         """
-        return self.predict(extract_feature_array([(beatmap, kwargs)]))[0]
+        return self.predict(extract_feature_array([
+            (beatmap, mod)
+            for mod in chain(mods, [kwargs])
+        ]))
 
 
 class MLPRegressor(OsuModel, _MLPRegressor):

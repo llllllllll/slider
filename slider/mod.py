@@ -37,6 +37,44 @@ class Mod(BitEnum):
     key2 = 1 << 28
     scoreV2 = 1 << 29
 
+    @classmethod
+    def parse(cls, cs):
+        """Parse a mod mask out of a list of shortened mod names.
+
+        Parameters
+        ----------
+        cs : str
+            The mod string.
+
+        Returns
+        -------
+        mod_mask : int
+            The mod mask.
+        """
+        if len(cs) % 2 != 0:
+            raise ValueError(f'malformed mods: {cs!r}')
+
+        cs = cs.lower()
+        mapping = {
+            'ez': cls.easy,
+            'hr': cls.hard_rock,
+            'ht': cls.half_time,
+            'dt': cls.double_time,
+            'hd': cls.hidden,
+            'fl': cls.flashlight,
+            'so': cls.spun_out,
+            'nf': cls.no_fail,
+        }
+
+        mod = 0
+        for n in range(len(cs), step=2):
+            try:
+                mod |= mapping[cs[n:n + 2]]
+            except KeyError:
+                raise ValueError(f'unknown mod: {cs[n:n + 2]!r}')
+
+        return mod
+
 
 def ar_to_ms(ar):
     """Convert an approach rate value to milliseconds of time that an element

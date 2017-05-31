@@ -182,8 +182,8 @@ def extract_features(beatmap,
     # ignore the direction of the angle, just take the magnitude
     angles = np.abs(hit_object_angles(
         beatmap.hit_objects_no_spinners,
-        double_time=double_time,
         half_time=half_time,
+        double_time=double_time,
     ))
     mean_angles = np.mean(angles, axis=1)
     median_angles = np.median(angles, axis=1)
@@ -191,8 +191,14 @@ def extract_features(beatmap,
 
     circles, sliders, spinners = count_hit_objects(beatmap.hit_objects)
 
-    pp_95, pp_96, pp_97, pp_98, pp_99, pp_100 = beatmap.pp(
-        accuracy=[0.95, 0.96, 0.97, 0.98, 0.99],
+    pp_95, pp_96, pp_97, pp_98, pp_99, pp_100 = beatmap.performance_points(
+        accuracy=[0.95, 0.96, 0.97, 0.98, 0.99, 1.00],
+        easy=easy,
+        hard_rock=hard_rock,
+        half_time=half_time,
+        double_time=double_time,
+        hidden=hidden,
+        flashlight=flashlight,
     )
 
     return {
@@ -298,7 +304,6 @@ def extract_feature_array(beatmaps_and_mods):
                 )
             ]
             for beatmap, mods in beatmaps_and_mods
-            if len(beatmap.hit_objects) >= 2
         ]
     )
 
@@ -350,6 +355,9 @@ def extract_from_replay_directory(path, library, age=None):
             # ignore plays with mods that are not representative of user skill
             continue
 
+        if len(replay.beatmap.hit_objects) < 2:
+            continue
+
         beatmap_and_mod_append((
             replay.beatmap, {
                 'easy': replay.easy,
@@ -362,4 +370,6 @@ def extract_from_replay_directory(path, library, age=None):
         ))
         accuracy_append(replay.accuracy)
 
-    return extract_feature_array(beatmaps_and_mods), np.array(accuracies)
+    fs = extract_feature_array(beatmaps_and_mods)
+    mask = np.isfinite(fs).all(axis=1)
+    return fs[mask], np.array(accuracies)[mask]

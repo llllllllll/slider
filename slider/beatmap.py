@@ -1397,7 +1397,13 @@ class Beatmap:
                 # build a dict from the ``Key: Value`` line format.
                 mapping = {}
                 for line in group_buffer:
-                    key, value = line.split(':', 1)
+                    split = line.split(':', 1)
+                    try:
+                        key, value = split
+                    except ValueError:
+                        key = split[0]
+                        value = ''
+
                     # throw away whitespace
                     mapping[key.strip()] = value.strip()
                 group_buffer = mapping
@@ -1621,7 +1627,11 @@ class Beatmap:
                 a = group[n]
                 b = group[m]
 
-                ratio = a / b if a > b else b / a
+                try:
+                    ratio = a / b if a > b else b / a
+                except ZeroDivisionError:
+                    ratio = 1
+
                 closest_power_of_two = 2 ** round(np.log2(ratio))
                 offset = (
                     abs(closest_power_of_two - ratio) /
