@@ -67,7 +67,7 @@ class Mod(BitEnum):
         }
 
         mod = 0
-        for n in range(len(cs), step=2):
+        for n in range(0, len(cs), 2):
             try:
                 mod |= mapping[cs[n:n + 2]]
             except KeyError:
