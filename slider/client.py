@@ -164,7 +164,7 @@ class BeatmapResult:
 
         self._beatmap = None
 
-    beatmap = lazyval(_beatmap)
+    beatmap = _beatmap
 
     def __repr__(self):
         return f'<{type(self).__qualname__}: {self.title} [{self.version}]>'
@@ -204,7 +204,7 @@ class UserEvent:
 
         self._beatmap = None
 
-    beatmap = lazyval(_beatmap)
+    beatmap = _beatmap
 
 
 class User:
@@ -401,7 +401,7 @@ class HighScore:
 
         self._beatmap = None
 
-    beatmap = lazyval(_beatmap)
+    beatmap = _beatmap
 
     @lazyval
     def user(self):

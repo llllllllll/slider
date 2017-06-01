@@ -31,6 +31,16 @@ class Cache:
         with self._dbm as d:
             d[key] = value
 
+    def __delitem__(self, key):
+        with self._dbm as d:
+            del d[key]
+
+    def pop(self, key):
+        with self._dbm as d:
+            value = d[key]
+            del d[key]
+            return value
+
 
 class Library:
     """A library of beatmaps backed by a local directory.
@@ -158,6 +168,8 @@ class Library:
         try:
             return self._read_beatmap(self, beatmap_id=beatmap_id)
         except KeyError:
+            if not download:
+                raise
             return self.download(beatmap_id, save=save)
 
     def lookup_by_md5(self, beatmap_md5):
@@ -198,20 +210,34 @@ class Library:
         if beatmap is None:
             beatmap = Beatmap.parse(data.decode('utf-8-sig'))
 
-        cache = self._cache
-
         path = self.path / (
             f'{beatmap.artist} - '
             f'{beatmap.title} '
             f'({beatmap.creator})'
-            f'[beatmap.version]'
+            f'[{beatmap.version}]'
             f'.osu'
         )
-        with open(path, 'w') as f:
+        with open(path, 'wb') as f:
             f.write(data)
 
         self._write_to_cache(beatmap, data, path)
         return beatmap
+
+    def delete(self, beatmap, *, remove_file=True):
+        """Remove a beatmap from the library.
+
+        Parameters
+        ----------
+        beatmap : Beatmap
+            The beatmap to delete.
+        remove_file : bool, optional
+            Remove the .osu file from disk.
+        """
+        path = self._cache.pop(f'id:{beatmap.beatmap_id}')
+        md5 = self._cache.pop(f'id_to_md5:{beatmap.beatmap_id}')
+        del self._cache[f'md5:{md5}']
+        if remove_file:
+            os.unlink(path)
 
     def _write_to_cache(self, beatmap, data, path):
         """Write data to the cache.
@@ -227,13 +253,16 @@ class Library:
         """
         path = os.path.abspath(path)
 
-        self._cache[f'md5:{md5(data).hexdigest()}'] = path
+        beatmap_md5 = md5(data).hexdigest()
+        self._cache[f'md5:{beatmap_md5}'] = path
 
         beatmap_id = beatmap.beatmap_id
         if beatmap_id is not None:
             # very old beatmaps didn't store the id in the ``.osu``
             # file
             self._cache[f'id:{beatmap_id}'] = path
+            # map the id back to the hash
+            self._cache[f'id_to_md5:{{beatmap_id}}'] = beatmap_md5
 
     def download(self, beatmap_id, *, save=False):
         """Download a beatmap.
