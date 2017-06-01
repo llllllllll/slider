@@ -3,10 +3,33 @@ from functools import lru_cache
 from hashlib import md5
 import os
 import pathlib
+from time import sleep
 
 import requests
 
 from .beatmap import Beatmap
+
+
+class Cache:
+    def __init__(self, path):
+        self.path = path
+
+    @property
+    def _dbm(self):
+        # busy wait for the other consumers to be done with this
+        while True:
+            try:
+                return dbm.open(str(self.path), 'c')
+            except dbm.error:
+                sleep(0.05)
+
+    def __getitem__(self, key):
+        with self._dbm as d:
+            return d[key]
+
+    def __setitem__(self, key, value):
+        with self._dbm as d:
+            d[key] = value
 
 
 class Library:
@@ -33,7 +56,7 @@ class Library:
         self.path = path = pathlib.Path(path)
 
         self._read_beatmap = lru_cache(cache)(self._raw_read_beatmap)
-        self._cache = dbm.open(str(path / '.db'), 'c')
+        self._cache = Cache(path / '.db')
         self._download_url = download_url
 
     def close(self):
@@ -42,7 +65,12 @@ class Library:
         self._read_beatmap.cache_clear()
         self._cache.close()
 
-    __del__ = close
+    def __del__(self):
+        try:
+            self.close()
+        except AttributeError:
+            # if an error is raised in the constructor
+            pass
 
     def __enter__(self):
         return self
