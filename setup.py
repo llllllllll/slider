@@ -29,6 +29,6 @@ setup(
     url='https://github.com/llllllllll/slider',
     install_requires=['pytz', 'requests'],
     extras_require={
-        'model': ['sklearn'],
+        'model': ['scikit-learn', 'scipy', 'numpy'],
     },
 )
