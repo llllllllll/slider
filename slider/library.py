@@ -216,7 +216,7 @@ class Library:
             f'({beatmap.creator})'
             f'[{beatmap.version}]'
             f'.osu'
-        )
+        ).replace('/', '_')
         with open(path, 'wb') as f:
             f.write(data)
 
