@@ -1282,7 +1282,7 @@ class Beatmap:
         Raises
         ------
         ValueError
-            Raised when the file cannot be pased as a ``.osz`` file.
+            Raised when the file cannot be parsed as a ``.osz`` file.
         """
         with ZipFile(path) as zf:
             return cls.from_osz_file(zf)
@@ -1326,7 +1326,7 @@ class Beatmap:
         Raises
         ------
         ValueError
-            Raised when the file cannot be pased as a ``.osz`` file.
+            Raised when the file cannot be parsed as a ``.osz`` file.
         """
         return {
             beatmap.version: beatmap
