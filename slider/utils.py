@@ -16,7 +16,7 @@ class lazyval:
             return self
 
         value = self._fget(instance)
-        vars(instance)[self._name] =  value
+        vars(instance)[self._name] = value
         return value
 
     def __set__(self, instance, value):

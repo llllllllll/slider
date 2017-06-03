@@ -1684,6 +1684,19 @@ class Beatmap:
 
     @staticmethod
     def _product_no_diagonal(sequence):
+        """An iterator of the Cartesian product of ``sequence`` with itself
+        with the diagonals removed.
+
+        Parameters
+        ----------
+        sequence : sequence
+            The sequence to take the product with.
+
+        Yields
+        ------
+        pair : (any, any)
+            The element of the product which is not on the diagonal.
+        """
         inner = range(1, len(sequence))
         for n in range(len(sequence)):
             for m in inner:
@@ -1697,6 +1710,19 @@ class Beatmap:
                          hard_rock,
                          double_time,
                          half_time):
+        """Compute the stars and star components for this map.
+
+        Parameters
+        ----------
+        easy : bool
+            Compute stars with easy.
+        hard_rock : bool
+            Compute stars with hard rock.
+        double_time : bool
+            Compute stars with double time.
+        half_time : bool
+            Compute stars with half time.
+        """
         cs = self.cs()
         # NOTE: This is different than normal conversion
         if hard_rock:
@@ -1729,8 +1755,6 @@ class Beatmap:
                 previous,
             )
             append_interval(new.hit_object.time - previous.hit_object.time)
-            if intervals[-1].total_seconds() < 0:
-                from nose.tools import set_trace;set_trace()
             append_difficulty_hit_object(new)
             previous = new
 
@@ -2036,6 +2060,50 @@ class Beatmap:
         -------
         pp : float
             The performance points awarded for the specified play.
+
+        Notes
+        -----
+        ``accuracy`` or hit counts may be passed as array-likes in which case
+        the resulting ``pp`` will be a sequence of the same length. This is
+        more efficient for computing PP with different results on the same
+        beatmap.
+
+        Examples
+        --------
+        >>> from slider.example_data.beatmaps import sendan_life
+        >>> beatmap = sendan_life("Crystal's Garakowa")
+
+        # compute for 100%
+        >>> beatmap.performance_points(accuracy=1.0)
+        274.487178791355
+
+        # compute for 95%  accuracy
+        >>> beatmap.performance_points(accuracy=0.95)
+        219.09554433691147
+
+        # compute with explicit hit counts
+        >>> beatmap.performance_points(
+        ...     count_300=330,
+        ...     count_100=2,
+        ...     count_50=0,
+        ...     count_miss=0,
+        ... )
+        265.20230843362657
+
+        # vectorized accuracy
+        >>> beatmap.performance_points(
+        ...     accuracy=[0.95, 0.96, 0.97, 0.98, 0.99, 1.0],
+        ... )
+        array([ 219.09554434,  223.67413382,  230.20890527,  239.72525216,
+                253.74272587,  274.48717879])
+
+        # with mods
+        >>> beatmap.performance_points(
+        ...     accuracy=[0.95, 0.96, 0.97, 0.98, 0.99, 1.0],
+        ...     hidden=True,
+        ... )
+        array([ 245.0240618 ,  249.77318802,  256.50049755,  266.24423831,
+        280.54452189,  301.66016166])
         """
         if version not in {1, 2}:
             raise ValueError(f'unknown PP version: {version}')
@@ -2059,13 +2127,20 @@ class Beatmap:
 
         elif (count_300 is None and
               count_100 is None and
-              count_50 is not None):
-            accuracy = np.array(accuracy, ndmin=1, copy=False)
+              count_50 is None):
+            accuracy = np.array(1.0, ndmin=1, copy=False)
             count_300, count_100, count_50, count_miss = self._round_hitcounts(
                 accuracy,
                 np.full_like(accuracy, 0)
                 if count_miss is None else
                 count_miss,
+            )
+        elif (count_300 + count_100 + count_50 + count_miss !=
+              len(self.hit_objects)):
+            s = count_300 + count_100 + count_50 + count_miss
+            os = len(self.hit_objects)
+            raise ValueError(
+                f"hit counts don't sum to the total for the map, {s} != {os}"
             )
 
         od = self.od(easy=easy, hard_rock=hard_rock)
