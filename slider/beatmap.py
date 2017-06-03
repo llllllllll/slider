@@ -1761,7 +1761,7 @@ class Beatmap:
             count_offsets += 1
             rhythm_awkwardness += awk
 
-        rhythm_awkwardness /= count_offsets
+        rhythm_awkwardness /= count_offsets or 1
         rhythm_awkwardness *= 82
 
         aim = self._calculate_difficulty(
