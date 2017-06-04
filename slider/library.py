@@ -66,7 +66,7 @@ class Library:
         self.path = path = pathlib.Path(path)
 
         self._read_beatmap = lru_cache(cache)(self._raw_read_beatmap)
-        self._cache = Cache(path / '.db')
+        self._cache = Cache(path / '.slider.db')
         self._download_url = download_url
 
     def close(self):
@@ -88,10 +88,38 @@ class Library:
     def __exit__(self, *exc_info):
         self.close()
 
+    @staticmethod
+    def _osu_files(path, recurse):
+        """An iterator of ``.osu`` filepaths in a directory.
+
+        Parameters
+        ----------
+        path : path-like
+            The directory to search in.
+        recurse : bool
+            Recursively search ``path``?
+
+        Yields
+        ------
+        path : str
+            The path to a ``.osu`` file.
+        """
+        if recurse:
+            for directory, _, filenames in os.walk(path):
+                for filename in filenames:
+                    if filename.endswith('.osu'):
+                        yield os.path.join(directory, filename)
+        else:
+            for entry in os.scandir(directory):
+                path = entry.path
+                if path.endswith('.osu'):
+                    yield path
+
     @classmethod
     def create_db(cls,
                   path,
                   *,
+                  recurse=True,
                   cache=DEFAULT_CACHE_SIZE,
                   download_url=DEFAULT_DOWNLOAD_URL):
         """Create a Library from a directory of ``.osu`` files.
@@ -100,21 +128,24 @@ class Library:
         ----------
         path : path-like
             The path to the directory to read.
+        recurse : bool, optional
+            Recursively search for beatmaps?
         cache : int, optional
             The amount of beatmaps to cache in memory. This uses
             :func:`functools.lru_cache`, and if set to None will cache
             everything.
         download_url : str, optional
             The default location to download beatmaps from.
+
+        Notes
+        -----
+        Moving the underlying ``.osu`` files invalidates the library. If this
+        happens, just re-run ``create_db`` again.
         """
         self = cls(path)
         write_to_cache = self._write_to_cache
 
-        for entry in os.scandir(path):
-            path = entry.path
-            if not path.endswith('.osu'):
-                continue
-
+        for path in self._osu_files(path, recurse=recurse):
             with open(path, 'rb') as f:
                 data = f.read()
 

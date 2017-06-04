@@ -318,6 +318,7 @@ class User:
         return self._client.user_best(
             user_id=self.user_id,
             limit=limit,
+            game_mode=self.game_mode,
             _user_ob=self,
         )
 

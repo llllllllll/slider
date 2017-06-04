@@ -2055,7 +2055,7 @@ class Beatmap:
             Account for the spun out mod.
         version : int, optional
             The version of the performance points calculation to use.
-
+g
         Returns
         -------
         pp : float
@@ -2072,16 +2072,13 @@ class Beatmap:
         --------
         >>> from slider.example_data.beatmaps import sendan_life
         >>> beatmap = sendan_life("Crystal's Garakowa")
-
-        # compute for 100%
+        >>> # compute for 100%
         >>> beatmap.performance_points(accuracy=1.0)
         274.487178791355
-
-        # compute for 95%  accuracy
+        >>> # compute for 95%  accuracy
         >>> beatmap.performance_points(accuracy=0.95)
         219.09554433691147
-
-        # compute with explicit hit counts
+        >>> # compute with explicit hit counts
         >>> beatmap.performance_points(
         ...     count_300=330,
         ...     count_100=2,
@@ -2089,22 +2086,18 @@ class Beatmap:
         ...     count_miss=0,
         ... )
         265.20230843362657
-
-        # vectorized accuracy
+        >>> # vectorized accuracy
         >>> beatmap.performance_points(
         ...     accuracy=[0.95, 0.96, 0.97, 0.98, 0.99, 1.0],
         ... )
-        array([ 219.09554434,  223.67413382,  230.20890527,  239.72525216,
-                253.74272587,  274.48717879])
-
-        # with mods
+        array([ 219.09554434,  223.67413382,  230.20890527,  239.72525216, 253.74272587,  274.48717879])
+        >>> # with mods
         >>> beatmap.performance_points(
         ...     accuracy=[0.95, 0.96, 0.97, 0.98, 0.99, 1.0],
         ...     hidden=True,
         ... )
-        array([ 245.0240618 ,  249.77318802,  256.50049755,  266.24423831,
-        280.54452189,  301.66016166])
-        """
+        array([ 245.0240618 ,  249.77318802,  256.50049755,  266.24423831, 280.54452189,  301.66016166])
+        """  # noqa
         if version not in {1, 2}:
             raise ValueError(f'unknown PP version: {version}')
 
@@ -2235,7 +2228,6 @@ class Beatmap:
         accuracy_length_bonus = min(1.5, (count_circles / 1000) ** 0.3)
         accuracy_hidden_bonus = 1.02 if hidden else 1
         accuracy_flashlight_bonus = 1.02 if flashlight else 1
-
         accuracy_score = (
             1.52163 ** od * real_accuracy ** 24.0 * 2.83 *
             accuracy_length_bonus *
