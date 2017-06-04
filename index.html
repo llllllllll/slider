@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Slider &mdash; slider 0.1.0 documentation</title>
+  <title>slider &mdash; slider 0.1.0 documentation</title>
   
 
   
@@ -36,7 +36,7 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="slider 0.1.0 documentation" href="#"/>
-        <link rel="next" title="Model Features" href="features.html"/> 
+        <link rel="next" title="What is a Beatmap?" href="what-is-a-beatmap.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -91,7 +91,11 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="features.html">Model Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="what-is-a-beatmap.html">What is a Beatmap?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client.html">Osu! API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a></li>
 </ul>
 
@@ -137,7 +141,7 @@
     
       <li><a href="#">Docs</a> &raquo;</li>
         
-      <li>Slider</li>
+      <li>slider</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -157,8 +161,9 @@
            <div itemprop="articleBody">
             
   <div class="section" id="slider">
-<h1>Slider<a class="headerlink" href="#slider" title="Permalink to this headline">¶</a></h1>
+<h1>slider<a class="headerlink" href="#slider" title="Permalink to this headline">¶</a></h1>
 <p>Utilities for working with <a class="reference external" href="https://osu.ppy.sh/">osu!</a> files and data.</p>
+<p><a class="reference external" href="https://llllllllll.github.io/slider">Read the docs!</a></p>
 <div class="section" id="included-tools">
 <h2>Included Tools<a class="headerlink" href="#included-tools" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="beatmap-parser">
@@ -171,26 +176,53 @@
 <p>Slider includes an osu! replay parser for reading metadata, 300/100/50/miss
 counts, and input stream data out of <code class="docutils literal"><span class="pre">.osr</span></code> files.</p>
 </div>
-<div class="section" id="osu-api-client">
-<h3>Osu! API Client<a class="headerlink" href="#osu-api-client" title="Permalink to this headline">¶</a></h3>
-<p>Slider includes an osu! API client for downloading beatmap information.</p>
+<div class="section" id="osu-api">
+<h3>Osu! API<a class="headerlink" href="#osu-api" title="Permalink to this headline">¶</a></h3>
+<p>Slider includes a Python interface to the osu! web API for requesting
+information about users or beatmaps.</p>
 </div>
 </div>
 <div class="section" id="model">
 <h2>Model<a class="headerlink" href="#model" title="Permalink to this headline">¶</a></h2>
 <p>Slider includes a simple model for predicting future performance based on
 replay data.</p>
+</div>
+<div class="section" id="thanks">
+<h2>Thanks<a class="headerlink" href="#thanks" title="Permalink to this headline">¶</a></h2>
+<p>I would like to thank <a class="reference external" href="https://github.com/peppy">peppy</a> for creating osu! and
+providing resources for writing these tools.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="features.html">Model Features</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="features.html#basic-attributes">Basic Attributes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="features.html#mods">Mods</a></li>
-<li class="toctree-l2"><a class="reference internal" href="features.html#bpm">BPM</a></li>
-<li class="toctree-l2"><a class="reference internal" href="features.html#hit-objects">Hit Objects</a></li>
-<li class="toctree-l2"><a class="reference internal" href="features.html#note-angles">Note Angles</a></li>
-<li class="toctree-l2"><a class="reference internal" href="features.html#osu-difficulty-metrics">Osu! Difficulty Metrics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="features.html#performance-points-curve">Performance Points Curve</a></li>
+<li class="toctree-l1"><a class="reference internal" href="what-is-a-beatmap.html">What is a Beatmap?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="what-is-a-beatmap.html#hit-objects">Hit Objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="working-with-beatmaps.html#instantiating-a-beatmap">Instantiating a <code class="docutils literal"><span class="pre">Beatmap</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="working-with-beatmaps.html#managing-beatmaps-with-a-library">Managing <code class="docutils literal"><span class="pre">Beatmap</span></code>s with a <code class="docutils literal"><span class="pre">Library</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="working-with-beatmaps.html#downloading-new-beatmaps">Downloading New Beatmaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="working-with-beatmaps.html#removing-a-beatmap">Removing a Beatmap</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="replays.html#reading-a-replay">Reading a <code class="docutils literal"><span class="pre">Replay</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="replays.html#replay-data">Replay Data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="client.html">Osu! API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="client.html#user-information">User Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="client.html#beatmaps">Beatmaps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model.html#basic-attributes">Basic Attributes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html#mods">Mods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html#bpm">BPM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html#hit-objects">Hit Objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html#note-angles">Note Angles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html#osu-difficulty-metrics">Osu! Difficulty Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html#performance-points-curve">Performance Points Curve</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a><ul>
@@ -206,11 +238,6 @@ replay data.</p>
 </li>
 </ul>
 </div>
-</div>
-<div class="section" id="thanks">
-<h2>Thanks<a class="headerlink" href="#thanks" title="Permalink to this headline">¶</a></h2>
-<p>I would like to thank <a class="reference external" href="https://github.com/peppy">peppy</a> for creating osu! and
-providing resources for writing these tools.</p>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -232,7 +259,7 @@ providing resources for writing these tools.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="features.html" class="btn btn-neutral float-right" title="Model Features" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="what-is-a-beatmap.html" class="btn btn-neutral float-right" title="What is a Beatmap?" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>

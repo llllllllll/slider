@@ -91,7 +91,11 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../features.html">Model Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../what-is-a-beatmap.html">What is a Beatmap?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../replays.html">Replays</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../client.html">Osu! API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -323,7 +327,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_beatmap</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">beatmap</span> <span class="o">=</span> <span class="n">lazyval</span><span class="p">(</span><span class="n">_beatmap</span><span class="p">)</span>
+    <span class="n">beatmap</span> <span class="o">=</span> <span class="n">_beatmap</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;&lt;{type(self).__qualname__}: </span><span class="si">{self.title}</span><span class="s1"> [</span><span class="si">{self.version}</span><span class="s1">]&gt;&#39;</span></div>
@@ -363,7 +367,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_beatmap</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">beatmap</span> <span class="o">=</span> <span class="n">lazyval</span><span class="p">(</span><span class="n">_beatmap</span><span class="p">)</span></div>
+    <span class="n">beatmap</span> <span class="o">=</span> <span class="n">_beatmap</span></div>
 
 
 <div class="viewcode-block" id="User"><a class="viewcode-back" href="../../appendix.html#slider.client.User">[docs]</a><span class="k">class</span> <span class="nc">User</span><span class="p">:</span>
@@ -477,6 +481,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">user_best</span><span class="p">(</span>
             <span class="n">user_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span>
             <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+            <span class="n">game_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">game_mode</span><span class="p">,</span>
             <span class="n">_user_ob</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
         <span class="p">)</span></div></div>
 
@@ -560,7 +565,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_beatmap</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">beatmap</span> <span class="o">=</span> <span class="n">lazyval</span><span class="p">(</span><span class="n">_beatmap</span><span class="p">)</span>
+    <span class="n">beatmap</span> <span class="o">=</span> <span class="n">_beatmap</span>
 
     <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">user</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

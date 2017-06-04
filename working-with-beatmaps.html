@@ -1,0 +1,311 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Working with Beatmaps &mdash; slider 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="index.html"/>
+        <link rel="next" title="Replays" href="replays.html"/>
+        <link rel="prev" title="What is a Beatmap?" href="what-is-a-beatmap.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> slider
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="what-is-a-beatmap.html">What is a Beatmap?</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#instantiating-a-beatmap">Instantiating a <code class="docutils literal"><span class="pre">Beatmap</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#managing-beatmaps-with-a-library">Managing <code class="docutils literal"><span class="pre">Beatmap</span></code>s with a <code class="docutils literal"><span class="pre">Library</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#creating-a-library">Creating a <code class="docutils literal"><span class="pre">Library</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cli">CLI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#programmatic">Programmatic</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#downloading-new-beatmaps">Downloading New Beatmaps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#removing-a-beatmap">Removing a Beatmap</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client.html">Osu! API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">slider</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/working-with-beatmaps.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="working-with-beatmaps">
+<h1>Working with <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a>s<a class="headerlink" href="#working-with-beatmaps" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="instantiating-a-beatmap">
+<h2>Instantiating a <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a><a class="headerlink" href="#instantiating-a-beatmap" title="Permalink to this headline">¶</a></h2>
+<p>A <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a> object can be created directly from a
+<code class="docutils literal"><span class="pre">.osu</span></code> file with <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap.from_path" title="slider.beatmap.Beatmap.from_path"><code class="xref py py-meth docutils literal"><span class="pre">from_path()</span></code></a>. This function
+takes the path to the <code class="docutils literal"><span class="pre">.osu</span></code> file and returns the slider representation of it.</p>
+<p>To read an entire beatmap set (<code class="docutils literal"><span class="pre">.osz</span></code>), there is
+<a class="reference internal" href="appendix.html#slider.beatmap.Beatmap.from_osz_path" title="slider.beatmap.Beatmap.from_osz_path"><code class="xref py py-meth docutils literal"><span class="pre">from_osz_path()</span></code></a> which takes the path to the
+<code class="docutils literal"><span class="pre">.osz</span></code> file and returns a dictionary from version name to
+<a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a> object.</p>
+</div>
+<div class="section" id="managing-beatmaps-with-a-library">
+<h2>Managing <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a>s with a <a class="reference internal" href="appendix.html#slider.library.Library" title="slider.library.Library"><code class="xref py py-class docutils literal"><span class="pre">Library</span></code></a><a class="headerlink" href="#managing-beatmaps-with-a-library" title="Permalink to this headline">¶</a></h2>
+<p>A <a class="reference internal" href="appendix.html#slider.library.Library" title="slider.library.Library"><code class="xref py py-class docutils literal"><span class="pre">Library</span></code></a> is a collection of
+<a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a> objects which can be looked up by beatmap id
+or md5 hash.</p>
+<div class="section" id="creating-a-library">
+<h3>Creating a <a class="reference internal" href="appendix.html#slider.library.Library" title="slider.library.Library"><code class="xref py py-class docutils literal"><span class="pre">Library</span></code></a><a class="headerlink" href="#creating-a-library" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="cli">
+<h4>CLI<a class="headerlink" href="#cli" title="Permalink to this headline">¶</a></h4>
+<p>Slider libraries can be created from the command line like:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python -m slider library --beatmaps<span class="o">=</span>/path/to/beatmap/root <span class="o">[</span>--recurse/--no-recurse<span class="o">]</span>
+</pre></div>
+</div>
+<p>This command will search through <code class="docutils literal"><span class="pre">/path/to/beatmap/root</span></code> recursively and store
+metadata to allow slider to quickly find the <code class="docutils literal"><span class="pre">.osu</span></code> files. In the root of the
+directory a <code class="docutils literal"><span class="pre">.slider.db</span></code> file will be added which holds the lookup tables
+needed to fetch the <code class="docutils literal"><span class="pre">.osu</span></code> files on demand. To disable recursive traversal,
+you may use <code class="docutils literal"><span class="pre">--no-recurse</span></code>.</p>
+</div>
+<div class="section" id="programmatic">
+<h4>Programmatic<a class="headerlink" href="#programmatic" title="Permalink to this headline">¶</a></h4>
+<p>A <a class="reference internal" href="appendix.html#slider.library.Library" title="slider.library.Library"><code class="xref py py-class docutils literal"><span class="pre">Library</span></code></a> can be created with
+<a class="reference internal" href="appendix.html#slider.library.Library.create_db" title="slider.library.Library.create_db"><code class="xref py py-meth docutils literal"><span class="pre">create_db()</span></code></a> which takes a directory and
+recursively searches for <code class="docutils literal"><span class="pre">.osu</span></code> files to add. In the root of the directory a
+<code class="docutils literal"><span class="pre">.slider.db</span></code> file will be added which holds the lookup tables needed to fetch
+the <code class="docutils literal"><span class="pre">.osu</span></code> files on demand.</p>
+</div>
+</div>
+</div>
+<div class="section" id="downloading-new-beatmaps">
+<h2>Downloading New Beatmaps<a class="headerlink" href="#downloading-new-beatmaps" title="Permalink to this headline">¶</a></h2>
+<p>A <a class="reference internal" href="appendix.html#slider.library.Library" title="slider.library.Library"><code class="xref py py-class docutils literal"><span class="pre">Library</span></code></a> also has a
+<a class="reference internal" href="appendix.html#slider.library.Library.download" title="slider.library.Library.download"><code class="xref py py-meth docutils literal"><span class="pre">download()</span></code></a> method for fetching new beatmaps from
+the osu! server. This allows us to quickly get any map we need. The fetched map
+can optionally be saved to disk with <code class="docutils literal"><span class="pre">save=True</span></code> so that next time the map is
+requested we can load it from disk instead of making a web connection.</p>
+<p>The <a class="reference internal" href="appendix.html#slider.library.Library.lookup_by_id" title="slider.library.Library.lookup_by_id"><code class="xref py py-meth docutils literal"><span class="pre">lookup_by_id()</span></code></a> method also accepts a
+<code class="docutils literal"><span class="pre">download=True</span></code> argument which will fallback to downloading the map from the
+osu! server if it is not in the local library.</p>
+</div>
+<div class="section" id="removing-a-beatmap">
+<h2>Removing a Beatmap<a class="headerlink" href="#removing-a-beatmap" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="appendix.html#slider.library.Library.delete" title="slider.library.Library.delete"><code class="xref py py-meth docutils literal"><span class="pre">delete()</span></code></a> will remove a
+<a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a> from the library. <code class="docutils literal"><span class="pre">remove_file=False</span></code> may be
+passed to preserve the underlying <code class="docutils literal"><span class="pre">.osu</span></code> file while removing the metadata from
+the internal library database.</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="replays.html" class="btn btn-neutral float-right" title="Replays" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="what-is-a-beatmap.html" class="btn btn-neutral" title="What is a Beatmap?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Joe Jevnik.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

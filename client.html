@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Osu! API &mdash; slider 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="index.html"/>
+        <link rel="next" title="Model" href="model.html"/>
+        <link rel="prev" title="Replays" href="replays.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> slider
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="what-is-a-beatmap.html">What is a Beatmap?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Osu! API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#user-information">User Information</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#high-scores">High Scores</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#beatmaps">Beatmaps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">slider</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Osu! API</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/client.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="osu-api">
+<h1>Osu! API<a class="headerlink" href="#osu-api" title="Permalink to this headline">¶</a></h1>
+<p>Peppy, being the hero that he is, exposes a web API for making queries about
+osu!. Slider provides a Python interface to this web API through a
+<a class="reference internal" href="appendix.html#slider.client.Client" title="slider.client.Client"><code class="xref py py-class docutils literal"><span class="pre">Client</span></code></a> object. The client knows how to format messages
+to send to the osu! API and knows how to parse the results returned. It will
+also attempt to do argument validation client side to avoid making a bad web
+request.</p>
+<div class="section" id="user-information">
+<h2>User Information<a class="headerlink" href="#user-information" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="appendix.html#slider.client.Client" title="slider.client.Client"><code class="xref py py-class docutils literal"><span class="pre">Client</span></code></a> can fetch user information with the
+<a class="reference internal" href="appendix.html#slider.client.Client.user" title="slider.client.Client.user"><code class="xref py py-meth docutils literal"><span class="pre">user()</span></code></a> method. This method can look up a user by
+either username or user id. It will explicitly tell the osu! server which
+identifier you are using to avoid ambiguity. The method also accepts the game
+mode to fetch information about.</p>
+<div class="section" id="high-scores">
+<h3>High Scores<a class="headerlink" href="#high-scores" title="Permalink to this headline">¶</a></h3>
+<p>If we already have a <a class="reference internal" href="appendix.html#slider.client.User" title="slider.client.User"><code class="xref py py-class docutils literal"><span class="pre">User</span></code></a> object, we can request their
+high scores with the <a class="reference internal" href="appendix.html#slider.client.User.high_scores" title="slider.client.User.high_scores"><code class="xref py py-meth docutils literal"><span class="pre">high_scores()</span></code></a> method. This will
+return a list of <a class="reference internal" href="appendix.html#slider.client.HighScore" title="slider.client.HighScore"><code class="xref py py-class docutils literal"><span class="pre">HighScore</span></code></a> objects which has metadata
+about the play like which map it was and the hit counts. Right now there is no
+way to recover the <a class="reference internal" href="appendix.html#slider.replay.Replay" title="slider.replay.Replay"><code class="xref py py-class docutils literal"><span class="pre">Replay</span></code></a> object from the
+<a class="reference internal" href="appendix.html#slider.client.HighScore" title="slider.client.HighScore"><code class="xref py py-class docutils literal"><span class="pre">HighScore</span></code></a>.</p>
+<p>If we do not yet have a <a class="reference internal" href="appendix.html#slider.client.User" title="slider.client.User"><code class="xref py py-class docutils literal"><span class="pre">User</span></code></a> object, we can request the
+high scores directly with <a class="reference internal" href="appendix.html#slider.client.Client.user_best" title="slider.client.Client.user_best"><code class="xref py py-meth docutils literal"><span class="pre">user_best()</span></code></a>. This takes
+the user identifier and game mode but just directly returns the list of
+<a class="reference internal" href="appendix.html#slider.client.HighScore" title="slider.client.HighScore"><code class="xref py py-class docutils literal"><span class="pre">HighScore</span></code></a> objects. This method is more efficient if you
+only want to get the high scores for a user.</p>
+</div>
+</div>
+<div class="section" id="beatmaps">
+<h2>Beatmaps<a class="headerlink" href="#beatmaps" title="Permalink to this headline">¶</a></h2>
+<p>The osu! API allows us to query for beatmaps themselves. Slider exposes this
+through the <a class="reference internal" href="appendix.html#slider.client.Client.beatmap" title="slider.client.Client.beatmap"><code class="xref py py-meth docutils literal"><span class="pre">beatmap()</span></code></a> method. This method can either
+be used to look up a single beatmap by id or md5 hash, or to fetch maps in bulk
+by date ranked.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">When fetching maps in bulk, we can only get 500 results at a time.</p>
+</div>
+<p>When we get results from the <a class="reference internal" href="appendix.html#slider.client.Client.beatmap" title="slider.client.Client.beatmap"><code class="xref py py-meth docutils literal"><span class="pre">beatmap()</span></code></a> method, they
+are returned as <a class="reference internal" href="appendix.html#slider.client.BeatmapResult" title="slider.client.BeatmapResult"><code class="xref py py-class docutils literal"><span class="pre">BeatmapResult</span></code></a> objects instead of the
+normal <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">slider.beatmap.Beatmap</span></code></a>. The
+<a class="reference internal" href="appendix.html#slider.client.BeatmapResult" title="slider.client.BeatmapResult"><code class="xref py py-class docutils literal"><span class="pre">BeatmapResult</span></code></a> object holds the extra information about a
+map which is only available through the client, for example: the pass and play
+counts.</p>
+<p>The <code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code> can be fetched from the
+<a class="reference internal" href="appendix.html#slider.client.BeatmapResult" title="slider.client.BeatmapResult"><code class="xref py py-class docutils literal"><span class="pre">BeatmapResult</span></code></a> object with the
+<a class="reference internal" href="appendix.html#slider.client.BeatmapResult.beatmap" title="slider.client.BeatmapResult.beatmap"><code class="xref py py-meth docutils literal"><span class="pre">beatmap()</span></code></a> method. This can be passed
+<code class="docutils literal"><span class="pre">save=True</span></code> to save the downloaded <code class="docutils literal"><span class="pre">.osu</span></code> file into the
+<a class="reference internal" href="appendix.html#slider.library.Library" title="slider.library.Library"><code class="xref py py-class docutils literal"><span class="pre">Library</span></code></a>.</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="model.html" class="btn btn-neutral float-right" title="Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="replays.html" class="btn btn-neutral" title="Replays" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Joe Jevnik.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

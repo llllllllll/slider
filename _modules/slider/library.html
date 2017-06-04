@@ -91,7 +91,11 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../features.html">Model Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../what-is-a-beatmap.html">What is a Beatmap?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../replays.html">Replays</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../client.html">Osu! API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -162,10 +166,43 @@
 <span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">md5</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">sleep</span>
 
 <span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="kn">from</span> <span class="nn">.beatmap</span> <span class="k">import</span> <span class="n">Beatmap</span>
+
+
+<span class="k">class</span> <span class="nc">Cache</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_dbm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># busy wait for the other consumers to be done with this</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">dbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">),</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">dbm</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+                <span class="n">sleep</span><span class="p">(</span><span class="mf">0.05</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbm</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbm</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbm</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbm</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">value</span>
 
 
 <div class="viewcode-block" id="Library"><a class="viewcode-back" href="../../appendix.html#slider.library.Library">[docs]</a><span class="k">class</span> <span class="nc">Library</span><span class="p">:</span>
@@ -192,7 +229,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_read_beatmap</span> <span class="o">=</span> <span class="n">lru_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">_raw_read_beatmap</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">dbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s1">&#39;.db&#39;</span><span class="p">),</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">Cache</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s1">&#39;.slider.db&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_download_url</span> <span class="o">=</span> <span class="n">download_url</span>
 
 <div class="viewcode-block" id="Library.close"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -201,7 +238,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_read_beatmap</span><span class="o">.</span><span class="n">cache_clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
-    <span class="fm">__del__</span> <span class="o">=</span> <span class="n">close</span>
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="c1"># if an error is raised in the constructor</span>
+            <span class="k">pass</span>
 
     <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span>
@@ -209,10 +251,38 @@
     <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">exc_info</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_osu_files</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">recurse</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;An iterator of ``.osu`` filepaths in a directory.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : path-like</span>
+<span class="sd">            The directory to search in.</span>
+<span class="sd">        recurse : bool</span>
+<span class="sd">            Recursively search ``path``?</span>
+
+<span class="sd">        Yields</span>
+<span class="sd">        ------</span>
+<span class="sd">        path : str</span>
+<span class="sd">            The path to a ``.osu`` file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">recurse</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">directory</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">filenames</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osu&#39;</span><span class="p">):</span>
+                        <span class="k">yield</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">path</span>
+                <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osu&#39;</span><span class="p">):</span>
+                    <span class="k">yield</span> <span class="n">path</span>
+
     <span class="nd">@classmethod</span>
 <div class="viewcode-block" id="Library.create_db"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.create_db">[docs]</a>    <span class="k">def</span> <span class="nf">create_db</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                   <span class="n">path</span><span class="p">,</span>
                   <span class="o">*</span><span class="p">,</span>
+                  <span class="n">recurse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                   <span class="n">cache</span><span class="o">=</span><span class="n">DEFAULT_CACHE_SIZE</span><span class="p">,</span>
                   <span class="n">download_url</span><span class="o">=</span><span class="n">DEFAULT_DOWNLOAD_URL</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Create a Library from a directory of ``.osu`` files.</span>
@@ -221,21 +291,24 @@
 <span class="sd">        ----------</span>
 <span class="sd">        path : path-like</span>
 <span class="sd">            The path to the directory to read.</span>
+<span class="sd">        recurse : bool, optional</span>
+<span class="sd">            Recursively search for beatmaps?</span>
 <span class="sd">        cache : int, optional</span>
 <span class="sd">            The amount of beatmaps to cache in memory. This uses</span>
 <span class="sd">            :func:`functools.lru_cache`, and if set to None will cache</span>
 <span class="sd">            everything.</span>
 <span class="sd">        download_url : str, optional</span>
 <span class="sd">            The default location to download beatmaps from.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Moving the underlying ``.osu`` files invalidates the library. If this</span>
+<span class="sd">        happens, just re-run ``create_db`` again.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="n">write_to_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_cache</span>
 
-        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-            <span class="n">path</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">path</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osu&#39;</span><span class="p">):</span>
-                <span class="k">continue</span>
-
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_osu_files</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">):</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 
@@ -289,6 +362,8 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_beatmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="o">=</span><span class="n">beatmap_id</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">download</span><span class="p">:</span>
+                <span class="k">raise</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">beatmap_id</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Library.lookup_by_md5"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.lookup_by_md5">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_by_md5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_md5</span><span class="p">):</span>
@@ -329,20 +404,34 @@
         <span class="k">if</span> <span class="n">beatmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">beatmap</span> <span class="o">=</span> <span class="n">Beatmap</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8-sig&#39;</span><span class="p">))</span>
 
-        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
-
         <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">/</span> <span class="p">(</span>
             <span class="n">f</span><span class="s1">&#39;</span><span class="si">{beatmap.artist}</span><span class="s1"> - &#39;</span>
             <span class="n">f</span><span class="s1">&#39;</span><span class="si">{beatmap.title}</span><span class="s1"> &#39;</span>
             <span class="n">f</span><span class="s1">&#39;(</span><span class="si">{beatmap.creator}</span><span class="s1">)&#39;</span>
-            <span class="n">f</span><span class="s1">&#39;[beatmap.version]&#39;</span>
+            <span class="n">f</span><span class="s1">&#39;[</span><span class="si">{beatmap.version}</span><span class="s1">]&#39;</span>
             <span class="n">f</span><span class="s1">&#39;.osu&#39;</span>
-        <span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_cache</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">beatmap</span></div>
+
+<div class="viewcode-block" id="Library.delete"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">remove_file</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove a beatmap from the library.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The beatmap to delete.</span>
+<span class="sd">        remove_file : bool, optional</span>
+<span class="sd">            Remove the .osu file from disk.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;id:</span><span class="si">{beatmap.beatmap_id}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">md5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;id_to_md5:</span><span class="si">{beatmap.beatmap_id}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;md5:</span><span class="si">{md5}</span><span class="s1">&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">remove_file</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_write_to_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Write data to the cache.</span>
@@ -358,13 +447,16 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;md5:{md5(data).hexdigest()}&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">beatmap_md5</span> <span class="o">=</span> <span class="n">md5</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;md5:</span><span class="si">{beatmap_md5}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
 
         <span class="n">beatmap_id</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">beatmap_id</span>
         <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># very old beatmaps didn&#39;t store the id in the ``.osu``</span>
             <span class="c1"># file</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;id:</span><span class="si">{beatmap_id}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+            <span class="c1"># map the id back to the hash</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;id_to_md5:{{beatmap_id}}&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatmap_md5</span>
 
 <div class="viewcode-block" id="Library.download"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Download a beatmap.</span>

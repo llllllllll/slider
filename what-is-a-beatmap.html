@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Search &mdash; slider 0.1.0 documentation</title>
+  <title>What is a Beatmap? &mdash; slider 0.1.0 documentation</title>
   
 
   
@@ -34,8 +34,10 @@
   
         <link rel="index" title="Index"
               href="genindex.html"/>
-        <link rel="search" title="Search" href="#"/>
-    <link rel="top" title="slider 0.1.0 documentation" href="index.html"/> 
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="index.html"/>
+        <link rel="next" title="Working with Beatmaps" href="working-with-beatmaps.html"/>
+        <link rel="prev" title="slider" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -71,7 +73,7 @@
 
           
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="#" method="get">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -89,8 +91,15 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="what-is-a-beatmap.html">What is a Beatmap?</a></li>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">What is a Beatmap?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#hit-objects">Hit Objects</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sliders">Sliders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spinners">Spinners</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="client.html">Osu! API</a></li>
@@ -140,10 +149,14 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Search</li>
+      <li>What is a Beatmap?</li>
     
     
       <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/what-is-a-beatmap.rst.txt" rel="nofollow"> View page source</a>
+          
         
       </li>
     
@@ -155,19 +168,39 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <noscript>
-  <div id="fallback" class="admonition warning">
-    <p class="last">
-      Please activate JavaScript to enable the search
-      functionality.
-    </p>
-  </div>
-  </noscript>
+  <div class="section" id="what-is-a-beatmap">
+<h1>What is a Beatmap?<a class="headerlink" href="#what-is-a-beatmap" title="Permalink to this headline">¶</a></h1>
+<p>A Beatmap in osu! is a description of song, including metadata like title and
+artist as well as the locations of all of the circles, sliders, and
+spinners. Osu! stores this information in <code class="docutils literal"><span class="pre">.osu</span></code> files. The <code class="docutils literal"><span class="pre">.osu</span></code> format is
+a text format like an <code class="docutils literal"><span class="pre">.ini</span></code> file with extensions for encoding the
+time-series of hit objects.</p>
+<p>In slider, the <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a> object represents a beatmap and
+exposes the information from the <code class="docutils literal"><span class="pre">.osu</span></code> file.</p>
+<div class="section" id="hit-objects">
+<h2>Hit Objects<a class="headerlink" href="#hit-objects" title="Permalink to this headline">¶</a></h2>
+<p>A hit object is the generic term for a circle, slider, or spinner. These are the
+things you click in osu!. A hit object is composed of the (x, y, time) position
+in the map and the type. For some types of objects, there is some extra
+information.</p>
+<p>The (x, y) bounds for all hit objects are [0, 512] by [0, 384]. All hit objects
+fall within these bounds regardless of your resolution or window size.</p>
+<div class="section" id="sliders">
+<h3>Sliders<a class="headerlink" href="#sliders" title="Permalink to this headline">¶</a></h3>
+<p>For sliders, the (x, y, time) coordinate is for the start of the slider. The
+curve is encoded as a curve type, one of Linear, Bezier, Perfect, or Catmull,
+and the control points. The control points are a sequence of (x, y) coordinates
+which are interpreted by the curve type to define the shape of the
+slider. Control points may fall outside of the [0, 512] by [0, 384] bounds
+because they don&#8217;t actually appear on your screen explicitly.</p>
+</div>
+<div class="section" id="spinners">
+<h3>Spinners<a class="headerlink" href="#spinners" title="Permalink to this headline">¶</a></h3>
+<p>In addition to (x, y, time), spinners must encode the duration.</p>
+</div>
+</div>
+</div>
 
-  
-  <div id="search-results">
-  
-  </div>
 
            </div>
            <div class="articleComments">
@@ -175,6 +208,15 @@
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="working-with-beatmaps.html" class="btn btn-neutral float-right" title="Working with Beatmaps" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="slider" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
@@ -214,7 +256,6 @@
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
       <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-      <script type="text/javascript" src="_static/searchtools.js"></script>
 
   
 
@@ -230,14 +271,7 @@
           SphinxRtdTheme.StickyNav.enable();
       });
   </script>
-  
-  <script type="text/javascript">
-    jQuery(function() { Search.loadIndex("searchindex.js"); });
-  </script>
-  
-  <script type="text/javascript" id="searchindexloader"></script>
    
-
 
 </body>
 </html>

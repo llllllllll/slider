@@ -1,11 +1,13 @@
-Model Features
-==============
+Model
+=====
+
+Slider includes a model for predicting a player's accuracy on a new beatmap
+based on their replay data. This is currently an optional dependency which can
+be installed with ``pip install slider[model]``.
 
 The slider model currently reduces :class:`~slider.beatmap.Beatmap`\s into 31
-features.
-
-These features can extracted from a :class:`~slider.beatmap.Beatmap` with
-:func:`~slider.model.features.extract_features`.
+features. These features can extracted from a :class:`~slider.beatmap.Beatmap`
+with :func:`~slider.model.features.extract_features`.
 
 Basic Attributes
 ----------------

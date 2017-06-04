@@ -91,7 +91,11 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="features.html">Model Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="what-is-a-beatmap.html">What is a Beatmap?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client.html">Osu! API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a></li>
 </ul>
 
@@ -188,6 +192,10 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.utils.accuracy">accuracy() (in module slider.utils)</a>
 </li>
+      <li><a href="appendix.html#slider.replay.Action">Action (class in slider.replay)</a>
+</li>
+      <li><a href="appendix.html#slider.replay.Action.action_bitmask">action_bitmask (slider.replay.Action attribute)</a>
+</li>
       <li><a href="appendix.html#slider.beatmap.Beatmap.aim_stars">aim_stars() (slider.beatmap.Beatmap method)</a>
 </li>
       <li><a href="appendix.html#slider.client.Genre.anime">anime (slider.client.Genre attribute)</a>
@@ -220,12 +228,20 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.beatmap.Beatmap">Beatmap (class in slider.beatmap)</a>
 </li>
-      <li><a href="appendix.html#slider.client.Client.beatmap">beatmap() (slider.client.Client method)</a>
+      <li><a href="appendix.html#slider.client.BeatmapResult.beatmap">beatmap() (slider.client.BeatmapResult method)</a>
+
+      <ul>
+        <li><a href="appendix.html#slider.client.Client.beatmap">(slider.client.Client method)</a>
 </li>
-      <li><a href="appendix.html#slider.client.BeatmapResult">BeatmapResult (class in slider.client)</a>
+        <li><a href="appendix.html#slider.client.HighScore.beatmap">(slider.client.HighScore method)</a>
 </li>
+        <li><a href="appendix.html#slider.client.UserEvent.beatmap">(slider.client.UserEvent method)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="appendix.html#slider.client.BeatmapResult">BeatmapResult (class in slider.client)</a>
+</li>
       <li><a href="appendix.html#slider.bit_enum.BitEnum">BitEnum (class in slider.bit_enum)</a>
 </li>
       <li><a href="appendix.html#slider.beatmap.Beatmap.bpm_max">bpm_max (slider.beatmap.Beatmap attribute)</a>
@@ -266,10 +282,12 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="appendix.html#slider.mod.Mod.double_time">double_time (slider.mod.Mod attribute)</a>
+      <li><a href="appendix.html#slider.library.Library.delete">delete() (slider.library.Library method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="appendix.html#slider.mod.Mod.double_time">double_time (slider.mod.Mod attribute)</a>
+</li>
       <li><a href="appendix.html#slider.library.Library.download">download() (slider.library.Library method)</a>
 </li>
   </ul></td>
@@ -542,7 +560,7 @@
 </li>
       <li><a href="appendix.html#slider.replay.Replay">Replay (class in slider.replay)</a>
 </li>
-      <li><a href="appendix.html#slider.beatmap.Beatmap.rhythm_awkwardness">rhythm_awkwardness() (slider.beatmap.Beatmap method)</a>
+      <li><a href="appendix.html#Beatmap.rhythm_awkwardness">rhythm_awkwardness() (Beatmap method)</a>
 </li>
       <li><a href="appendix.html#slider.client.Genre.rock">rock (slider.client.Genre attribute)</a>
 </li>
@@ -560,7 +578,7 @@
 </li>
       <li><a href="appendix.html#slider.client.Language.spanish">spanish (slider.client.Language attribute)</a>
 </li>
-      <li><a href="appendix.html#slider.beatmap.Beatmap.speed_stars">speed_stars() (slider.beatmap.Beatmap method)</a>
+      <li><a href="appendix.html#Beatmap.speed_stars">speed_stars() (Beatmap method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -570,7 +588,7 @@
 </li>
       <li><a href="appendix.html#slider.game_mode.GameMode.standard">standard (slider.game_mode.GameMode attribute)</a>
 </li>
-      <li><a href="appendix.html#slider.beatmap.Beatmap.stars">stars() (slider.beatmap.Beatmap method)</a>
+      <li><a href="appendix.html#Beatmap.stars">stars() (Beatmap method)</a>
 </li>
       <li><a href="appendix.html#slider.mod.Mod.sudden_death">sudden_death (slider.mod.Mod attribute)</a>
 </li>
@@ -590,7 +608,7 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="appendix.html#slider.beatmap.Beatmap.timing_point_at">timing_point_at() (slider.beatmap.Beatmap method)</a>
+      <li><a href="appendix.html#Beatmap.timing_point_at">timing_point_at() (Beatmap method)</a>
 </li>
       <li><a href="appendix.html#slider.model.train.train_from_replay_directory">train_from_replay_directory() (in module slider.model.train)</a>
 </li>

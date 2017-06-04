@@ -64,6 +64,9 @@ Replay
 .. autoclass:: slider.replay.Replay
    :members:
 
+.. autoclass:: slider.replay.Action
+   :members:
+
 Game Modes
 ----------
 
