@@ -600,7 +600,7 @@ class Client:
             parameters['u'], parameters['t'] = user_info
 
         if game_mode is not None:
-            parameters['m'] = game_mode
+            parameters['m'] = int(game_mode)
 
         response = requests.get(
             f'{self.api_url}/get_beatmaps',
@@ -714,7 +714,7 @@ class Client:
                 'k': self.api_key,
                 'u': user,
                 't': type_,
-                'm': game_mode,
+                'm': int(game_mode),
                 'event_days': event_days,
             },
         )
@@ -813,7 +813,7 @@ class Client:
                 'k': self.api_key,
                 'u': user,
                 't': type_,
-                'm': game_mode,
+                'm': int(game_mode),
                 'limit': limit,
             },
         )
