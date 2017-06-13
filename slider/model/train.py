@@ -32,15 +32,22 @@ def train_model(beatmap_features, accuracies, model=None):
     return model
 
 
-def train_from_replay_directory(path, library, age=None, model=None):
+def train_from_replay_directory(path,
+                                *,
+                                library=None,
+                                client=None,
+                                age=None,
+                                model=None):
     """Train a model from a directory of replays.
 
     Parameters
     ----------
     path : str or pathlib.Path
         The path to the directory of ``.osr`` files.
-    library : Library
+    library : Library, optional
         The beatmap library to use when parsing the replays.
+    client : Client, optional
+        The client to use when parsing the replays.
     age : datetime.timedelta, optional
         Only count replays less than this age old.
     model : OsuModel, optional
@@ -58,13 +65,20 @@ def train_from_replay_directory(path, library, age=None, model=None):
     for this beatmap.
     """
     return train_model(
-        *extract_from_replay_directory(path, library, age=age),
+        *extract_from_replay_directory(
+            path,
+            library=library,
+            client=client,
+            age=age,
+        ),
         model=model,
     )
 
 
 def test_model_from_replay_directory(path,
-                                     library,
+                                     *,
+                                     library=None,
+                                     client=None,
                                      age=None,
                                      model=None,
                                      test_size=None,
@@ -75,8 +89,10 @@ def test_model_from_replay_directory(path,
     ----------
     path : str or pathlib.Path
         The path to the directory of ``.osr`` files.
-    library : Library
+    library : Library, optional
         The beatmap library to use when parsing the replays.
+    client : Client, optional
+        The client to use when parsing the replays.
     age : datetime.timedelta, optional
         Only count replays less than this age old.
     model : OsuModel, optional
@@ -104,7 +120,8 @@ def test_model_from_replay_directory(path,
 
     features, accuracy = extract_from_replay_directory(
         path,
-        library,
+        library=library,
+        client=client,
         age=age,
     )
     train_features, test_features, train_acc, test_acc = train_test_split(

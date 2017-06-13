@@ -6,6 +6,7 @@ import os
 import numpy as np
 
 from ..beatmap import Circle, Slider
+from ..game_mode import GameMode
 from ..replay import Replay
 
 
@@ -307,15 +308,21 @@ def extract_feature_array(beatmaps_and_mods):
     )
 
 
-def extract_from_replay_directory(path, library, age=None):
+def extract_from_replay_directory(path,
+                                  *,
+                                  library=None,
+                                  client=None,
+                                  age=None):
     """Extract a labeled feature set from a path to directory of replays.
 
     Parameters
     ----------
     path : str or pathlib.Path
         The path to the directory of ``.osr`` files.
-    library : Library
+    library : Library, optional
         The beatmap library to use when parsing the replays.
+    client : Client, optional
+        The client to use when parsing the replays.
     age : datetime.timedelta, optional
         Only count replays less than this age old.
 
@@ -342,19 +349,17 @@ def extract_from_replay_directory(path, library, age=None):
         if not entry.name.endswith('.osr'):
             continue
 
-        replay = Replay.from_path(entry, library=library)
+        replay = Replay.from_path(entry, client=client, library=library)
         if age is not None and datetime.utcnow() - replay.timestamp > age:
             continue
 
-        if (replay.autoplay or
-                replay.spun_out or
+        if (replay.mode != GameMode.standard or
+                replay.autoplay or
                 replay.auto_pilot or
                 replay.cinema or
-                replay.relax):
+                replay.relax or
+                len(replay.beatmap.hit_objects) < 2):
             # ignore plays with mods that are not representative of user skill
-            continue
-
-        if len(replay.beatmap.hit_objects) < 2:
             continue
 
         beatmap_and_mod_append((
