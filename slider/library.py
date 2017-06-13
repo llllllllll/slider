@@ -11,15 +11,17 @@ from .beatmap import Beatmap
 
 
 class Cache:
-    def __init__(self, path):
+    def __init__(self, path, overwrite):
         self.path = path
+        if overwrite:
+            dbm.open(str(self.path), 'n').close()
 
     @property
     def _dbm(self):
         # busy wait for the other consumers to be done with this
         while True:
             try:
-                return dbm.open(str(self.path), 'c')
+                return dbm.open(str(self.path), 'w')
             except dbm.error:
                 sleep(0.05)
 
@@ -40,6 +42,10 @@ class Cache:
             value = d[key]
             del d[key]
             return value
+
+    def keys(self):
+        with self._dbm as d:
+            return d.keys()
 
 
 class Library:
@@ -62,11 +68,12 @@ class Library:
                  path,
                  *,
                  cache=DEFAULT_CACHE_SIZE,
-                 download_url=DEFAULT_DOWNLOAD_URL):
+                 download_url=DEFAULT_DOWNLOAD_URL,
+                 _overwrite=False):
         self.path = path = pathlib.Path(path)
 
         self._read_beatmap = lru_cache(cache)(self._raw_read_beatmap)
-        self._cache = Cache(path / '.slider.db')
+        self._cache = Cache(path / '.slider.db', overwrite=_overwrite)
         self._download_url = download_url
 
     def close(self):
@@ -142,7 +149,7 @@ class Library:
         Moving the underlying ``.osu`` files invalidates the library. If this
         happens, just re-run ``create_db`` again.
         """
-        self = cls(path)
+        self = cls(path, _overwrite=True)
         write_to_cache = self._write_to_cache
 
         for path in self._osu_files(path, recurse=recurse):
@@ -152,7 +159,7 @@ class Library:
             try:
                 beatmap = Beatmap.parse(data.decode('utf-8-sig'))
             except ValueError as e:
-                raise ValueError(f'failed to parse {entry.path}') from e
+                raise ValueError(f'failed to parse {path}') from e
 
             write_to_cache(beatmap, data, path)
 
