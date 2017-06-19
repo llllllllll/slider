@@ -424,6 +424,24 @@ class HighScore:
         )
 
 
+class UnknownBeatmap(LookupError):
+    """Raised when a beatmap id or md5 is not known.
+
+    Parameters
+    ----------
+    kind : {'id', 'md5'}
+        The kind of identifier used.
+    id_ : str
+        The unknown beatmap id.
+    """
+    def __init__(self, kind, id_):
+        self.kind = kind
+        self.id_ = id
+
+    def __str__(self):
+        return f'no beatmap found that matched {self.kind}: {self.id_}'
+
+
 class Client:
     """A client for interacting with the osu! rest API.
 
@@ -625,7 +643,17 @@ class Client:
         ]
 
         if beatmap_id is not None or beatmap_md5 is not None:
-            converted, = converted
+            try:
+                converted, = converted
+            except ValueError:
+                if beatmap_id is not None:
+                    kind = 'id'
+                    id_ = beatmap_id
+                else:
+                    kind = 'md5'
+                    id_ = beatmap_id
+
+                raise UnknownBeatmap(kind, id_)
 
         return converted
 

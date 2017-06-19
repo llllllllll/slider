@@ -37,6 +37,9 @@ Client
 .. autoclass:: slider.client.BeatmapResult
    :members:
 
+.. autoclass:: slider.client.UnknownBeatmap
+   :members:
+
 .. autoclass:: slider.client.User
    :members:
 
