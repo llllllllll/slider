@@ -20,10 +20,15 @@ def main():
     help='Recurse through ``path`` searching for beatmaps?',
     default=True,
 )
-def library(beatmaps, recurse):
+@click.option(
+    '--progress/--no-progress',
+    help='Show a progress bar?',
+    default=True,
+)
+def library(beatmaps, recurse, progress):
     """Create a slider database from a directory of beatmaps.
     """
-    Library.create_db(beatmaps, recurse=recurse)
+    Library.create_db(beatmaps, recurse=recurse, show_progress=progress)
 
 
 if __name__ == '__main__':

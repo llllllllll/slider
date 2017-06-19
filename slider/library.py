@@ -8,6 +8,7 @@ from time import sleep
 import requests
 
 from .beatmap import Beatmap
+from .cli import maybe_show_progress
 
 
 class Cache:
@@ -128,7 +129,8 @@ class Library:
                   *,
                   recurse=True,
                   cache=DEFAULT_CACHE_SIZE,
-                  download_url=DEFAULT_DOWNLOAD_URL):
+                  download_url=DEFAULT_DOWNLOAD_URL,
+                  show_progress=False):
         """Create a Library from a directory of ``.osu`` files.
 
         Parameters
@@ -143,6 +145,8 @@ class Library:
             everything.
         download_url : str, optional
             The default location to download beatmaps from.
+        show_progress : bool, optional
+            Display a progress bar?
 
         Notes
         -----
@@ -152,16 +156,23 @@ class Library:
         self = cls(path, _overwrite=True)
         write_to_cache = self._write_to_cache
 
-        for path in self._osu_files(path, recurse=recurse):
-            with open(path, 'rb') as f:
-                data = f.read()
+        progress = maybe_show_progress(
+            self._osu_files(path, recurse=recurse),
+            show_progress,
+            label='Processing beatmaps: ',
+            item_show_func=lambda path: path,
+        )
+        with progress as it:
+            for path in it:
+                with open(path, 'rb') as f:
+                    data = f.read()
 
-            try:
-                beatmap = Beatmap.parse(data.decode('utf-8-sig'))
-            except ValueError as e:
-                raise ValueError(f'failed to parse {path}') from e
+                try:
+                    beatmap = Beatmap.parse(data.decode('utf-8-sig'))
+                except ValueError as e:
+                    raise ValueError(f'failed to parse {path}') from e
 
-            write_to_cache(beatmap, data, path)
+                write_to_cache(beatmap, data, path)
 
         return self
 
