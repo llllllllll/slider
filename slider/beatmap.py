@@ -2,15 +2,24 @@ from datetime import timedelta
 from enum import unique, IntEnum
 from functools import partial
 import inspect
+from itertools import chain, islice, cycle
 import operator as op
 import re
 from zipfile import ZipFile
 
-from . import numpy as np
+import numpy as np
+
 from .game_mode import GameMode
 from .mod import ar_to_ms, ms_to_ar, circle_radius
-from .position import Position
-from .utils import accuracy as calculate_accuracy, lazyval, memoize, no_default
+from .position import Position, Point
+from .utils import (
+    accuracy as calculate_accuracy,
+    lazyval,
+    memoize,
+    no_default,
+    orange,
+)
+from .curve import Curve
 
 
 def _get(cs, ix, default=no_default):
@@ -225,6 +234,8 @@ class HitObject:
     addition : str, optional
         Unknown currently.
     """
+    time_related_attributes = frozenset({'time'})
+
     def __init__(self, position, time, hitsound, addition='0:0:0:0'):
         self.position = position
         self.time = time
@@ -237,41 +248,43 @@ class HitObject:
             f' {self.time.total_seconds() * 1000:g}ms>'
         )
 
+    def _time_modify(self, coefficient):
+        """Modify this ``HitObject`` by multiplying time related attributes
+        by the ``coefficient``.
+
+        Parameters
+        ----------
+        coefficient : float
+            The coefficient to multiply the ``time_related`` values by.
+
+        Returns
+        -------
+        modified : HitObject
+            The modified hit object.
+        """
+        time_related_attributes = self.time_related_attributes
+        kwargs = {}
+        for name in inspect.signature(type(self)).parameters:
+            value = getattr(self, name)
+            if name in time_related_attributes:
+                value *= coefficient
+            kwargs[name] = value
+
+        return type(self)(**kwargs)
+
     @lazyval
     def half_time(self):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.half_time` enabled.
         """
-        kwargs = {
-            k: getattr(self, k)
-            for k in inspect.signature(type(self)).parameters
-        }
-        kwargs['time'] = 4 * self.time / 3
-        try:
-            end_time = self.end_time
-        except AttributeError:
-            pass
-        else:
-            kwargs['end_time'] = 4 * end_time / 3
-        return type(self)(**kwargs)
+        return self._time_modify(4 / 3)
 
     @lazyval
     def double_time(self):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.double_time` enabled.
         """
-        kwargs = {
-            k: getattr(self, k)
-            for k in inspect.signature(type(self)).parameters
-        }
-        kwargs['time'] = 2 * self.time / 3
-        try:
-            end_time = self.end_time
-        except AttributeError:
-            pass
-        else:
-            kwargs['end_time'] = 2 * end_time / 3
-        return type(self)(**kwargs)
+        return self._time_modify(2 / 3)
 
     @classmethod
     def parse(cls, data, timing_points, slider_multiplier, slider_tick_rate):
@@ -375,14 +388,15 @@ class Spinner(HitObject):
     ----------
     position : Position
         Where this spinner appears on the screen.
-    time : int
+    time : timedelta
         When this spinner appears in the map.
-    end_time : int
+    end_time : timedelta
         When this spinner ends in the map.
     addition : str
         Hitsound additions.
     """
     type_code = 8
+    time_related_attributes = frozenset({'time', 'end_time'})
 
     def __init__(self,
                  position,
@@ -424,14 +438,19 @@ class Slider(HitObject):
         When this slider ends in the map
     hitsound : int
         The sound played on the ticks of the slider.
-    slider_type : {'L', 'B', 'P', 'C'}
-        The type of slider. Linear, Bezier, Perfect, and Catmull.
-    points : iterable[Position]
-        The points that this slider travels through.
+    curve : Curve
+        The slider's curve function.
     length : int
         The length of this slider in osu! pixels.
     ticks : int
         The number of slider ticks including the head and tail of the slider.
+    num_beats : int
+        The number of beats that this slider spans.
+    tick_rate : float
+        The rate at which ticks appear along sliders.
+    ms_per_beat : int
+        The milliseconds per beat during the segment of the beatmap that this
+        slider appears in.
     edge_sounds : list[int]
         A list of hitsounds for each edge.
     edge_additions : list[str]
@@ -440,35 +459,80 @@ class Slider(HitObject):
         Hitsound additions.
     """
     type_code = 2
+    time_related_attributes = frozenset({'time', 'end_time', 'ms_per_beat'})
 
     def __init__(self,
                  position,
                  time,
                  end_time,
                  hitsound,
-                 slider_type,
-                 points,
+                 curve,
                  repeat,
                  length,
                  ticks,
+                 num_beats,
+                 tick_rate,
+                 ms_per_beat,
                  edge_sounds,
                  edge_additions,
                  addition='0:0:0:0'):
-        if slider_type not in {'L', 'B', 'P', 'C'}:
-            raise ValueError(
-                "slider_type should be in {'L', 'B', 'P', 'C'},"
-                f" got {slider_type!r}",
-            )
-
         super().__init__(position, time, hitsound, addition)
         self.end_time = end_time
-        self.slider_type = slider_type
-        self.points = points
+        self.curve = curve
         self.repeat = repeat
         self.length = length
         self.ticks = ticks
+        self.num_beats = num_beats
+        self.tick_rate = tick_rate
+        self.ms_per_beat = ms_per_beat
         self.edge_sounds = edge_sounds
         self.edge_additions = edge_additions
+
+    @lazyval
+    def tick_points(self):
+        """The position and time of each slider tick.
+        """
+        repeat = self.repeat
+
+        time = self.time
+        repeat_duration = (self.end_time - time) / repeat
+
+        curve = self.curve
+
+        pre_repeat_ticks = []
+        append_tick = pre_repeat_ticks.append
+
+        beats_per_repeat = self.num_beats / repeat
+        for t in orange(self.tick_rate, beats_per_repeat, self.tick_rate):
+            pos = curve(t / beats_per_repeat)
+            timediff = timedelta(milliseconds=t * self.ms_per_beat)
+            append_tick(Point(pos.x, pos.y, time + timediff))
+
+        pos = curve(1)
+        timediff = repeat_duration
+        append_tick(Point(pos.x, pos.y, time + timediff))
+
+        repeat_ticks = [
+            Point(p.x, p.y, pre_repeat_tick.offset)
+            for pre_repeat_tick, p in zip(
+                pre_repeat_ticks,
+                chain(pre_repeat_ticks[-2::-1], [self.position])
+            )
+        ]
+
+        tick_sequences = islice(
+            cycle([pre_repeat_ticks, repeat_ticks]),
+            repeat,
+        )
+        return list(
+            chain.from_iterable(
+                (
+                    Point(p.x, p.y, p.offset + n * repeat_duration)
+                    for p in tick_sequence
+                )
+                for n, tick_sequence in enumerate(tick_sequences)
+            ),
+        )
 
     @classmethod
     def _parse(cls,
@@ -492,7 +556,7 @@ class Slider(HitObject):
                 f' element of rest, {rest!r}',
             )
 
-        points = []
+        points = [position]
         for point in raw_points:
             try:
                 x, y = point.split(':')
@@ -596,11 +660,13 @@ class Slider(HitObject):
             time,
             time + duration,
             hitsound,
-            slider_type,
-            points,
+            Curve.from_kind_and_points(slider_type, points),
             repeat,
             pixel_length,
             ticks,
+            num_beats,
+            slider_tick_rate,
+            ms_per_beat,
             edge_sounds,
             edge_additions,
             *rest,
@@ -2255,7 +2321,5 @@ g
 
         if np.shape(out) == (1,):
             out = np.asscalar(out)
-        else:
-            out = np.finalize(out)
 
         return out
