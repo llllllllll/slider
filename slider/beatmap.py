@@ -1087,6 +1087,12 @@ class Beatmap:
         self._speed_stars_cache = {}
         self._rhythm_awkwardness_cache = {}
 
+    @property
+    def display_name(self):
+        """The name of the map as it appears in game.
+        """
+        return f'{self.artist} - {self.title} [{self.version}]]'
+
     @memoize
     def bpm_min(self, *, half_time=False, double_time=False):
         """The minimum BPM in this beatmap.
@@ -1263,7 +1269,7 @@ class Beatmap:
         return max_combo
 
     def __repr__(self):
-        return f'<{type(self).__qualname__}: {self.title} [{self.version}]>'
+        return f'<{type(self).__qualname__}: {self.display_name}>'
 
     @classmethod
     def from_osz_path(cls, path):
