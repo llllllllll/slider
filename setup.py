@@ -30,5 +30,11 @@ setup(
     install_requires=['pytz', 'requests'],
     extras_require={
         'model': ['scikit-learn', 'scipy', 'numpy'],
+        'dev': [
+            'flake8==3.3.0',
+            'mccabe==0.6.1',
+            'pycodestyle==2.3.1',
+            'pyflakes==1.5.0',
+        ],
     },
 )
