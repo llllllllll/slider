@@ -63,3 +63,42 @@ def accuracy(count_300, count_100, count_50, count_miss):
     points_of_hits = count_300 * 300 + count_100 * 100 + count_50 * 50
     total_hits = count_300 + count_100 + count_50 + count_miss
     return points_of_hits / (total_hits * 300)
+
+
+def orange(_start_or_stop, *args):
+    """Range for arbitrary objects.
+
+    Parameters
+    ----------
+    start, stop, step : any
+        Arguments like :func:`range`.
+
+    Yields
+    ------
+    value : any
+        The values in the range ``[start, stop)`` with a step of ``step``.
+
+    Notes
+    -----
+    ``o`` stands for object.
+    """
+    if not args:
+        start = 0
+        stop = _start_or_stop
+        step = 1
+    elif len(args) == 1:
+        start = _start_or_stop
+        stop = args[0]
+        step = 1
+    elif len(args) == 2:
+        start = _start_or_stop
+        stop, step = args
+    else:
+        raise TypeError(
+            'orange takes from 1 to 3 positional arguments but'
+            f' {len(args) + 1} were given',
+        )
+
+    while start < stop:
+        yield start
+        start += step
