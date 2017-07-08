@@ -25,8 +25,10 @@ class Action:
 
     Parameters
     ----------
-    offset : timedelta
+    rel_offset : timedelta
         The offset since the previous action.
+    abs_offset : timedelta
+        The offset since the beginning of the song.
     position : Position
         The position of the cursor.
     key1 : bool
