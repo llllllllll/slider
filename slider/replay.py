@@ -147,6 +147,7 @@ def _consume_actions(buffer):
             action_mask['k1'],
             action_mask['k2'],
         ))
+    return out
 
 
 class Replay:
