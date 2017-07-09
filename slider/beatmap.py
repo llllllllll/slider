@@ -286,6 +286,20 @@ class HitObject:
         """
         return self._time_modify(2 / 3)
 
+    @lazyval
+    def hard_rock(self):
+        """The ``HitObject`` as it would appear with
+        :data:`~slider.mod.Mod.hard_rock` enabled.
+        """
+        kwargs = {}
+        for name in inspect.signature(type(self)).parameters:
+            value = getattr(self, name)
+            if name == 'position':
+                value = Position(value.x, 384 - value.y)
+            kwargs[name] = value
+
+        return type(self)(**kwargs)
+
     @classmethod
     def parse(cls, data, timing_points, slider_multiplier, slider_tick_rate):
         """Parse a HitObject object from a line in a ``.osu`` file.
@@ -533,6 +547,29 @@ class Slider(HitObject):
                 for n, tick_sequence in enumerate(tick_sequences)
             ),
         )
+
+    @lazyval
+    def hard_rock(self):
+        """The ``HitObject`` as it would appear with
+        :data:`~slider.mod.Mod.hard_rock` enabled.
+        """
+        position_related_attributes = self.position_related_attributes
+        kwargs = {}
+        for name in inspect.signature(type(self)).parameters:
+            value = getattr(self, name)
+            if name == 'position':
+                value = Position(value.x, 384 - value.y)
+            elif name == 'curve':
+                subkwargs = {}
+                for subname in inspect.signature(type(value)).parameters:
+                    subvalue = getattr(value, subname)
+                    if subname == 'points':
+                        subvalue = [Position(p.x, 384 - p.y) for p in subvalue]
+                subkwargs[subname] = subvalue
+                value = Curve.from_kind_and_points(type(value).kinds[0], **subkwargs)
+            kwargs[name] = value
+
+        return type(self)(**kwargs)
 
     @classmethod
     def _parse(cls,
