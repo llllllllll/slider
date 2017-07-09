@@ -25,9 +25,7 @@ class Action:
 
     Parameters
     ----------
-    rel_offset : timedelta
-        The offset since the previous action.
-    abs_offset : timedelta
+    offset : timedelta
         The offset since the beginning of the song.
     position : Position
         The position of the cursor.
@@ -40,9 +38,8 @@ class Action:
     mouse2 : bool
         is the second mouse button pressed?
     """
-    def __init__(self, rel_offset, abs_offset, position, key1, key2, mouse1, mouse2):
-        self.rel_offset = rel_offset
-        self.abs_offset = abs_offset
+    def __init__(self, offset, position, key1, key2, mouse1, mouse2):
+        self.offset = offset
         self.position = position
         self.key1 = key1
         self.key2 = key2
@@ -137,17 +134,15 @@ def _consume_actions(buffer):
     decompressed_data = lzma.decompress(compressed_data)
 
     out = []
-    abs_offset = 0
+    offset = 0
     for raw_action in decompressed_data.split(b','):
         if not raw_action:
             continue
         raw_offset, x, y, raw_action_mask = raw_action.split(b'|')
         action_mask = ActionBitMask.unpack(int(raw_action_mask))
-        rel_offset = int(raw_offset)
-        abs_offset += rel_offset
+        offset += int(raw_offset)
         out.append(Action(
-            datetime.timedelta(milliseconds=rel_offset),
-            datetime.timedelta(milliseconds=abs_offset),
+            datetime.timedelta(milliseconds=offset),
             Position(float(x), float(y)),
             action_mask['m1'],
             action_mask['m2'],
