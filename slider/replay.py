@@ -26,7 +26,7 @@ class Action:
     Parameters
     ----------
     offset : timedelta
-        The offset since the previous action.
+        The offset since the beginning of the song.
     position : Position
         The position of the cursor.
     key1 : bool
@@ -134,19 +134,22 @@ def _consume_actions(buffer):
     decompressed_data = lzma.decompress(compressed_data)
 
     out = []
+    offset = 0
     for raw_action in decompressed_data.split(b','):
         if not raw_action:
             continue
-        offset, x, y, raw_action_mask = raw_action.split(b'|')
+        raw_offset, x, y, raw_action_mask = raw_action.split(b'|')
         action_mask = ActionBitMask.unpack(int(raw_action_mask))
+        offset += int(raw_offset)
         out.append(Action(
-            datetime.timedelta(milliseconds=int(offset)),
+            datetime.timedelta(milliseconds=offset),
             Position(float(x), float(y)),
             action_mask['m1'],
             action_mask['m2'],
             action_mask['k1'],
             action_mask['k2'],
         ))
+    return out
 
 
 class Replay:
