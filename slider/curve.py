@@ -225,6 +225,7 @@ def rotate(position, center, radians):
         (x_dist * math.sin(radians) + y_dist * math.cos(radians)) + c_y,
     )
 
+
 def split_at_dupes(inp):
     out = []
     oldi = 0

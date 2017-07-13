@@ -553,7 +553,6 @@ class Slider(HitObject):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.hard_rock` enabled.
         """
-        position_related_attributes = self.position_related_attributes
         kwargs = {}
         for name in inspect.signature(type(self)).parameters:
             value = getattr(self, name)
@@ -566,7 +565,10 @@ class Slider(HitObject):
                     if subname == 'points':
                         subvalue = [Position(p.x, 384 - p.y) for p in subvalue]
                 subkwargs[subname] = subvalue
-                value = Curve.from_kind_and_points(type(value).kinds[0], **subkwargs)
+                value = Curve.from_kind_and_points(
+                    type(value).kinds[0],
+                    **subkwargs,
+                )
             kwargs[name] = value
 
         return type(self)(**kwargs)

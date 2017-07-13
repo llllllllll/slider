@@ -17,6 +17,7 @@ class Position(namedtuple('Position', 'x y')):
     Positions may fall outside of this range for slider curve control points.
     """
 
+
 class Point(namedtuple('Point', 'x y offset')):
     """A position and time on the osu! screen.
 
