@@ -147,18 +147,18 @@ def circle_radius(cs):
     return (512 / 16) * (1 - 0.7 * (cs - 5) / 5)
 
 
-class HitWindows(namedtuple('HitWindows', 'perfect, good, bad')):
+class HitWindows(namedtuple('HitWindows', 'hit_300, hit_100, hit_50')):
     """Times to hit an object at various accuracies
 
     Parameters
     ----------
-    perfect : int
+    hit_300 : int
         The maxumium number of milliseconds away from exactly on time a hit
         can be to still be a 300
-    good : int
+    hit_100 : int
         The maxumium number of milliseconds away from exactly on time a hit
         can be to still be a 100
-    bad : int
+    hit_50 : int
         The maxumium number of milliseconds away from exactly on time a hit
         can be to still be a 50
 
@@ -183,3 +183,19 @@ def od_to_ms(od):
         accuracies.
     """
     return HitWindows((159 - 12 * od) / 2, (279 - 16 * od) / 2, (399 - 20 * od) / 2)
+
+def od_to_ms_300(od):
+    """Convert an overall difficulty value into milliseconds to hit an object at
+    maximum accuracy.
+
+    Parameters
+    ----------
+    od : float
+        The overall difficulty.
+
+    Returns
+    -------
+    ms : float
+        The number of milliseconds to hit an object at maximum accuracy.
+    """
+    return 79.5 - 6 * od
