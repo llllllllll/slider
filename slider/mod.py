@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from .bit_enum import BitEnum
 
 
@@ -164,8 +166,10 @@ class HitWindows(namedtuple('HitWindows', 'hit_300, hit_100, hit_50')):
 
     Notes
     -----
-    A hit further than the ``bad`` value away from exactly on time is a miss.
+    A hit further than the ``hit_50`` value away from the time of a hit object
+    is a miss.
     """
+
 
 def od_to_ms(od):
     """Convert an overall difficulty value into milliseconds to hit an object at
@@ -182,7 +186,12 @@ def od_to_ms(od):
         A namedtuple of numbers of milliseconds to hit an object at different
         accuracies.
     """
-    return HitWindows((159 - 12 * od) / 2, (279 - 16 * od) / 2, (399 - 20 * od) / 2)
+    return HitWindows(
+        hit_300=(159 - 12 * od) / 2,
+        hit_100=(279 - 16 * od) / 2,
+        hit_50=(399 - 20 * od) / 2,
+    )
+
 
 def od_to_ms_300(od):
     """Convert an overall difficulty value into milliseconds to hit an object at
