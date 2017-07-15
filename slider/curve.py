@@ -130,6 +130,7 @@ class Passthrough(Curve):
 
     def __init__(self, points, req_length):
         self.points = points
+        self.req_length = req_length
         self._center = center = get_center(*self.points)
 
         coordinates = np.array(points) - center

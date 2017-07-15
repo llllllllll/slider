@@ -564,7 +564,7 @@ class Slider(HitObject):
                     subvalue = getattr(value, subname)
                     if subname == 'points':
                         subvalue = [Position(p.x, 384 - p.y) for p in subvalue]
-                subkwargs[subname] = subvalue
+                    subkwargs[subname] = subvalue
                 value = Curve.from_kind_and_points(
                     type(value).kinds[0],
                     **subkwargs,
