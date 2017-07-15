@@ -699,7 +699,7 @@ class Slider(HitObject):
             time,
             time + duration,
             hitsound,
-            Curve.from_kind_and_points(slider_type, points),
+            Curve.from_kind_and_points(slider_type, points, pixel_length),
             repeat,
             pixel_length,
             ticks,
