@@ -1196,7 +1196,7 @@ class Beatmap:
     def display_name(self):
         """The name of the map as it appears in game.
         """
-        return f'{self.artist} - {self.title} [{self.version}]]'
+        return f'{self.artist} - {self.title} [{self.version}]'
 
     @memoize
     def bpm_min(self, *, half_time=False, double_time=False):

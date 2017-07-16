@@ -1,11 +1,13 @@
+import bisect
 import datetime
 from enum import unique
 import os
 import lzma
 
+from slider import beatmap
 from .bit_enum import BitEnum
 from .game_mode import GameMode
-from .mod import Mod
+from .mod import Mod, od_to_ms, circle_radius
 from .position import Position
 from .utils import accuracy, lazyval
 
@@ -150,6 +152,64 @@ def _consume_actions(buffer):
             action_mask['k2'],
         ))
     return out
+
+
+def _ms(t):
+    return t.total_seconds() * 1e3
+
+
+def _within(p1, p2, d):
+    return (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 < d ** 2
+
+
+def _pressed(datum):
+    return datum.key1 or datum.key2 or datum.mouse1 or datum.mouse2
+
+
+def _process_circle(obj, rdatum, hw, scores):
+    out_by = abs(_ms(rdatum.offset - obj.time))
+    if out_by < hw.hit_300:
+        scores["perfects"].append(obj)
+    elif out_by < hw.hit_100:
+        scores["goods"].append(obj)
+    elif out_by < hw.hit_50:
+        scores["bads"].append(obj)
+
+
+def _process_slider(obj, rdata, head_hit, rad, scores):
+    ticks = obj.tick_points
+    missed_points = 0
+    if not head_hit:
+        missed_points += 1
+        scores["sliderbreaks"].append(obj)
+    offsets = [p.offset for p in rdata]
+    for n, tick in enumerate(ticks):
+        # find points either side of tick
+        bi = bisect.bisect(offsets, tick.offset)
+        lpoint, rpoint = rdata[bi - 1], rdata[bi]
+        lpos, rpos = lpoint.position, rpoint.position
+        # linearly interpolate between them
+        r = (tick.offset - lpoint.offset) / (rpoint.offset - lpoint.offset)
+        npos = Position(
+            lpos.x + r * (rpos.x - lpos.x),
+            lpos.y + r * (rpos.y - lpos.y)
+        )
+        if not (_pressed(lpoint) or _pressed(rpoint)
+                and _within(tick, npos, rad * 3)):
+            # missed a tick
+            missed_points += 1
+            # end tick doesn't cause sliderbreak
+            if tick is not ticks[-1] and obj not in scores["sliderbreaks"]:
+                scores["sliderbreaks"].append(obj)
+    if missed_points == len(ticks) + 1:
+        # all ticks and head missed -> miss
+        scores["misses"].append(obj)
+    elif missed_points > (len(ticks) + 1) / 2:
+        scores["bads"].append(obj)
+    elif missed_points > 0:
+        scores["goods"].append(obj)
+    else:
+        scores["perfects"].append(obj)
 
 
 class Replay:
@@ -575,6 +635,62 @@ class Replay:
             beatmap=beatmap,
             **mod_kwargs,
         )
+
+    @lazyval
+    def hits(self):
+        b = self.beatmap
+        rdata = self.actions
+        scores = {"perfects": [],
+                  "goods": [],
+                  "bads": [],
+                  "misses": [],
+                  "sliderbreaks": [],
+                  }
+        hw = od_to_ms(b.od(easy=self.easy, hard_rock=self.hard_rock))
+        rad = circle_radius(b.cs(easy=self.easy, hard_rock=self.hard_rock))
+        i = 0
+        for obj in b.hit_objects:
+            if self.hard_rock:
+                obj = obj.hard_rock
+            if isinstance(obj, beatmap.Spinner):
+                # spinners are hard
+                continue
+            # we can ignore events before the hit window so iterate
+            # until we get past the beginning of the hit window
+            while _ms(rdata[i].offset) < _ms(obj.time) - hw[2]:
+                i += 1
+            starti = i
+            while _ms(rdata[i].offset) < _ms(obj.time) + hw[2]:
+                if (((rdata[i].key1 and not rdata[i - 1].key1)
+                    or (rdata[i].key2 and not rdata[i - 1].key2))
+                    and _within(rdata[i].position, obj.position, rad)):
+                    # key pressed that wasn't before and
+                    # event is in hit window and correct location
+                    if isinstance(obj, beatmap.Circle):
+                        _process_circle(obj, rdata[i], hw, scores)
+                    elif isinstance(obj, beatmap.Slider):
+                        # Head was hit
+                        while rdata[i].offset <= obj.end_time:
+                            i += 1
+                        # guessing rad multiplier
+                        _process_slider(
+                            obj, rdata[starti:i + 1], True, rad, scores
+                        )
+                    break
+                i += 1
+            else:
+                # no events in the hit window were in the correct location
+                if isinstance(obj, beatmap.Slider):
+                    # Slider ticks might still be hit
+                    while rdata[i].offset <= obj.end_time:
+                        i += 1
+                    _process_slider(
+                        obj, rdata[starti:i + 1], False, rad, scores
+                    )
+                else:
+                    scores["misses"].append(obj)
+            i += 1
+        return scores
 
     def __repr__(self):
         try:
