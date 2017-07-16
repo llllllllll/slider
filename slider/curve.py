@@ -14,13 +14,13 @@ class Curve(metaclass=ABCMeta):
     _kind_dispatch = {}
 
     @classmethod
-    def from_kind_and_points(cls, kind, points):
+    def from_kind_and_points(cls, kind, points, req_length):
         try:
             subcls = cls._kind_dispatch[kind]
         except KeyError:
             raise ValueError(f'unknown curve type: {kind!r}')
 
-        return subcls(points)
+        return subcls(points, req_length)
 
     @abstractmethod
     def __call__(self, t):
@@ -52,11 +52,15 @@ class Curve(metaclass=ABCMeta):
 class Bezier(Curve):
     kinds = 'L'
 
-    def __init__(self, points):
+    def __init__(self, points, req_length):
         self.points = points
         self._coordinates = np.array(points).T
+        self.req_length = req_length
 
     def __call__(self, t):
+        return self.at(t * (self.req_length / self.length))
+
+    def at(self, t):
         points = self.points
 
         n = len(points) - 1
@@ -75,7 +79,7 @@ class Bezier(Curve):
         """Approximates length as piecewise linear"""
         total = 0
         # todo: choose number of points to reduce error below a bound
-        points = [self(t) for t in np.linspace(0, 1, num=5)]
+        points = [self.at(t) for t in np.linspace(0, 1, num=5)]
         for i in range(len(points) - 1):
             dx = points[i + 1].x - points[i].x
             dy = points[i + 1].y - points[i].y
@@ -86,28 +90,37 @@ class Bezier(Curve):
 class MetaCurve(Curve):
     kinds = 'B'
 
-    def __init__(self, points):
+    def __init__(self, points, req_length):
         metapoints = split_at_dupes(points)
         self.points = points
-        self._curves = [Bezier(points) for points in metapoints]
+        self.req_length = req_length
+        self._curves = [Bezier(points, None) for points in metapoints]
 
     @lazyval
     def _ts(self):
         lengths = [c.length for c in self._curves]
         length = sum(lengths)
-        return [i / length for i in accumulate(lengths)]
+        out = []
+        for i, j in enumerate(accumulate(lengths[:-1])):
+            self._curves[i].req_length = lengths[i]
+            out.append(j / length)
+        self._curves[-1].req_length = max(0, lengths[-1] - (length - self.req_length))
+        out.append(1)
+        return out
 
     def __call__(self, t):
+        ts = self._ts
         if len(self._curves) == 1:
             # Special case where we only have one curve
             return self._curves[0](t)
 
-        bi = bisect.bisect_left(self._ts, t)
-        try:
-            pre_t = self._ts[bi - 1]
-        except IndexError:
+        bi = bisect.bisect_left(ts, t)
+        if bi == 0:
             pre_t = 0
-        post_t = self._ts[bi]
+        else:
+            pre_t = ts[bi - 1]
+
+        post_t = ts[bi]
 
         return self._curves[bi]((t - pre_t) / (post_t - pre_t))
 
@@ -115,8 +128,9 @@ class MetaCurve(Curve):
 class Passthrough(Curve):
     kinds = 'P'
 
-    def __init__(self, points):
+    def __init__(self, points, req_length):
         self.points = points
+        self.req_length = req_length
         self._center = center = get_center(*self.points)
 
         coordinates = np.array(points) - center
@@ -139,6 +153,10 @@ class Passthrough(Curve):
         ortho_a_to_c = np.array((a_to_c[1], -a_to_c[0]))
         if np.dot(ortho_a_to_c, coordinates[1] - coordinates[0]) < 0:
             self._angle = -(2 * math.pi - self._angle)
+
+        length = abs(self._angle * math.sqrt(coordinates[0][0] ** 2 + coordinates[0][1] ** 2))
+        if length > req_length:
+            self._angle *= req_length / length
 
     def __call__(self, t):
         return rotate(self.points[0], self._center, self._angle * t)
