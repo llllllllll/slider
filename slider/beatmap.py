@@ -1816,6 +1816,41 @@ class Beatmap:
 
                 yield sequence[n], sequence[m]
 
+    def hit_object_difficulty(self,
+                              strain,
+                              easy=False,
+                              hard_rock=False,
+                              double_time=False,
+                              half_time=False):
+        cs = self.cs()
+        if hard_rock:
+            cs *= 1.3
+        elif easy:
+            cs /= 2
+        radius = circle_radius(cs)
+
+        if double_time:
+            modify = op.attrgetter('double_time')
+        elif half_time:
+            modify = op.attrgetter('half_time')
+        else:
+            def modify(e):
+                return e
+
+        strains = np.empty(len(self.hit_objects) - 1)
+
+        hit_objects = map(modify, self.hit_objects)
+        previous = _DifficultyHitObject(next(hit_objects), radius)
+        for i, hit_object in enumerate(hit_objects):
+            new = _DifficultyHitObject(
+                hit_object,
+                radius,
+                previous,
+            )
+            strains[i] = new.strains[strain]
+            previous = new
+        return strains
+
     def _calculate_stars(self,
                          easy,
                          hard_rock,
