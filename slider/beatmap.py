@@ -909,6 +909,36 @@ def _get_as_bool(groups, section, field, default=no_default):
         )
 
 
+def _moving_average_by_time(data, delta, num):
+    """Performs a moving average over a time window of an iterable of 2-tuples
+    where the first element of each tuple is the time and the second the value.
+    Returns a generator yielding num times and averages consecutively
+    """
+    current_sum = 0
+    front = 0
+    back = 0
+    for i in np.linspace(0, data[-1][0], num):
+        while data[back][0] < i - delta:
+            # remove outdated readings
+            current_sum -= data[back][1]
+            back += 1
+        while True:
+            try:
+                if data[front][0] > i + delta:
+                    break
+            except IndexError:
+                break
+            # add readings from the front
+            current_sum += data[front][1]
+            front += 1
+        yield i
+        count = front - back
+        if count == 0:
+            yield 0
+        else:
+            yield current_sum / count
+
+
 class _DifficultyHitObject:
     """An object used to accumulate the strain information for calculating
     stars.
@@ -1818,6 +1848,7 @@ class Beatmap:
 
     def hit_object_difficulty(self,
                               strain,
+                              smooth=False,
                               easy=False,
                               hard_rock=False,
                               double_time=False,
@@ -1837,7 +1868,10 @@ class Beatmap:
             def modify(e):
                 return e
 
-        strains = np.empty(len(self.hit_objects) - 1)
+        if smooth:
+            strains = np.empty((len(self.hit_objects) - 1, 2))
+        else:
+            strains = np.empty(len(self.hit_objects) - 1)
 
         hit_objects = map(modify, self.hit_objects)
         previous = _DifficultyHitObject(next(hit_objects), radius)
@@ -1847,8 +1881,15 @@ class Beatmap:
                 radius,
                 previous,
             )
-            strains[i] = new.strains[strain]
+            if smooth:
+                strains[i] = hit_object.time.total_seconds(), new.strains[strain]
+            else:
+                strains[i] = new.strains[strain]
             previous = new
+
+        if smooth:
+            strains = np.fromiter(_moving_average_by_time(strains, 1, 100), float, count=100 * 2).reshape(-1, 2)
+
         return strains
 
     def _calculate_stars(self,
