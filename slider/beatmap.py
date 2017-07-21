@@ -910,33 +910,40 @@ def _get_as_bool(groups, section, field, default=no_default):
 
 
 def _moving_average_by_time(data, delta, num):
-    """Performs a moving average over a time window of an iterable of 2-tuples
-    where the first element of each tuple is the time and the second the value.
-    Returns a generator yielding num times and averages consecutively
+    """Performs a moving average over a time window of an array where the
+    first column is the time and the second the value.
+    Returns an array with the first column containing times and the second
+    containing the average at that time.
     """
     current_sum = 0
     front = 0
     back = 0
-    for i in np.linspace(0, data[-1][0], num):
-        while data[back][0] < i - delta:
+    out = np.empty((num, 2))
+    for i, t in enumerate(np.linspace(0, data[-1][0], num)):
+        while data[back][0] < t - delta:
             # remove outdated readings
             current_sum -= data[back][1]
             back += 1
         while True:
             try:
-                if data[front][0] > i + delta:
+                if data[front][0] > t + delta:
                     break
             except IndexError:
                 break
             # add readings from the front
             current_sum += data[front][1]
             front += 1
-        yield i
         count = front - back
-        if count == 0:
-            yield 0
-        else:
-            yield current_sum / count
+        out[i] = t, 0 if count == 0 else current_sum / count
+    return out
+
+
+@unique
+class Strain(IntEnum):
+    """Indices for the strain specific values.
+    """
+    speed = 0
+    aim = 1
 
 
 class _DifficultyHitObject:
@@ -963,13 +970,6 @@ class _DifficultyHitObject:
 
     circle_size_buffer_threshold = 30
 
-    @unique
-    class Strain(IntEnum):
-        """Indices for the strain specific values.
-        """
-        speed = 0
-        aim = 1
-
     def __init__(self, hit_object, radius, previous=None):
         self.hit_object = hit_object
 
@@ -990,8 +990,8 @@ class _DifficultyHitObject:
             self.strains = 0, 0
         else:
             self.strains = (
-                self._calculate_strain(previous, self.Strain.speed),
-                self._calculate_strain(previous, self.Strain.aim),
+                self._calculate_strain(previous, Strain.speed),
+                self._calculate_strain(previous, Strain.aim),
             )
 
     def _calculate_strain(self, previous, strain):
@@ -1035,7 +1035,7 @@ class _DifficultyHitObject:
         return np.sqrt((start.x - end.x) ** 2 + (start.y - end.y) ** 2)
 
     def _spacing_weight(self, distance, strain):
-        if strain == self.Strain.speed:
+        if strain == Strain.speed:
             if distance > self.single_spacing:
                 return 2.5
             elif distance > self.stream_spacing:
@@ -1848,11 +1848,35 @@ class Beatmap:
 
     def hit_object_difficulty(self,
                               strain,
-                              smooth=False,
                               easy=False,
                               hard_rock=False,
                               double_time=False,
-                              half_time=False):
+                              half_time=False,
+                              inc_times=False):
+        """Compute the difficulty of each hit object.
+
+        Parameters
+        ----------
+        strain : Strain
+            Enum of the sort of strain to calculate.
+        easy : bool
+            Compute difficulty with easy.
+        hard_rock : bool
+            Compute difficulty with hard rock.
+        double_time : bool
+            Compute difficulty with double time.
+        half_time : bool
+            Compute difficulty with half time.
+        inc_times : bool
+            Whether to include the times of the hit objects.
+
+        Returns
+        ----------
+        difficulties : array
+            1D array of difficulties.
+            If inc_times is True, the array is 2D
+            and contains time, difficulty pairs.
+        """
         cs = self.cs()
         if hard_rock:
             cs *= 1.3
@@ -1868,7 +1892,7 @@ class Beatmap:
             def modify(e):
                 return e
 
-        if smooth:
+        if inc_times:
             strains = np.empty((len(self.hit_objects) - 1, 2))
         else:
             strains = np.empty(len(self.hit_objects) - 1)
@@ -1881,16 +1905,66 @@ class Beatmap:
                 radius,
                 previous,
             )
-            if smooth:
+            if inc_times:
                 strains[i] = hit_object.time.total_seconds(), new.strains[strain]
             else:
                 strains[i] = new.strains[strain]
             previous = new
 
-        if smooth:
-            strains = np.fromiter(_moving_average_by_time(strains, 1, 100), float, count=100 * 2).reshape(-1, 2)
-
         return strains
+
+    def smoothed_difficulty(self,
+                            strain,
+                            smoothing_window,
+                            num_points,
+                            easy=False,
+                            hard_rock=False,
+                            double_time=False,
+                            half_time=False):
+        """Calculate a smoothed difficulty at evenly spaced points in time
+        between the beginning of the song and the last hit object of the map.
+
+        Done by taking an average of difficulties of hit objects within a
+        certain time window of each point
+
+        Useful if you want to calculate a difficulty curve for the map
+        since the unsmoothed values vary locally a lot.
+
+        Parameters
+        ----------
+        strain : Strain
+            Enum of the sort of strain to calculate.
+        smoothing_window : int or float
+            Time window (in seconds) for the moving average.
+            Bigger will make a smoother curve.
+        num_points : int
+            Number of points to calculate the average at.
+        easy : bool
+            Compute difficulty with easy.
+        hard_rock : bool
+            Compute difficulty with hard rock.
+        double_time : bool
+            Compute difficulty with double time.
+        half_time : bool
+            Compute difficulty with half time.
+
+        Returns
+        ----------
+        difficulties : array
+            2D array containing smoothed time, difficulty pairs.
+        """
+        return _moving_average_by_time(
+            self.hit_object_difficulty(
+                strain,
+                easy=easy,
+                hard_rock=hard_rock,
+                double_time=double_time,
+                half_time=half_time,
+                inc_times=True,
+            ),
+            smoothing_window,
+            num_points,
+        )
 
     def _calculate_stars(self,
                          easy,
@@ -1976,11 +2050,11 @@ class Beatmap:
         rhythm_awkwardness *= 82
 
         aim = self._calculate_difficulty(
-            _DifficultyHitObject.Strain.aim,
+            Strain.aim,
             difficulty_hit_objects,
         )
         speed = self._calculate_difficulty(
-            _DifficultyHitObject.Strain.speed,
+            Strain.speed,
             difficulty_hit_objects,
         )
 
