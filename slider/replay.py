@@ -159,6 +159,22 @@ def _ms(t):
 
 
 def _within(p1, p2, d):
+    """Determines whether 2 points are within a distance of each other
+
+    Parameters
+    ---------
+    p1 : Position
+        The first point
+    p2 : Position
+        The second point
+    d : int or float
+        The distance
+
+    Returns
+    ----------
+    bool
+        Whether the distance between the points is less than d
+    """
     return (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 < d ** 2
 
 
@@ -169,11 +185,12 @@ def _pressed(datum):
 def _process_circle(obj, rdatum, hw, scores):
     out_by = abs(_ms(rdatum.offset - obj.time))
     if out_by < hw.hit_300:
-        scores["perfects"].append(obj)
+        scores["300s"].append(obj)
     elif out_by < hw.hit_100:
-        scores["goods"].append(obj)
-    elif out_by < hw.hit_50:
-        scores["bads"].append(obj)
+        scores["100s"].append(obj)
+    else:
+        # must be within the 50 hit window or we wouldn't be here
+        scores["50s"].append(obj)
 
 
 def _process_slider(obj, rdata, head_hit, rad, scores):
@@ -181,7 +198,7 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
     missed_points = 0
     if not head_hit:
         missed_points += 1
-        scores["sliderbreaks"].append(obj)
+        scores["slider_breaks"].append(obj)
     offsets = [p.offset for p in rdata]
     for n, tick in enumerate(ticks):
         # find points either side of tick
@@ -199,17 +216,17 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
             # missed a tick
             missed_points += 1
             # end tick doesn't cause sliderbreak
-            if tick is not ticks[-1] and obj not in scores["sliderbreaks"]:
-                scores["sliderbreaks"].append(obj)
+            if tick is not ticks[-1] and obj not in scores["slider_breaks"]:
+                scores["slider_breaks"].append(obj)
     if missed_points == len(ticks) + 1:
         # all ticks and head missed -> miss
         scores["misses"].append(obj)
     elif missed_points > (len(ticks) + 1) / 2:
-        scores["bads"].append(obj)
+        scores["50s"].append(obj)
     elif missed_points > 0:
-        scores["goods"].append(obj)
+        scores["100s"].append(obj)
     else:
-        scores["perfects"].append(obj)
+        scores["300s"].append(obj)
 
 
 class Replay:
@@ -638,18 +655,18 @@ class Replay:
 
     @lazyval
     def hits(self):
-        b = self.beatmap
-        rdata = self.actions
-        scores = {"perfects": [],
-                  "goods": [],
-                  "bads": [],
+        beatmap = self.beatmap
+        actions = self.actions
+        scores = {"300s": [],
+                  "100s": [],
+                  "50s": [],
                   "misses": [],
-                  "sliderbreaks": [],
+                  "slider_breaks": [],
                   }
-        hw = od_to_ms(b.od(easy=self.easy, hard_rock=self.hard_rock))
-        rad = circle_radius(b.cs(easy=self.easy, hard_rock=self.hard_rock))
+        hw = od_to_ms(beatmap.od(easy=self.easy, hard_rock=self.hard_rock))
+        rad = circle_radius(beatmap.cs(easy=self.easy, hard_rock=self.hard_rock))
         i = 0
-        for obj in b.hit_objects:
+        for obj in beatmap.hit_objects:
             if self.hard_rock:
                 obj = obj.hard_rock
             if isinstance(obj, beatmap.Spinner):
@@ -657,24 +674,24 @@ class Replay:
                 continue
             # we can ignore events before the hit window so iterate
             # until we get past the beginning of the hit window
-            while _ms(rdata[i].offset) < _ms(obj.time) - hw[2]:
+            while _ms(actions[i].offset) < _ms(obj.time) - hw[2]:
                 i += 1
             starti = i
-            while _ms(rdata[i].offset) < _ms(obj.time) + hw[2]:
-                if (((rdata[i].key1 and not rdata[i - 1].key1)
-                    or (rdata[i].key2 and not rdata[i - 1].key2))
-                    and _within(rdata[i].position, obj.position, rad)):
+            while _ms(actions[i].offset) < _ms(obj.time) + hw[2]:
+                if (((actions[i].key1 and not actions[i - 1].key1)
+                    or (actions[i].key2 and not actions[i - 1].key2))
+                    and _within(actions[i].position, obj.position, rad)):
                     # key pressed that wasn't before and
                     # event is in hit window and correct location
                     if isinstance(obj, beatmap.Circle):
-                        _process_circle(obj, rdata[i], hw, scores)
+                        _process_circle(obj, actions[i], hw, scores)
                     elif isinstance(obj, beatmap.Slider):
                         # Head was hit
-                        while rdata[i].offset <= obj.end_time:
+                        while actions[i].offset <= obj.end_time:
                             i += 1
                         # guessing rad multiplier
                         _process_slider(
-                            obj, rdata[starti:i + 1], True, rad, scores
+                            obj, actions[starti:i + 1], True, rad, scores
                         )
                     break
                 i += 1
@@ -682,10 +699,10 @@ class Replay:
                 # no events in the hit window were in the correct location
                 if isinstance(obj, beatmap.Slider):
                     # Slider ticks might still be hit
-                    while rdata[i].offset <= obj.end_time:
+                    while actions[i].offset <= obj.end_time:
                         i += 1
                     _process_slider(
-                        obj, rdata[starti:i + 1], False, rad, scores
+                        obj, actions[starti:i + 1], False, rad, scores
                     )
                 else:
                     scores["misses"].append(obj)
