@@ -390,7 +390,7 @@ class Replay:
         )
 
     @classmethod
-    def from_path(cls, path, *, library=None, client=None, save=False):
+    def from_path(cls, path, *, library=None, client=None, save=False, retrieve_beatmap=True):
         """Read in a ``Replay`` object from a ``.osr`` file on disk.
 
         Parameters
@@ -404,6 +404,8 @@ class Replay:
         save : bool, optional
             If the beatmap needs to be downloaded with the client, should it be
             saved to disk?
+        retrieve_beatmap : bool, optional
+            Whether to retrieve the beatmap the replay is for.
 
         Returns
         -------
@@ -416,10 +418,10 @@ class Replay:
             Raised when the file cannot be parsed as an ``.osr`` file.
         """
         with open(path, 'rb') as f:
-            return cls.from_file(f, library=library, client=client, save=save)
+            return cls.from_file(f, library=library, client=client, save=save, retrieve_beatmap=retrieve_beatmap)
 
     @classmethod
-    def from_directory(cls, path, *, library=None, client=None, save=False):
+    def from_directory(cls, path, *, library=None, client=None, save=False, retrieve_beatmap=True):
         """Read in a list of ``Replay`` objects from a directory of ``.osr``
         files.
 
@@ -434,6 +436,8 @@ class Replay:
         save : bool, optional
             If the beatmap needs to be downloaded with the client, should it be
             saved to disk?
+        retrieve_beatmap : bool, optional
+            Whether to retrieve the beatmap the replay is for.
 
         Returns
         -------
@@ -446,13 +450,13 @@ class Replay:
             Raised when any file cannot be parsed as an ``.osr`` file.
         """
         return [
-            cls.from_path(p, library, client=client, save=save)
+            cls.from_path(p, library=library, client=client, save=save, retrieve_beatmap=retrieve_beatmap)
             for p in os.scandir(path)
             if p.name.endswith('.osr')
         ]
 
     @classmethod
-    def from_file(cls, file, *, library=None, client=None, save=False):
+    def from_file(cls, file, *, library=None, client=None, save=False, retrieve_beatmap=True):
         """Read in a ``Replay`` object from an open file object.
 
         Parameters
@@ -466,6 +470,8 @@ class Replay:
         save : bool, optional
             If the beatmap needs to be downloaded with the client, should it be
             saved to disk?
+        retrieve_beatmap : bool, optional
+            Whether to retrieve the beatmap the replay is for.
 
         Returns
         -------
@@ -482,21 +488,17 @@ class Replay:
             library=library,
             client=client,
             save=save,
+            retrieve_beatmap=retrieve_beatmap
         )
 
     @classmethod
-    def parse(cls, data, *, library=None, client=None, save=False):
+    def parse(cls, data, *, library=None, client=None, save=False, retrieve_beatmap=True):
         """Parse a replay from ``.osr`` file data.
 
         Parameters
         ----------
         data : bytes
             The data from an ``.osr`` file.
-
-        Returns
-        -------
-        replay : Replay
-            The parsed replay.
         library : Library, optional
             The library of beatmaps.
         client : Client, optional.
@@ -504,20 +506,28 @@ class Replay:
         save : bool, optional
             If the beatmap needs to be downloaded with the client, should it be
             saved to disk?
+        retrieve_beatmap : bool, optional
+            Whether to retrieve the beatmap the replay is for.
+
+        Returns
+        -------
+        replay : Replay
+            The parsed replay.
 
         Raises
         ------
         ValueError
             Raised when ``data`` is not in the ``.osr`` format.
         """
-        if library is None and client is None:
-            raise ValueError('one of library or client must be passed')
+        if retrieve_beatmap:
+            if library is None and client is None:
+                raise ValueError('one of library or client must be passed if you wish the beatmap to be retrieved')
 
-        use_client = client is not None
-        if use_client:
-            if library is not None:
-                raise ValueError('only one of library or client can be passed')
-            library = client.library
+            use_client = client is not None
+            if use_client:
+                if library is not None:
+                    raise ValueError('only one of library or client can be passed')
+                library = client.library
 
         buffer = bytearray(data)
 
@@ -545,14 +555,17 @@ class Replay:
         del mod_kwargs['relax2']
         del mod_kwargs['last_mod']
 
-        try:
-            beatmap = library.lookup_by_md5(beatmap_md5)
-        except KeyError:
-            if not use_client:
-                raise
-            beatmap = client.beatmap(
-                beatmap_md5=beatmap_md5,
-            ).beatmap(save=save)
+        if retrieve_beatmap:
+            try:
+                beatmap = library.lookup_by_md5(beatmap_md5)
+            except KeyError:
+                if not use_client:
+                    raise
+                beatmap = client.beatmap(
+                    beatmap_md5=beatmap_md5,
+                ).beatmap(save=save)
+        else:
+            beatmap = None
 
         return cls(
             mode=mode,
