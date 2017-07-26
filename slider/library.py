@@ -4,6 +4,8 @@ from hashlib import md5
 import os
 import pathlib
 from time import sleep
+from sys import platform as _platform
+from re import sub as _sub
 
 import requests
 
@@ -259,13 +261,19 @@ class Library:
         if beatmap is None:
             beatmap = Beatmap.parse(data.decode('utf-8-sig'))
 
-        path = self.path / (
+        beatmap_file_name = (
             f'{beatmap.artist} - '
             f'{beatmap.title} '
             f'({beatmap.creator})'
             f'[{beatmap.version}]'
             f'.osu'
         ).replace('/', '_')
+        if _platform.startswith("win"): beatmap_file_name = _sub(
+            '[:*?"<>|]', 
+            '', 
+            beatmap_file_name
+        )
+        path = self.path / beatmap_file_name
         with open(path, 'wb') as f:
             f.write(data)
 
