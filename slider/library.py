@@ -4,8 +4,7 @@ from hashlib import md5
 import os
 import pathlib
 from time import sleep
-from sys import platform as _platform
-from re import sub as _sub
+import sys
 
 import requests
 
@@ -268,11 +267,9 @@ class Library:
             f'[{beatmap.version}]'
             f'.osu'
         ).replace('/', '_')
-        if _platform.startswith("win"): beatmap_file_name = _sub(
-            '[:*?"<>|]', 
-            '', 
-            beatmap_file_name
-        )
+        if _platform.startswith("win"): 
+            for repl in [":", "*", "?", "\"", "<", ">", "|"]:
+                beatmap_file_name.replace(repl, '')
         path = self.path / beatmap_file_name
         with open(path, 'wb') as f:
             f.write(data)
