@@ -50,6 +50,30 @@ class Cache:
             return d.keys()
 
 
+if sys.platform.startswith('win'):
+    def sanitize_filename(name):
+        for invalid_character in r':*?"\/|<>[]':
+            name.replace(invalid_character, '')
+        return name
+else:
+    def sanitize_filename(name):
+        return name.replace('/', '')
+
+sanitize_filename.__doc__ = """\
+Sanitize a filename so that it is safe to write to the filesystem.
+
+Parameters
+----------
+name : str
+    The name of the file without the directory.
+
+Returns
+-------
+sanitized_name : str
+    The name with invalid characters stripped out.
+"""
+
+
 class Library:
     """A library of beatmaps backed by a local directory.
 
@@ -260,17 +284,13 @@ class Library:
         if beatmap is None:
             beatmap = Beatmap.parse(data.decode('utf-8-sig'))
 
-        beatmap_file_name = (
+        path = self.path / sanitize_filename(
             f'{beatmap.artist} - '
             f'{beatmap.title} '
             f'({beatmap.creator})'
             f'[{beatmap.version}]'
             f'.osu'
-        ).replace('/', '_')
-        if _platform.startswith("win"): 
-            for repl in [":", "*", "?", "\"", "<", ">", "|"]:
-                beatmap_file_name.replace(repl, '')
-        path = self.path / beatmap_file_name
+        )
         with open(path, 'wb') as f:
             f.write(data)
 
