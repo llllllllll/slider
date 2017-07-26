@@ -2166,7 +2166,7 @@ class Beatmap:
             Account for the spun out mod.
         version : int, optional
             The version of the performance points calculation to use.
-g
+
         Returns
         -------
         pp : float
