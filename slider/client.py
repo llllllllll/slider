@@ -599,7 +599,7 @@ class Client:
 
         parameters = {
             'k': self.api_key,
-            'a': include_converted_beatmaps,
+            'a': int(bool(include_converted_beatmaps)),
             'limit': limit,
         }
 
