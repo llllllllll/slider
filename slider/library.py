@@ -222,7 +222,7 @@ class Library:
 
         Parameters
         ----------
-        beatmap_id : int
+        beatmap_id : int or str
             The id of the beatmap to lookup.
 
         Returns
@@ -343,7 +343,7 @@ class Library:
 
         Parameters
         ----------
-        beatmap_id : int
+        beatmap_id : int or str
             The id of the beatmap to download.
         save : bool, optional
             Save the beatmap to disk?
@@ -366,12 +366,16 @@ class Library:
 
     @property
     def md5s(self):
+        """All of the beatmap hashes that this has downloaded.
+        """
         return tuple(
             key[4:] for key in self._cache.keys() if key.startswith(b'md5:')
         )
 
     @property
     def ids(self):
+        """All of the beatmap ids that this has downloaded.
+        """
         return tuple(
             int(key[3:])
             for key in self._cache.keys()
