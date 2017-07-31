@@ -390,7 +390,13 @@ class Replay:
         )
 
     @classmethod
-    def from_path(cls, path, *, library=None, client=None, save=False, retrieve_beatmap=True):
+    def from_path(cls,
+                  path,
+                  *,
+                  library=None,
+                  client=None,
+                  save=False,
+                  retrieve_beatmap=True):
         """Read in a ``Replay`` object from a ``.osr`` file on disk.
 
         Parameters
@@ -418,10 +424,22 @@ class Replay:
             Raised when the file cannot be parsed as an ``.osr`` file.
         """
         with open(path, 'rb') as f:
-            return cls.from_file(f, library=library, client=client, save=save, retrieve_beatmap=retrieve_beatmap)
+            return cls.from_file(
+                f,
+                library=library,
+                client=client,
+                save=save,
+                retrieve_beatmap=retrieve_beatmap,
+            )
 
     @classmethod
-    def from_directory(cls, path, *, library=None, client=None, save=False, retrieve_beatmap=True):
+    def from_directory(cls,
+                       path,
+                       *,
+                       library=None,
+                       client=None,
+                       save=False,
+                       retrieve_beatmap=True):
         """Read in a list of ``Replay`` objects from a directory of ``.osr``
         files.
 
@@ -450,13 +468,25 @@ class Replay:
             Raised when any file cannot be parsed as an ``.osr`` file.
         """
         return [
-            cls.from_path(p, library=library, client=client, save=save, retrieve_beatmap=retrieve_beatmap)
+            cls.from_path(
+                p,
+                library=library,
+                client=client,
+                save=save,
+                retrieve_beatmap=retrieve_beatmap,
+            )
             for p in os.scandir(path)
             if p.name.endswith('.osr')
         ]
 
     @classmethod
-    def from_file(cls, file, *, library=None, client=None, save=False, retrieve_beatmap=True):
+    def from_file(cls,
+                  file,
+                  *,
+                  library=None,
+                  client=None,
+                  save=False,
+                  retrieve_beatmap=True):
         """Read in a ``Replay`` object from an open file object.
 
         Parameters
@@ -492,7 +522,13 @@ class Replay:
         )
 
     @classmethod
-    def parse(cls, data, *, library=None, client=None, save=False, retrieve_beatmap=True):
+    def parse(cls,
+              data,
+              *,
+              library=None,
+              client=None,
+              save=False,
+              retrieve_beatmap=True):
         """Parse a replay from ``.osr`` file data.
 
         Parameters
@@ -521,12 +557,17 @@ class Replay:
         """
         if retrieve_beatmap:
             if library is None and client is None:
-                raise ValueError('one of library or client must be passed if you wish the beatmap to be retrieved')
+                raise ValueError(
+                    'one of library or client must be passed if you wish the'
+                    ' beatmap to be retrieved',
+                )
 
             use_client = client is not None
             if use_client:
                 if library is not None:
-                    raise ValueError('only one of library or client can be passed')
+                    raise ValueError(
+                        'only one of library or client can be passed'
+                    )
                 library = client.library
 
         buffer = bytearray(data)

@@ -104,7 +104,10 @@ class MetaCurve(Curve):
         for i, j in enumerate(accumulate(lengths[:-1])):
             self._curves[i].req_length = lengths[i]
             out.append(j / length)
-        self._curves[-1].req_length = max(0, lengths[-1] - (length - self.req_length))
+        self._curves[-1].req_length = max(
+            0,
+            lengths[-1] - (length - self.req_length),
+        )
         out.append(1)
         return out
 
@@ -154,7 +157,10 @@ class Passthrough(Curve):
         if np.dot(ortho_a_to_c, coordinates[1] - coordinates[0]) < 0:
             self._angle = -(2 * math.pi - self._angle)
 
-        length = abs(self._angle * math.sqrt(coordinates[0][0] ** 2 + coordinates[0][1] ** 2))
+        length = abs(
+            self._angle *
+            math.sqrt(coordinates[0][0] ** 2 + coordinates[0][1] ** 2),
+        )
         if length > req_length:
             self._angle *= req_length / length
 
