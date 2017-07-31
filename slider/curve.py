@@ -165,8 +165,9 @@ class Passthrough(Curve):
 class Catmull(Curve):
     kinds = 'C'
 
-    def __init__(self, points):
+    def __init__(self, points, req_length):
         self.points = points
+        self.req_length = req_length
 
     def __call__(self, t):
         raise NotImplementedError('catmull positions not supported yet')
