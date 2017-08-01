@@ -1605,7 +1605,7 @@ class Beatmap:
             format_version=format_version,
             audio_filename=_get_as_str(groups, 'General', 'AudioFilename'),
             audio_lead_in=timedelta(
-                milliseconds=_get_as_int(groups, 'General', 'AudioLeadIn'),
+                milliseconds=_get_as_int(groups, 'General', 'AudioLeadIn', 0),
             ),
             preview_time=timedelta(
                 milliseconds=_get_as_int(groups, 'General', 'PreviewTime'),
