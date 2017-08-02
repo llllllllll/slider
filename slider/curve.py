@@ -1,11 +1,12 @@
-from abc import ABCMeta, abstractmethod
-import math
 import bisect
+import math
+from itertools import accumulate
 
 import numpy as np
 from scipy.misc import comb
-from itertools import accumulate
+from toolz import sliding_window
 
+from .abc import ABCMeta, abstractmethod
 from .position import Position
 from .utils import lazyval
 
@@ -39,18 +40,12 @@ class Curve(metaclass=ABCMeta):
         raise NotImplementedError('__call__')
 
     def __init_subclass__(cls):
-        cls._kind_dispatch
-        for meth in super(cls, cls).__abstractmethods__:
-            impl = getattr(cls, meth)
-            if impl.__doc__ is None:
-                impl.__doc__ = getattr(super(cls, cls), meth).__doc__
-
         for kind in cls.kinds:
             cls._kind_dispatch[kind] = cls
 
 
 class Bezier(Curve):
-    kinds = 'L'
+    kinds = ()
 
     def __init__(self, points, req_length):
         self.points = points
@@ -94,7 +89,7 @@ class MetaCurve(Curve):
         metapoints = split_at_dupes(points)
         self.points = points
         self.req_length = req_length
-        self._curves = [Bezier(points, None) for points in metapoints]
+        self._curves = [Bezier(subpoints, None) for subpoints in metapoints]
 
     @lazyval
     def _ts(self):
@@ -128,13 +123,42 @@ class MetaCurve(Curve):
         return self._curves[bi]((t - pre_t) / (post_t - pre_t))
 
 
-class Passthrough(Curve):
-    kinds = 'P'
+class LinearMetaCurve(MetaCurve):
+    kinds = 'L'
 
     def __init__(self, points, req_length):
         self.points = points
         self.req_length = req_length
-        self._center = center = get_center(*self.points)
+        self._curves = [
+            Bezier(subpoints, None) for subpoints in sliding_window(2, points)
+        ]
+
+
+class Perfect(Curve):
+    kinds = 'P'
+
+    def __new__(cls, points, req_length):
+        if len(points) != 3:
+            # it seems osu! uses the bezier curve if there are more than 3
+            # points
+            # https://github.com/ppy/osu/blob/7fbbe74b65e7e399072c198604e9db09fb729626/osu.Game/Rulesets/Objects/SliderCurve.cs#L32  # noqa
+            return Bezier(points, req_length)
+
+        try:
+            center = get_center(*points)
+        except ValueError:
+            # we cannot use a perfect curve function for collinear points;
+            # osu! also falls back to a bezier here
+            return Bezier(points, req_length)
+
+        self = super().__new__(cls)
+        self._init(points, req_length, center)
+        return self
+
+    def _init(self, points, req_length, center):
+        self.points = points
+        self.req_length = req_length
+        self._center = center
 
         coordinates = np.array(points) - center
 
@@ -179,57 +203,48 @@ class Catmull(Curve):
         raise NotImplementedError('catmull positions not supported yet')
 
 
-def get_center(p1, p2, p3):
+def get_center(a, b, c):
     """Returns the Position of the center of the circle described by the 3
     points
 
     Parameters
     ----------
-    p1, p2, p3 : Position
+    a, b, c : Position
         The three positions.
 
     Returns
     -------
     center : Position
         The center of the three points.
+
+    Notes
+    -----
+    This uses the same algorithm as osu!
+    https://github.com/ppy/osu/blob/7fbbe74b65e7e399072c198604e9db09fb729626/osu.Game/Rulesets/Objects/CircularArcApproximator.cs#L23  # noqa
     """
-    if p2.x == p1.x:
-        # normal t calc won't work
-        t = (p3.y - p1.y) / (2 * (p3.x - p2.x))
+    a, b, c = np.array([a, b, c])
 
-        return Position(
-            0.5 * (p2.x + p3.x) + t * (p3.y - p2.y),
-            0.5 * (p2.y + p3.y) - t * (p3.x - p2.x),
-        )
-    elif p3.y == p2.y:
-        t = (p3.x - p1.x) / (2 * (p2.y - p1.y))
-    else:
-        t = (
-            (
-                (-(p1.y - p3.y) / (2 * (p2.x - p1.x))) -
-                (
-                    ((p3.x - p2.x) * (p1.x - p3.x)) /
-                    (2 * (p2.x - p1.x) * (p3.y - p2.y))
-                )
-            ) *
-            (
-                ((p2.x - p1.x) * (p3.y - p2.y)) /
-                (
-                    ((p3.x - p2.x) * (p2.y - p1.y)) -
-                    ((p2.x - p1.x) * (p3.y - p2.y))
-                )
-            )
-        )
+    a_squared = np.sum(np.square(b - c))
+    b_squared = np.sum(np.square(a - c))
+    c_squared = np.sum(np.square(a - b))
 
-    return Position(
-        0.5 * (p1.x + p2.x) + t * (p2.y - p1.y),
-        0.5 * (p1.y + p2.y) - t * (p2.x - p1.x),
-    )
+    if np.isclose([a_squared, b_squared, c_squared], 0).any():
+        raise ValueError()
+
+    s = a_squared * (b_squared + c_squared - a_squared)
+    t = b_squared * (a_squared + c_squared - b_squared)
+    u = c_squared * (a_squared + b_squared - c_squared)
+
+    sum_ = s + t + u
+
+    if np.isclose(sum_, 0):
+        raise ValueError()
+
+    return Position(*(s * a + t * b + u * c) / sum_)
 
 
 def rotate(position, center, radians):
     """Returns a Position rotated r radians around centre c from p
-
     Parameters
     ----------
     position : Position

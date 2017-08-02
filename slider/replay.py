@@ -389,6 +389,16 @@ class Replay:
             spun_out=self.spun_out,
         )
 
+    @lazyval
+    def failed(self):
+        """Did the user fail this attempt?
+        """
+        for _, value in self.life_bar_graph:
+            if not value:
+                return True
+
+        return False
+
     @classmethod
     def from_path(cls,
                   path,

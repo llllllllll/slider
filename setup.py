@@ -27,7 +27,7 @@ setup(
         'Topic :: Games/Entertainment',
     ],
     url='https://github.com/llllllllll/slider',
-    install_requires=['pytz', 'requests', 'numpy', 'scipy'],
+    install_requires=['pytz', 'requests', 'numpy', 'scipy', 'toolz'],
     extras_require={
         'dev': [
             'flake8==3.3.0',
@@ -35,6 +35,5 @@ setup(
             'pycodestyle==2.3.1',
             'pyflakes==1.5.0',
         ],
-        'model': ['scikit-learn'],
     },
 )

@@ -206,5 +206,29 @@ def od_to_ms_300(od):
     -------
     ms : float
         The number of milliseconds to hit an object at maximum accuracy.
+
+    See Also
+    --------
+    :func:`slider.mod.ms_300_to_od`
     """
     return 79.5 - 6 * od
+
+
+def ms_300_to_od(ms):
+    """Convert the milliseconds to score a 300 into an OD value.
+
+    Parameters
+    ----------
+    ms : float
+        The length of the 300 window in milliseconds.
+
+    Returns
+    -------
+    od : float
+        The OD value that produces a 300 window of length ``ms``.
+
+    See Also
+    --------
+    :func:`slider.mod.od_to_ms_300`
+    """
+    return (ms - 79.5) / -6

@@ -26,11 +26,13 @@ Osu! API
 Slider includes a Python interface to the osu! web API for requesting
 information about users or beatmaps.
 
-Model
------
+Dependencies
+------------
 
-Slider includes a simple model for predicting future performance based on
-replay data.
+Slider currently requires Python 3.6+.
+
+Slider also requires a few PyData tools like numpy and scipy; see the
+``setup.py`` for a full list of required packages.
 
 Thanks
 ------
