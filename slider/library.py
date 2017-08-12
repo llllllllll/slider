@@ -52,7 +52,7 @@ class Cache:
 
 if sys.platform.startswith('win'):
     def sanitize_filename(name):
-        for invalid_character in r':*?"\/|<>[]':
+        for invalid_character in r':*?"\/|<>':
             name = name.replace(invalid_character, '')
         return name
 else:
