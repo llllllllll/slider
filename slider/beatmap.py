@@ -559,10 +559,7 @@ class Slider(HitObject):
             if name == 'position':
                 value = Position(value.x, 384 - value.y)
             elif name == 'curve':
-                value = type(value)(
-                    [Position(p.x, 384 - p.y) for p in value.points],
-                    value.req_length,
-                )
+                value = value.hard_rock
             kwargs[name] = value
 
         return type(self)(**kwargs)
