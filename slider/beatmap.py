@@ -10,7 +10,7 @@ from zipfile import ZipFile
 import numpy as np
 
 from .game_mode import GameMode
-from .mod import ar_to_ms, ms_to_ar, circle_radius
+from .mod import ar_to_ms, ms_to_ar, circle_radius, od_to_ms_300, ms_300_to_od
 from .position import Position, Point
 from .utils import (
     accuracy as calculate_accuracy,
@@ -559,16 +559,7 @@ class Slider(HitObject):
             if name == 'position':
                 value = Position(value.x, 384 - value.y)
             elif name == 'curve':
-                subkwargs = {}
-                for subname in inspect.signature(type(value)).parameters:
-                    subvalue = getattr(value, subname)
-                    if subname == 'points':
-                        subvalue = [Position(p.x, 384 - p.y) for p in subvalue]
-                subkwargs[subname] = subvalue
-                value = Curve.from_kind_and_points(
-                    type(value).kinds[0],
-                    **subkwargs,
-                )
+                value = value.hard_rock
             kwargs[name] = value
 
         return type(self)(**kwargs)
@@ -699,7 +690,7 @@ class Slider(HitObject):
             time,
             time + duration,
             hitsound,
-            Curve.from_kind_and_points(slider_type, points),
+            Curve.from_kind_and_points(slider_type, points, pixel_length),
             repeat,
             pixel_length,
             ticks,
@@ -1288,7 +1279,12 @@ class Beatmap:
             cs /= 2
         return cs
 
-    def od(self, *, easy=False, hard_rock=False):
+    def od(self,
+           *,
+           easy=False,
+           hard_rock=False,
+           half_time=False,
+           double_time=False):
         """Compute the Overall Difficulty (OD) value for different mods.
 
         Parameters
@@ -1297,6 +1293,10 @@ class Beatmap:
             OD with the easy mod enabled.
         hard_rock : bool, optional
             OD with the hard rock mod enabled.
+        half_time : bool, optional
+            Effective OD with the half time mod enabled.
+        double_time : bool, optional
+            Effective OD with the double time mod enabled.
 
         Returns
         -------
@@ -1308,6 +1308,12 @@ class Beatmap:
             od = min(1.4 * od, 10)
         elif easy:
             od /= 2
+
+        if double_time:
+            od = ms_300_to_od(2 * od_to_ms_300(od) / 3)
+        elif half_time:
+            od = ms_300_to_od(4 * od_to_ms_300(od) / 3)
+
         return od
 
     def ar(self,
@@ -1341,10 +1347,16 @@ class Beatmap:
         approach rate is changed.
         """
         ar = self.approach_rate
+        if easy:
+            ar /= 2
+        elif hard_rock:
+            ar = min(1.4 * ar, 10)
+
         if double_time:
             ar = ms_to_ar(2 * ar_to_ms(ar) / 3)
         elif half_time:
             ar = ms_to_ar(4 * ar_to_ms(ar) / 3)
+
         return ar
 
     @lazyval
@@ -1605,7 +1617,7 @@ class Beatmap:
             format_version=format_version,
             audio_filename=_get_as_str(groups, 'General', 'AudioFilename'),
             audio_lead_in=timedelta(
-                milliseconds=_get_as_int(groups, 'General', 'AudioLeadIn'),
+                milliseconds=_get_as_int(groups, 'General', 'AudioLeadIn', 0),
             ),
             preview_time=timedelta(
                 milliseconds=_get_as_int(groups, 'General', 'PreviewTime'),
@@ -2166,7 +2178,7 @@ class Beatmap:
             Account for the spun out mod.
         version : int, optional
             The version of the performance points calculation to use.
-g
+
         Returns
         -------
         pp : float

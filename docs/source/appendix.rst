@@ -100,24 +100,3 @@ Utilities
 
 .. autoclass:: slider.bit_enum.BitEnum
    :members:
-
-Predictions
------------
-
-.. autofunction:: slider.model.train.train_model
-
-.. autofunction:: slider.model.train.train_from_replay_directory
-
-.. autofunction:: slider.model.train.test_model_from_replay_directory
-
-.. autoclass:: slider.model.model.OsuModel
-   :members:
-
-.. autoclass:: slider.model.model.MLPRegressor
-   :members:
-
-.. autofunction:: slider.model.features.extract_features
-
-.. autofunction:: slider.model.features.extract_feature_array
-
-.. autofunction:: slider.model.features.extract_from_replay_directory

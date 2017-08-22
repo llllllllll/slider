@@ -1,26 +1,56 @@
-from abc import ABCMeta, abstractmethod
-import math
 import bisect
+import math
+from itertools import accumulate
 
 import numpy as np
 from scipy.misc import comb
-from itertools import accumulate
+from toolz import sliding_window
 
+from .abc import ABCMeta, abstractmethod
 from .position import Position
 from .utils import lazyval
 
 
 class Curve(metaclass=ABCMeta):
-    _kind_dispatch = {}
+    """Curves are functions that define the path that a slider takes from start
+    to stop.
+
+    Parameters
+    ----------
+    points : list[Position]
+        The positions of the control points.
+    req_length : float
+        The pixel length of the curve.
+    """
+    def __init__(self, points, req_length):
+        self.points = points
+        self.req_length = req_length
 
     @classmethod
-    def from_kind_and_points(cls, kind, points):
-        try:
-            subcls = cls._kind_dispatch[kind]
-        except KeyError:
-            raise ValueError(f'unknown curve type: {kind!r}')
+    def from_kind_and_points(cls, kind, points, req_length):
+        if kind == 'B':
+            return MultiBezier(points, req_length)
+        if kind == 'L':
+            return Linear(points, req_length)
+        if kind == 'C':
+            return Catmull(points, req_length)
+        if kind == 'P':
+            if len(points) != 3:
+                # it seems osu! uses the bezier curve if there are more than 3
+                # points
+                # https://github.com/ppy/osu/blob/7fbbe74b65e7e399072c198604e9db09fb729626/osu.Game/Rulesets/Objects/SliderCurve.cs#L32  # noqa
+                return MultiBezier(points, req_length)
 
-        return subcls(points)
+            try:
+                center = get_center(*points)
+            except ValueError:
+                # we cannot use a perfect curve function for collinear points;
+                # osu! also falls back to a bezier here
+                return MultiBezier(points, req_length)
+
+            return Perfect(points, req_length, _center=center)
+
+        raise ValueError(f'unknown curve kind: {kind!r}')
 
     @abstractmethod
     def __call__(self, t):
@@ -38,88 +68,207 @@ class Curve(metaclass=ABCMeta):
         """
         raise NotImplementedError('__call__')
 
-    def __init_subclass__(cls):
-        cls._kind_dispatch
-        for meth in super(cls, cls).__abstractmethods__:
-            impl = getattr(cls, meth)
-            if impl.__doc__ is None:
-                impl.__doc__ = getattr(super(cls, cls), meth).__doc__
-
-        for kind in cls.kinds:
-            cls._kind_dispatch[kind] = cls
+    @lazyval
+    def hard_rock(self):
+        """This curve when played with hard rock.
+        """
+        return type(self)(
+            [Position(p.x, 384 - p.y) for p in self.points],
+            self.req_length,
+        )
 
 
 class Bezier(Curve):
-    kinds = 'L'
+    """Bezier curves of degree ``len(points)``.
 
-    def __init__(self, points):
-        self.points = points
+    Parameters
+    ----------
+    points : list[Position]
+        The positions of the control points.
+    req_length : float
+        The pixel length of the curve.
+    """
+    def __init__(self, points, req_length):
+        super().__init__(points, req_length)
         self._coordinates = np.array(points).T
 
     def __call__(self, t):
+        coordinates = self.at(t * (self.req_length / self.length))
+        return Position(coordinates[0, 0], coordinates[0, 1])
+
+    def at(self, t):
+        """Compute the positions of the bezier curve for a sequence of times
+        from 0 to 1.
+
+        Parameters
+        ----------
+        t : np.ndarray
+            The times to compute for.
+
+        Returns
+        -------
+        coordinates : np.ndarray
+            A two dimensional array of shape (len(t), 2) where the first column
+            holds the x coordinate at time t and the second column holds the y
+            coordinate at time t.
+        """
+        t = np.asarray(t).reshape(-1, 1)
+
         points = self.points
 
         n = len(points) - 1
         ixs = np.arange(n + 1)
-        x, y = np.sum(
-            comb(n, ixs) *
-            (1 - t) ** (n - ixs) *
-            t ** ixs *
+        return np.sum(
+            (
+                comb(n, ixs) *
+                (1 - t) ** (n - ixs) *
+                t ** ixs
+            )[:, np.newaxis] *
             self._coordinates,
-            axis=1,
+            axis=-1,
         )
-        return Position(x, y)
 
     @lazyval
     def length(self):
-        """Approximates length as piecewise linear"""
-        total = 0
-        # todo: choose number of points to reduce error below a bound
-        points = [self(t) for t in np.linspace(0, 1, num=5)]
-        for i in range(len(points) - 1):
-            dx = points[i + 1].x - points[i].x
-            dy = points[i + 1].y - points[i].y
-            total += math.sqrt(dx ** 2 + dy ** 2)
-        return total
+        """Approximates length as piecewise linear function.
+        """
+        # NOTE: if the error is high, try increasing the samples
+        points = self.at(np.linspace(0, 1, 50))
+        return np.sum(
+            np.sqrt(
+                np.sum(
+                    np.square(
+                        np.diff(points, axis=0),
+                    ),
+                    axis=1,
+                ),
+            ),
+        )
 
 
-class MetaCurve(Curve):
-    kinds = 'B'
+class _MetaCurveMixin:
+    """Mixin for defining curves which are collections of other curves.
 
-    def __init__(self, points):
-        metapoints = split_at_dupes(points)
-        self.points = points
-        self._curves = [Bezier(points) for points in metapoints]
-
+    Implementers must provide a ``_curves`` attribute which is the collection
+    of curves.
+    """
     @lazyval
     def _ts(self):
         lengths = [c.length for c in self._curves]
         length = sum(lengths)
-        return [i / length for i in accumulate(lengths)]
+        out = []
+        for i, j in enumerate(accumulate(lengths[:-1])):
+            self._curves[i].req_length = lengths[i]
+            out.append(j / length)
+        self._curves[-1].req_length = max(
+            0,
+            lengths[-1] - (length - self.req_length),
+        )
+        out.append(1)
+        return out
 
     def __call__(self, t):
+        ts = self._ts
         if len(self._curves) == 1:
             # Special case where we only have one curve
             return self._curves[0](t)
 
-        bi = bisect.bisect_left(self._ts, t)
-        try:
-            pre_t = self._ts[bi - 1]
-        except IndexError:
+        bi = bisect.bisect_left(ts, t)
+        if bi == 0:
             pre_t = 0
-        post_t = self._ts[bi]
+        else:
+            pre_t = ts[bi - 1]
+
+        post_t = ts[bi]
 
         return self._curves[bi]((t - pre_t) / (post_t - pre_t))
 
 
-class Passthrough(Curve):
-    kinds = 'P'
+class MultiBezier(_MetaCurveMixin, Curve):
+    """MultiBezier is a collection of `:class:~slider.curve.Bezier` curves
+    stitched together at the ends.
 
-    def __init__(self, points):
+    Parameters
+    ----------
+    points : list[Position]
+        The positions of the control points.
+    req_length : float
+        The pixel length of the curve.
+    """
+    def __init__(self, points, req_length):
+        super().__init__(points, req_length)
+
+        self._curves = [
+            Bezier(subpoints, None)
+            for subpoints in self._split_at_dupes(points)
+        ]
+
+    @staticmethod
+    def _split_at_dupes(input_):
+        """Split a sequence of points on duplicates.
+
+        Parameters
+        ----------
+        inp : list[any]
+            The input sequence to split.
+
+        Yields
+        ------
+        group : list[any]
+            The groups split on duplicates.
+        """
+        old_ix = 0
+        for n, (a, b) in enumerate(sliding_window(2, input_), 1):
+            if a == b:
+                yield input_[old_ix:n]
+                old_ix = n
+
+        tail = input_[old_ix:]
+        if tail:
+            yield tail
+
+
+class Linear(_MetaCurveMixin, Curve):
+    """Linear curves traverse the line segments between the given points.
+
+    Parameters
+    ----------
+    points : list[Position]
+        The positions of the control points.
+    req_length : float
+        The pixel length of the curve.
+    """
+    def __init__(self, points, req_length):
+        super().__init__(points, req_length)
+
+        self._curves = [
+            Bezier(subpoints, None) for subpoints in sliding_window(2, points)
+        ]
+
+
+class Perfect(Curve):
+    """Perfect curves traverse the circumference of the circle that passes
+    through the given points.
+
+    Parameters
+    ----------
+    points : list[Position]
+        The positions of the control points.
+    req_length : float
+        The pixel length of the curve.
+    """
+    def __init__(self, points, req_length, *, _center=None):
+        # NOTE: _center exists as an optimization to not recompute the center
+        # of the circle when calling ``Curve.from_kind_and_points``.
         self.points = points
-        self._center = center = get_center(*self.points)
+        self.req_length = req_length
 
-        coordinates = np.array(points) - center
+        if _center is None:
+            _center = get_center(*points)
+
+        self._center = _center
+
+        coordinates = np.array(points) - _center
 
         # angles of 3 points to center
         start_angle, end_angle = np.arctan2(
@@ -140,71 +289,67 @@ class Passthrough(Curve):
         if np.dot(ortho_a_to_c, coordinates[1] - coordinates[0]) < 0:
             self._angle = -(2 * math.pi - self._angle)
 
+        length = abs(
+            self._angle *
+            math.sqrt(coordinates[0][0] ** 2 + coordinates[0][1] ** 2),
+        )
+        if length > req_length:
+            self._angle *= req_length / length
+
     def __call__(self, t):
         return rotate(self.points[0], self._center, self._angle * t)
 
 
 class Catmull(Curve):
-    kinds = 'C'
-
-    def __init__(self, points):
-        self.points = points
-
+    """Catmull curves implement the Catmull-Rom spline algorithm for defining
+    the path.
+    """
     def __call__(self, t):
         raise NotImplementedError('catmull positions not supported yet')
 
 
-def get_center(p1, p2, p3):
+def get_center(a, b, c):
     """Returns the Position of the center of the circle described by the 3
     points
 
     Parameters
     ----------
-    p1, p2, p3 : Position
+    a, b, c : Position
         The three positions.
 
     Returns
     -------
     center : Position
         The center of the three points.
+
+    Notes
+    -----
+    This uses the same algorithm as osu!
+    https://github.com/ppy/osu/blob/7fbbe74b65e7e399072c198604e9db09fb729626/osu.Game/Rulesets/Objects/CircularArcApproximator.cs#L23  # noqa
     """
-    if p2.x == p1.x:
-        # normal t calc won't work
-        t = (p3.y - p1.y) / (2 * (p3.x - p2.x))
+    a, b, c = np.array([a, b, c])
 
-        return Position(
-            0.5 * (p2.x + p3.x) + t * (p3.y - p2.y),
-            0.5 * (p2.y + p3.y) - t * (p3.x - p2.x),
-        )
-    elif p3.y == p2.y:
-        t = (p3.x - p1.x) / (2 * (p2.y - p1.y))
-    else:
-        t = (
-            (
-                (-(p1.y - p3.y) / (2 * (p2.x - p1.x))) -
-                (
-                    ((p3.x - p2.x) * (p1.x - p3.x)) /
-                    (2 * (p2.x - p1.x) * (p3.y - p2.y))
-                )
-            ) *
-            (
-                ((p2.x - p1.x) * (p3.y - p2.y)) /
-                (
-                    ((p3.x - p2.x) * (p2.y - p1.y)) -
-                    ((p2.x - p1.x) * (p3.y - p2.y))
-                )
-            )
-        )
+    a_squared = np.sum(np.square(b - c))
+    b_squared = np.sum(np.square(a - c))
+    c_squared = np.sum(np.square(a - b))
 
-    return Position(
-        0.5 * (p1.x + p2.x) + t * (p2.y - p1.y),
-        0.5 * (p1.y + p2.y) - t * (p2.x - p1.x),
-    )
+    if np.isclose([a_squared, b_squared, c_squared], 0).any():
+        raise ValueError(f'given points are collinear: {a}, {b}, {c}')
+
+    s = a_squared * (b_squared + c_squared - a_squared)
+    t = b_squared * (a_squared + c_squared - b_squared)
+    u = c_squared * (a_squared + b_squared - c_squared)
+
+    sum_ = s + t + u
+
+    if np.isclose(sum_, 0):
+        raise ValueError(f'given points are collinear: {a}, {b}, {c}')
+
+    return Position(*(s * a + t * b + u * c) / sum_)
 
 
 def rotate(position, center, radians):
     """Returns a Position rotated r radians around centre c from p
-
     Parameters
     ----------
     position : Position
@@ -224,14 +369,3 @@ def rotate(position, center, radians):
         (x_dist * math.cos(radians) - y_dist * math.sin(radians)) + c_x,
         (x_dist * math.sin(radians) + y_dist * math.cos(radians)) + c_y,
     )
-
-
-def split_at_dupes(inp):
-    out = []
-    oldi = 0
-    for i in range(1, len(inp)):
-        if inp[i] == inp[i - 1]:
-            out.append(inp[oldi:i])
-            oldi = i
-    out.append(inp[oldi:])
-    return out

@@ -4,6 +4,7 @@ from hashlib import md5
 import os
 import pathlib
 from time import sleep
+import sys
 
 import requests
 
@@ -47,6 +48,30 @@ class Cache:
     def keys(self):
         with self._dbm as d:
             return d.keys()
+
+
+if sys.platform.startswith('win'):
+    def sanitize_filename(name):
+        for invalid_character in r':*?"\/|<>':
+            name = name.replace(invalid_character, '')
+        return name
+else:
+    def sanitize_filename(name):
+        return name.replace('/', '')
+
+sanitize_filename.__doc__ = """\
+Sanitize a filename so that it is safe to write to the filesystem.
+
+Parameters
+----------
+name : str
+    The name of the file without the directory.
+
+Returns
+-------
+sanitized_name : str
+    The name with invalid characters stripped out.
+"""
 
 
 class Library:
@@ -197,7 +222,7 @@ class Library:
 
         Parameters
         ----------
-        beatmap_id : int
+        beatmap_id : int or str
             The id of the beatmap to lookup.
 
         Returns
@@ -259,13 +284,13 @@ class Library:
         if beatmap is None:
             beatmap = Beatmap.parse(data.decode('utf-8-sig'))
 
-        path = self.path / (
+        path = self.path / sanitize_filename(
             f'{beatmap.artist} - '
             f'{beatmap.title} '
             f'({beatmap.creator})'
             f'[{beatmap.version}]'
             f'.osu'
-        ).replace('/', '_')
+        )
         with open(path, 'wb') as f:
             f.write(data)
 
@@ -318,7 +343,7 @@ class Library:
 
         Parameters
         ----------
-        beatmap_id : int
+        beatmap_id : int or str
             The id of the beatmap to download.
         save : bool, optional
             Save the beatmap to disk?
@@ -341,12 +366,16 @@ class Library:
 
     @property
     def md5s(self):
+        """All of the beatmap hashes that this has downloaded.
+        """
         return tuple(
             key[4:] for key in self._cache.keys() if key.startswith(b'md5:')
         )
 
     @property
     def ids(self):
+        """All of the beatmap ids that this has downloaded.
+        """
         return tuple(
             int(key[3:])
             for key in self._cache.keys()

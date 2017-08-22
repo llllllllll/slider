@@ -436,7 +436,7 @@ class UnknownBeatmap(LookupError):
     """
     def __init__(self, kind, id_):
         self.kind = kind
-        self.id_ = id
+        self.id_ = id_
 
     def __str__(self):
         return f'no beatmap found that matched {self.kind}: {self.id_}'
@@ -599,7 +599,7 @@ class Client:
 
         parameters = {
             'k': self.api_key,
-            'a': include_converted_beatmaps,
+            'a': int(bool(include_converted_beatmaps)),
             'limit': limit,
         }
 
@@ -651,7 +651,7 @@ class Client:
                     id_ = beatmap_id
                 else:
                     kind = 'md5'
-                    id_ = beatmap_id
+                    id_ = beatmap_md5
 
                 raise UnknownBeatmap(kind, id_)
 
