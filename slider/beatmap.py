@@ -549,6 +549,30 @@ class Slider(HitObject):
         )
 
     @lazyval
+    def tick_ts(self):
+        """The 't' values (how far along the curve from 0 (start) to 1 (end))
+        of each tick
+        """
+        repeat = self.repeat
+
+        pre_repeat_ts = []
+        append_t = pre_repeat_ts.append
+
+        beats_per_repeat = self.num_beats / repeat
+        for t in orange(self.tick_rate, beats_per_repeat, self.tick_rate):
+            append_t(t / beats_per_repeat)
+        append_t(1)
+
+        repeat_ticks = pre_repeat_ts[-2::-1] + [0]
+
+        return chain.from_iterable(
+            islice(
+                cycle([pre_repeat_ts, repeat_ticks]),
+                repeat,
+            )
+        )
+
+    @lazyval
     def hard_rock(self):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.hard_rock` enabled.
