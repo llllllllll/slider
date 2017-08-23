@@ -327,7 +327,7 @@ def get_center(a, b, c):
     This uses the same algorithm as osu!
     https://github.com/ppy/osu/blob/7fbbe74b65e7e399072c198604e9db09fb729626/osu.Game/Rulesets/Objects/CircularArcApproximator.cs#L23  # noqa
     """
-    a, b, c = np.array([a, b, c])
+    a, b, c = np.array([a, b, c], dtype=np.int64)
 
     a_squared = np.sum(np.square(b - c))
     b_squared = np.sum(np.square(a - c))
