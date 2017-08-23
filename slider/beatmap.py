@@ -673,7 +673,7 @@ class Slider(HitObject):
             ms_per_beat = tp.ms_per_beat
 
         pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
-        num_beats = (pixel_length * repeat) / pixels_per_beat
+        num_beats = np.round(((pixel_length * repeat) / pixels_per_beat) * 16) / 16
         duration = timedelta(milliseconds=np.ceil(num_beats * ms_per_beat))
 
         ticks = int(
