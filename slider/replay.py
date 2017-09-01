@@ -154,10 +154,6 @@ def _consume_actions(buffer):
     return out
 
 
-def _ms(t):
-    return t.total_seconds() * 1e3
-
-
 def _within(p1, p2, d):
     """Determines whether 2 points are within a distance of each other
 
@@ -183,10 +179,10 @@ def _pressed(datum):
 
 
 def _process_circle(obj, rdatum, hw, scores):
-    out_by = abs(_ms(rdatum.offset - obj.time))
-    if out_by < hw.hit_300:
+    out_by = abs(rdatum.offset - obj.time)
+    if out_by < datetime.timedelta(milliseconds=hw.hit_300):
         scores["300s"].append(obj)
-    elif out_by < hw.hit_100:
+    elif out_by < datetime.timedelta(milliseconds=hw.hit_100):
         scores["100s"].append(obj)
     else:
         # must be within the 50 hit window or we wouldn't be here
@@ -196,6 +192,7 @@ def _process_circle(obj, rdatum, hw, scores):
 def _process_slider(obj, rdata, head_hit, rad, scores):
     t_changes = []
     t_changes_append = t_changes.append
+
     if head_hit:
         duration = obj.end_time - obj.time
         t = (rdata[0].offset - obj.time) / duration
@@ -204,20 +201,7 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
     else:
         scores["slider_breaks"].append(obj)
         on = False
-    # offsets = [p.offset for p in rdata]
-    # for n, tick in enumerate(ticks):
-    #     # find points either side of tick
-    #     bi = bisect.bisect(offsets, tick.offset)
-    #     lpoint, rpoint = rdata[bi - 1], rdata[bi]
-    #     lpos, rpos = lpoint.position, rpoint.position
-    #     # linearly interpolate between them
-    #     r = (tick.offset - lpoint.offset) / (rpoint.offset - lpoint.offset)
-    #     npos = Position(
-    #         lpos.x + r * (rpos.x - lpos.x),
-    #         lpos.y + r * (rpos.y - lpos.y)
-    #     )
-    #     if not (_pressed(lpoint) or _pressed(rpoint)
-    #             and _within(tick, npos, rad * 3)):
+
     for datum in rdata:
         duration = obj.end_time - obj.time
         t = (datum.offset - obj.time) / duration
@@ -766,10 +750,10 @@ class Replay:
                 continue
             # we can ignore events before the hit window so iterate
             # until we get past the beginning of the hit window
-            while _ms(actions[i].offset) < _ms(obj.time) - hw[2]:
+            while actions[i].offset < obj.time - datetime.timedelta(milliseconds=hw.hit_50):
                 i += 1
             starti = i
-            while _ms(actions[i].offset) < _ms(obj.time) + hw[2]:
+            while actions[i].offset < obj.time + datetime.timedelta(milliseconds=hw.hit_50):
                 if (((actions[i].key1 and not actions[i - 1].key1)
                     or (actions[i].key2 and not actions[i - 1].key2))
                     and _within(actions[i].position, obj.position, rad)):
