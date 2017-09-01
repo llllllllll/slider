@@ -763,6 +763,7 @@ class Replay:
             if isinstance(obj, Spinner):
                 # spinners are hard
                 scores['300s'].append(obj)
+                continue
             # we can ignore events before the hit window so iterate
             # until we get past the beginning of the hit window
             while _ms(actions[i].offset) < _ms(obj.time) - hw[2]:
