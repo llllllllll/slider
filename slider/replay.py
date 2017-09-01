@@ -194,14 +194,14 @@ def _process_circle(obj, rdatum, hw, scores):
 
 
 def _process_slider(obj, rdata, head_hit, rad, scores):
-    tick_ts = list(obj.tick_ts)
     t_changes = []
     t_changes_append = t_changes.append
-    missed_points = 0
-    on = True
-    if not head_hit:
-        t_changes_append(0)
-        missed_points += 1
+    if head_hit:
+        duration = obj.end_time - obj.time
+        t = (rdata[0].offset - obj.time) / duration
+        t_changes_append(t)
+        on = True
+    else:
         scores["slider_breaks"].append(obj)
         on = False
     # offsets = [p.offset for p in rdata]
@@ -226,25 +226,29 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
             if on and not (_pressed(datum) and _within(nearest_pos, datum.position, rad * 3)):
                 t_changes_append(t)
                 on = False
-            elif not on and (_pressed(datum) and _within(nearest_pos, datum.position, rad * 2)):
+            elif not on and (_pressed(datum) and _within(nearest_pos, datum.position, rad)):
                 t_changes_append(t)
                 on = True
 
-    if len(t_changes) > 0:  # not perfect
-        for tick in tick_ts:
-            if bisect.bisect_left(t_changes, tick) % 2 == 1:
-                # missed a tick
-                missed_points += 1
+    tick_ts = list(obj.tick_ts)
+    missed_points = 0 if head_hit else 1
+    for tick in tick_ts:
+        bi = bisect.bisect_left(t_changes, tick)
+        if bi % 2 == 0:
+            # missed a tick
+            if tick is tick_ts[-1]:
+                if len(t_changes) > 0 and len(t_changes) == bi and t_changes[-1] > 0.9:
+                    # held close enough to last tick
+                    continue
                 # end tick doesn't cause sliderbreak
-                if tick is not tick_ts[-1] and obj not in scores["slider_breaks"]:
-                    scores["slider_breaks"].append(obj)
-    else:
-        scores["300s"].append(obj)
-        return
-    if missed_points == len(tick_ts) + 1:
+            elif obj not in scores["slider_breaks"]:
+                scores["slider_breaks"].append(obj)
+            missed_points += 1
+
+    if missed_points == obj.ticks:
         # all ticks and head missed -> miss
         scores["misses"].append(obj)
-    elif missed_points > (len(tick_ts) + 1) / 2:
+    elif missed_points > obj.ticks / 2:
         scores["50s"].append(obj)
     elif missed_points > 0:
         scores["100s"].append(obj)
