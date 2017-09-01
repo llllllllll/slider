@@ -9,7 +9,7 @@ from .bit_enum import BitEnum
 from .game_mode import GameMode
 from .mod import Mod, od_to_ms, circle_radius
 from .position import Position
-from .utils import accuracy, lazyval
+from .utils import accuracy, lazyval, orange
 
 
 @unique
@@ -230,14 +230,14 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
                 t_changes_append(t)
                 on = True
 
-    tick_ts = list(obj.tick_ts)
+    tick_ts = list(orange(obj.tick_rate, obj.num_beats, obj.tick_rate))
     missed_points = 0 if head_hit else 1
     for tick in tick_ts:
         bi = bisect.bisect_left(t_changes, tick)
         if bi % 2 == 0:
             # missed a tick
             if tick is tick_ts[-1]:
-                if len(t_changes) > 0 and len(t_changes) == bi and t_changes[-1] > 0.9:
+                if len(t_changes) > 0 and len(t_changes) == bi and abs(tick_ts[-1] - t_changes[-1]) < 0.1:
                     # held close enough to last tick
                     continue
                 # end tick doesn't cause sliderbreak
