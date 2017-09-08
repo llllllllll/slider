@@ -1852,7 +1852,7 @@ class Beatmap:
                               hard_rock=False,
                               double_time=False,
                               half_time=False,
-                              inc_times=False):
+                              include_times=False):
         """Compute the difficulty of each hit object.
 
         Parameters
@@ -1867,17 +1867,18 @@ class Beatmap:
             Compute difficulty with double time.
         half_time : bool
             Compute difficulty with half time.
-        inc_times : bool
+        include_times : bool
             Whether to include the times of the hit objects.
 
         Returns
         ----------
         difficulties : array
             1D array of difficulties.
-            If inc_times is True, the array is 2D
+            If include_times is True, the array is 2D
             and contains time, difficulty pairs.
         """
         cs = self.cs()
+        # NOTE: This is different than normal conversion
         if hard_rock:
             cs *= 1.3
         elif easy:
@@ -1892,7 +1893,7 @@ class Beatmap:
             def modify(e):
                 return e
 
-        if inc_times:
+        if include_times:
             strains = np.empty((len(self.hit_objects) - 1, 2))
         else:
             strains = np.empty(len(self.hit_objects) - 1)
@@ -1905,7 +1906,7 @@ class Beatmap:
                 radius,
                 previous,
             )
-            if inc_times:
+            if include_times:
                 strains[i] = hit_object.time.total_seconds(), new.strains[strain]
             else:
                 strains[i] = new.strains[strain]
@@ -1960,7 +1961,7 @@ class Beatmap:
                 hard_rock=hard_rock,
                 double_time=double_time,
                 half_time=half_time,
-                inc_times=True,
+                include_times=True,
             ),
             smoothing_window,
             num_points,
