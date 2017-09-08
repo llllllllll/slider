@@ -1,13 +1,15 @@
+import bisect
 import datetime
 from enum import unique
 import os
 import lzma
 
+from .beatmap import Circle, Slider, Spinner
 from .bit_enum import BitEnum
 from .game_mode import GameMode
-from .mod import Mod
+from .mod import Mod, od_to_ms, circle_radius
 from .position import Position
-from .utils import accuracy, lazyval
+from .utils import accuracy, lazyval, orange
 
 
 @unique
@@ -150,6 +152,90 @@ def _consume_actions(buffer):
             action_mask['k2'],
         ))
     return out
+
+
+def _within(p1, p2, d):
+    """Determines whether 2 points are within a distance of each other
+
+    Parameters
+    ---------
+    p1 : Position
+        The first point
+    p2 : Position
+        The second point
+    d : int or float
+        The distance
+
+    Returns
+    ----------
+    bool
+        Whether the distance between the points is less than d
+    """
+    return (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 < d ** 2
+
+
+def _pressed(datum):
+    return datum.key1 or datum.key2 or datum.mouse1 or datum.mouse2
+
+
+def _process_circle(obj, rdatum, hw, scores):
+    out_by = abs(rdatum.offset - obj.time)
+    if out_by < datetime.timedelta(milliseconds=hw.hit_300):
+        scores["300s"].append(obj)
+    elif out_by < datetime.timedelta(milliseconds=hw.hit_100):
+        scores["100s"].append(obj)
+    else:
+        # must be within the 50 hit window or we wouldn't be here
+        scores["50s"].append(obj)
+
+
+def _process_slider(obj, rdata, head_hit, rad, scores):
+    t_changes = []
+    t_changes_append = t_changes.append
+    duration = obj.end_time - obj.time
+
+    if head_hit:
+        t_changes_append((rdata[0].offset - obj.time) / duration)
+        on = True
+    else:
+        scores["slider_breaks"].append(obj)
+        on = False
+
+    for datum in rdata:
+        t = (datum.offset - obj.time) / duration
+        if 0 <= t <= 1:
+            nearest_pos = obj.curve(t)
+            if on and not (_pressed(datum) and _within(nearest_pos, datum.position, rad * 3)):
+                t_changes_append(t)
+                on = False
+            elif not on and (_pressed(datum) and _within(nearest_pos, datum.position, rad)):
+                t_changes_append(t)
+                on = True
+
+    tick_ts = list(orange(obj.tick_rate, obj.num_beats, obj.tick_rate))
+    missed_points = 0 if head_hit else 1
+    for tick in tick_ts:
+        bi = bisect.bisect_left(t_changes, tick)
+        if bi % 2 == 0:
+            # missed a tick
+            if tick is tick_ts[-1]:
+                if len(t_changes) > 0 and len(t_changes) == bi and abs(tick_ts[-1] - t_changes[-1]) < 0.1:
+                    # held close enough to last tick
+                    continue
+                # end tick doesn't cause sliderbreak
+            elif obj not in scores["slider_breaks"]:
+                scores["slider_breaks"].append(obj)
+            missed_points += 1
+
+    if missed_points == obj.ticks:
+        # all ticks and head missed -> miss
+        scores["misses"].append(obj)
+    elif missed_points > obj.ticks / 2:
+        scores["50s"].append(obj)
+    elif missed_points > 0:
+        scores["100s"].append(obj)
+    else:
+        scores["300s"].append(obj)
 
 
 class Replay:
@@ -639,6 +725,73 @@ class Replay:
             beatmap=beatmap,
             **mod_kwargs,
         )
+
+    @lazyval
+    def hits(self):
+        """Dictionary containing beatmap's hit objects sorted into
+        300s, 100s, 50s, misses, slider_breaks as they were hit in the replay
+
+        Each hit object will be in exactly one category except sliders which
+        may be in slider_breaks in addition to another category
+
+        Slider calculations are unreliable so some objects may in the wrong
+        category.
+        Spinners are not yet calculated so are always in the 300s category.
+        """
+        beatmap = self.beatmap
+        actions = self.actions
+        scores = {"300s": [],
+                  "100s": [],
+                  "50s": [],
+                  "misses": [],
+                  "slider_breaks": [],
+                  }
+        hw = od_to_ms(beatmap.od(easy=self.easy, hard_rock=self.hard_rock))
+        rad = circle_radius(beatmap.cs(easy=self.easy, hard_rock=self.hard_rock))
+        i = 0
+        for obj in beatmap.hit_objects:
+            if self.hard_rock:
+                obj = obj.hard_rock
+            if isinstance(obj, Spinner):
+                # spinners are hard
+                scores['300s'].append(obj)
+                continue
+            # we can ignore events before the hit window so iterate
+            # until we get past the beginning of the hit window
+            while actions[i].offset < obj.time - datetime.timedelta(milliseconds=hw.hit_50):
+                i += 1
+            starti = i
+            while actions[i].offset < obj.time + datetime.timedelta(milliseconds=hw.hit_50):
+                if (((actions[i].key1 and not actions[i - 1].key1)
+                    or (actions[i].key2 and not actions[i - 1].key2))
+                    and _within(actions[i].position, obj.position, rad)):
+                    # key pressed that wasn't before and
+                    # event is in hit window and correct location
+                    if isinstance(obj, Circle):
+                        _process_circle(obj, actions[i], hw, scores)
+                    elif isinstance(obj, Slider):
+                        # Head was hit
+                        starti = i
+                        while actions[i].offset <= obj.end_time:
+                            i += 1
+                        _process_slider(
+                            obj, actions[starti:i + 1], True, rad, scores
+                        )
+                    break
+                i += 1
+            else:
+                # no events in the hit window were in the correct location
+                if isinstance(obj, Slider):
+                    # Slider ticks might still be hit
+                    while actions[i].offset <= obj.end_time:
+                        i += 1
+                    _process_slider(
+                        obj, actions[starti:i + 1], False, rad, scores
+                    )
+                else:
+                    scores["misses"].append(obj)
+            i += 1
+        return scores
 
     def __repr__(self):
         try:
