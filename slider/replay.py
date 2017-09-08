@@ -192,18 +192,16 @@ def _process_circle(obj, rdatum, hw, scores):
 def _process_slider(obj, rdata, head_hit, rad, scores):
     t_changes = []
     t_changes_append = t_changes.append
+    duration = obj.end_time - obj.time
 
     if head_hit:
-        duration = obj.end_time - obj.time
-        t = (rdata[0].offset - obj.time) / duration
-        t_changes_append(t)
+        t_changes_append((rdata[0].offset - obj.time) / duration)
         on = True
     else:
         scores["slider_breaks"].append(obj)
         on = False
 
     for datum in rdata:
-        duration = obj.end_time - obj.time
         t = (datum.offset - obj.time) / duration
         if 0 <= t <= 1:
             nearest_pos = obj.curve(t)
@@ -730,6 +728,16 @@ class Replay:
 
     @lazyval
     def hits(self):
+        """Dictionary containing beatmap's hit objects sorted into
+        300s, 100s, 50s, misses, slider_breaks as they were hit in the replay
+
+        Each hit object will be in exactly one category except sliders which
+        may be in slider_breaks in addition to another category
+
+        Slider calculations are unreliable so some objects may in the wrong
+        category.
+        Spinners are not yet calculated so are always in the 300s category.
+        """
         beatmap = self.beatmap
         actions = self.actions
         scores = {"300s": [],
@@ -766,7 +774,6 @@ class Replay:
                         starti = i
                         while actions[i].offset <= obj.end_time:
                             i += 1
-                        # guessing rad multiplier
                         _process_slider(
                             obj, actions[starti:i + 1], True, rad, scores
                         )
