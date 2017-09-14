@@ -1,53 +1,14 @@
-import dbm
 from functools import lru_cache
 from hashlib import md5
 import os
 import pathlib
-from time import sleep
+import sqlite3
 import sys
 
 import requests
 
 from .beatmap import Beatmap
 from .cli import maybe_show_progress
-
-
-class Cache:
-    def __init__(self, path, overwrite):
-        self.path = path
-        if overwrite:
-            dbm.open(str(self.path), 'n').close()
-
-    @property
-    def _dbm(self):
-        # busy wait for the other consumers to be done with this
-        while True:
-            try:
-                return dbm.open(str(self.path), 'w')
-            except dbm.error:
-                sleep(0.05)
-
-    def __getitem__(self, key):
-        with self._dbm as d:
-            return d[key]
-
-    def __setitem__(self, key, value):
-        with self._dbm as d:
-            d[key] = value
-
-    def __delitem__(self, key):
-        with self._dbm as d:
-            del d[key]
-
-    def pop(self, key):
-        with self._dbm as d:
-            value = d[key]
-            del d[key]
-            return value
-
-    def keys(self):
-        with self._dbm as d:
-            return d.keys()
 
 
 if sys.platform.startswith('win'):
@@ -94,19 +55,28 @@ class Library:
                  path,
                  *,
                  cache=DEFAULT_CACHE_SIZE,
-                 download_url=DEFAULT_DOWNLOAD_URL,
-                 _overwrite=False):
+                 download_url=DEFAULT_DOWNLOAD_URL):
         self.path = path = pathlib.Path(path)
 
         self._read_beatmap = lru_cache(cache)(self._raw_read_beatmap)
-        self._cache = Cache(path / '.slider.db', overwrite=_overwrite)
+        self._db = db = sqlite3.connect(str(path / '.slider.db'))
+        with db:
+            db.execute(
+                """\
+                CREATE TABLE IF NOT EXISTS beatmaps (
+                    md5 BLOB PRIMARY KEY,
+                    id INT,
+                    path TEXT UNIQUE NOT NULL
+                )
+                """,
+            )
         self._download_url = download_url
 
     def close(self):
         """Close any resources used by this library.
         """
         self._read_beatmap.cache_clear()
-        self._cache.close()
+        self._db.close()
 
     def __del__(self):
         try:
@@ -141,12 +111,12 @@ class Library:
             for directory, _, filenames in os.walk(path):
                 for filename in filenames:
                     if filename.endswith('.osu'):
-                        yield os.path.join(directory, filename)
+                        yield pathlib.Path(os.path.join(directory, filename))
         else:
             for entry in os.scandir(directory):
                 path = entry.path
                 if path.endswith('.osu'):
-                    yield path
+                    yield pathlib.Path(path)
 
     @classmethod
     def create_db(cls,
@@ -178,16 +148,24 @@ class Library:
         Moving the underlying ``.osu`` files invalidates the library. If this
         happens, just re-run ``create_db`` again.
         """
-        self = cls(path, _overwrite=True)
-        write_to_cache = self._write_to_cache
+        path = pathlib.Path(path)
+        db_path = path / '.slider.db'
+        try:
+            # ensure the db is cleared
+            os.remove(db_path)
+        except FileNotFoundError:
+            pass
+
+        self = cls(path, cache=cache, download_url=download_url)
+        write_to_db = self._write_to_db
 
         progress = maybe_show_progress(
             self._osu_files(path, recurse=recurse),
             show_progress,
             label='Processing beatmaps: ',
-            item_show_func=lambda path: path,
+            item_show_func=lambda p: 'Done!' if p is None else str(p.stem),
         )
-        with progress as it:
+        with self._db, progress as it:
             for path in it:
                 with open(path, 'rb') as f:
                     data = f.read()
@@ -197,7 +175,7 @@ class Library:
                 except ValueError as e:
                     raise ValueError(f'failed to parse {path}') from e
 
-                write_to_cache(beatmap, data, path)
+                write_to_db(beatmap, data, path)
 
         return self
 
@@ -212,10 +190,30 @@ class Library:
         This is a ``staticmethod`` to avoid a cycle from self to the lru_cache
         back to self.
         """
-        if beatmap_id is not None:
-            return Beatmap.from_path(self._cache[f'id:{beatmap_id}'])
+        with self._db:
+            if beatmap_id is not None:
+                key = beatmap_id
+                path_query = self._db.execute(
+                    'SELECT path FROM beatmaps WHERE id = ?',
+                    (beatmap_id,),
+                )
+            else:
+                key = beatmap_md5
+                path_query = self._db.execute(
+                    'SELECT path FROM beatmaps WHERE md5 = ?',
+                    (beatmap_md5,),
+                )
 
-        return Beatmap.from_path(self._cache[f'md5:{beatmap_md5}'])
+        path = path_query.fetchone()
+        if path is None:
+            raise KeyError(key)
+        else:
+            path, = path
+
+        # Make path relative to the root path. We save paths relative to
+        # ``self.path`` so a library can be relocated without requiring a
+        # rebuild
+        return Beatmap.from_path(self.path / path)
 
     def lookup_by_id(self, beatmap_id, *, download=False, save=False):
         """Retrieve a beatmap by its beatmap id.
@@ -294,7 +292,8 @@ class Library:
         with open(path, 'wb') as f:
             f.write(data)
 
-        self._write_to_cache(beatmap, data, path)
+        with self._db:
+            self._write_to_db(beatmap, data, path)
         return beatmap
 
     def delete(self, beatmap, *, remove_file=True):
@@ -307,14 +306,22 @@ class Library:
         remove_file : bool, optional
             Remove the .osu file from disk.
         """
-        path = self._cache.pop(f'id:{beatmap.beatmap_id}')
-        md5 = self._cache.pop(f'id_to_md5:{beatmap.beatmap_id}')
-        del self._cache[f'md5:{md5}']
-        if remove_file:
-            os.unlink(path)
+        with self._db:
+            if remove_file:
+                paths = self._db.execute(
+                    'SELECT path FROM beatmaps WHERE id = ?',
+                    (beatmap.beatmap_id,),
+                )
+                for path, in paths:
+                    os.unlink(path)
 
-    def _write_to_cache(self, beatmap, data, path):
-        """Write data to the cache.
+            self._db.execute(
+                'DELETE FROM beatmaps WHERE id = ?',
+                (beatmap.beatmap_id,),
+            )
+
+    def _write_to_db(self, beatmap, data, path):
+        """Write data to the database.
 
         Parameters
         ----------
@@ -325,18 +332,16 @@ class Library:
         path : str
             The path to save
         """
-        path = os.path.abspath(path)
-
+        # save paths relative to ``self.path`` so a library can be relocated
+        # without requiring a rebuild
+        path = path.relative_to(self.path)
         beatmap_md5 = md5(data).hexdigest()
-        self._cache[f'md5:{beatmap_md5}'] = path
-
         beatmap_id = beatmap.beatmap_id
-        if beatmap_id is not None:
-            # very old beatmaps didn't store the id in the ``.osu``
-            # file
-            self._cache[f'id:{beatmap_id}'] = path
-            # map the id back to the hash
-            self._cache[f'id_to_md5:{{beatmap_id}}'] = beatmap_md5
+
+        self._db.execute(
+            'INSERT INTO beatmaps VALUES (?,?,?)',
+            (beatmap_md5, beatmap_id, str(path)),
+        )
 
     def download(self, beatmap_id, *, save=False):
         """Download a beatmap.
@@ -369,7 +374,7 @@ class Library:
         """All of the beatmap hashes that this has downloaded.
         """
         return tuple(
-            key[4:] for key in self._cache.keys() if key.startswith(b'md5:')
+            md5 for md5, in self._db.execute('SELECT md5 FROM beatmaps')
         )
 
     @property
@@ -377,7 +382,7 @@ class Library:
         """All of the beatmap ids that this has downloaded.
         """
         return tuple(
-            int(key[3:])
-            for key in self._cache.keys()
-            if key.startswith(b'id:')
+            int(id_)
+            for id_, in self._db.execute('SELECT id FROM beatmaps')
+            if id_ is not None
         )
