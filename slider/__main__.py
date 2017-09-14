@@ -10,10 +10,9 @@ def main():
 
 
 @main.command()
-@click.option(
-    '--beatmaps',
-    help='The path to the beatmap directory.',
-    required=True,
+@click.argument(
+    'beatmaps',
+    type=click.Path(exists=True, file_okay=False),
 )
 @click.option(
     '--recurse/--no-recurse',
