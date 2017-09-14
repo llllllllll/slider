@@ -959,14 +959,6 @@ def _moving_average_by_time(times, data, delta, num):
     return out_times.reshape((-1, 1)), out_values
 
 
-@unique
-class Strain(IntEnum):
-    """Indices for the strain specific values.
-    """
-    speed = 0
-    aim = 1
-
-
 class _DifficultyHitObject:
     """An object used to accumulate the strain information for calculating
     stars.
@@ -991,6 +983,13 @@ class _DifficultyHitObject:
 
     circle_size_buffer_threshold = 30
 
+    @unique
+    class Strain(IntEnum):
+        """Indices for the strain specific values.
+        """
+        speed = 0
+        aim = 1
+
     def __init__(self, hit_object, radius, previous=None):
         self.hit_object = hit_object
 
@@ -1011,8 +1010,8 @@ class _DifficultyHitObject:
             self.strains = 0, 0
         else:
             self.strains = (
-                self._calculate_strain(previous, Strain.speed),
-                self._calculate_strain(previous, Strain.aim),
+                self._calculate_strain(previous, self.Strain.speed),
+                self._calculate_strain(previous, self.Strain.aim),
             )
 
     def _calculate_strain(self, previous, strain):
@@ -1056,7 +1055,7 @@ class _DifficultyHitObject:
         return np.sqrt((start.x - end.x) ** 2 + (start.y - end.y) ** 2)
 
     def _spacing_weight(self, distance, strain):
-        if strain == Strain.speed:
+        if strain == self.Strain.speed:
             if distance > self.single_spacing:
                 return 2.5
             elif distance > self.stream_spacing:
@@ -2062,11 +2061,11 @@ class Beatmap:
         rhythm_awkwardness *= 82
 
         aim = self._calculate_difficulty(
-            Strain.aim,
+            _DifficultyHitObject.Strain.aim,
             difficulty_hit_objects,
         )
         speed = self._calculate_difficulty(
-            Strain.speed,
+            _DifficultyHitObject.Strain.speed,
             difficulty_hit_objects,
         )
 
