@@ -909,33 +909,54 @@ def _get_as_bool(groups, section, field, default=no_default):
         )
 
 
-def _moving_average_by_time(data, delta, num):
-    """Performs a moving average over a time window of an array where the
-    first column is the time and the second the value.
-    Returns an array with the first column containing times and the second
-    containing the average at that time.
+def _moving_average_by_time(times, data, delta, num):
+    """Take the moving average of some values and sample it at regular
+    frequencies.
+
+    Parameters
+    ----------
+    times : np.ndarray
+        The array of times to use in the average.
+    data : np.ndarray
+        The array of values to take the average of.
+    delta : int
+        The length of the leading and trailing window in seconds
+    num : int
+        The number of samples to take.
+
+    Returns
+    -------
+    averages : np.ndarray
+        A two column array where the first column is the time and the second
+        column is the reduction at the time. The length of axis 0 is ``num``.
     """
-    current_sum = 0
-    front = 0
-    back = 0
-    out = np.empty((num, 2))
-    for i, t in enumerate(np.linspace(0, data[-1][0], num)):
-        while data[back][0] < t - delta:
-            # remove outdated readings
-            current_sum -= data[back][1]
-            back += 1
-        while True:
-            try:
-                if data[front][0] > t + delta:
-                    break
-            except IndexError:
-                break
-            # add readings from the front
-            current_sum += data[front][1]
-            front += 1
-        count = front - back
-        out[i] = t, 0 if count == 0 else current_sum / count
-    return out
+
+    # take an even sample from 0 to the end time
+    out_times = np.linspace(times[0].item(), times[-1].item(), num, dtype='timedelta64[ns]')
+    delta = np.timedelta64(int(delta * 1e9), 'ns')
+
+    # compute the start and stop indices for each sampled window
+    window_start_ixs = np.searchsorted(times[:, 0], out_times - delta)
+    window_stop_ixs = np.searchsorted(times[:, 0], out_times + delta)
+
+    # a 2d array of shape ``(num, 2)`` where each row holds the start and stop
+    # index for the window
+    window_ixs = np.stack([window_start_ixs, window_stop_ixs], axis=1)
+
+    # append a nan to the end of the values so that we can do many slices all
+    # the way to the end in reduceat
+    values = np.vstack([data, [np.nan, np.nan]])
+
+    # sum the values in the ranges ``[window_start_ixs, window_stop_ixs)``
+    speed_window_sums = np.add.reduceat(values[:, 0], window_ixs.ravel())[::2]
+    aim_window_sums = np.add.reduceat(values[:, 1], window_ixs.ravel())[::2]
+    window_sizes = np.diff(window_ixs, axis=1).ravel()
+    # convert window_sizes of 0 to 1 (inplace) to prevent division by zero
+    np.clip(window_sizes, 1, None, out=window_sizes)
+
+    out_values = np.stack([speed_window_sums / window_sizes, aim_window_sums / window_sizes], axis=1)
+
+    return out_times.reshape((-1, 1)), out_values
 
 
 @unique
@@ -1847,18 +1868,15 @@ class Beatmap:
                 yield sequence[n], sequence[m]
 
     def hit_object_difficulty(self,
-                              strain,
+                              *,
                               easy=False,
                               hard_rock=False,
                               double_time=False,
-                              half_time=False,
-                              include_times=False):
+                              half_time=False):
         """Compute the difficulty of each hit object.
 
         Parameters
         ----------
-        strain : Strain
-            Enum of the sort of strain to calculate.
         easy : bool
             Compute difficulty with easy.
         hard_rock : bool
@@ -1867,8 +1885,6 @@ class Beatmap:
             Compute difficulty with double time.
         half_time : bool
             Compute difficulty with half time.
-        include_times : bool
-            Whether to include the times of the hit objects.
 
         Returns
         ----------
@@ -1893,10 +1909,8 @@ class Beatmap:
             def modify(e):
                 return e
 
-        if include_times:
-            strains = np.empty((len(self.hit_objects) - 1, 2))
-        else:
-            strains = np.empty(len(self.hit_objects) - 1)
+        times = np.empty((len(self.hit_objects) - 1, 1), dtype='timedelta64[ns]')
+        strains = np.empty((len(self.hit_objects) - 1, 2), dtype=np.float64)
 
         hit_objects = map(modify, self.hit_objects)
         previous = _DifficultyHitObject(next(hit_objects), radius)
@@ -1906,18 +1920,16 @@ class Beatmap:
                 radius,
                 previous,
             )
-            if include_times:
-                strains[i] = hit_object.time.total_seconds(), new.strains[strain]
-            else:
-                strains[i] = new.strains[strain]
+            times[i] = hit_object.time
+            strains[i] = new.strains
             previous = new
 
-        return strains
+        return times, strains
 
     def smoothed_difficulty(self,
-                            strain,
                             smoothing_window,
                             num_points,
+                            *,
                             easy=False,
                             hard_rock=False,
                             double_time=False,
@@ -1933,8 +1945,6 @@ class Beatmap:
 
         Parameters
         ----------
-        strain : Strain
-            Enum of the sort of strain to calculate.
         smoothing_window : int or float
             Time window (in seconds) for the moving average.
             Bigger will make a smoother curve.
@@ -1954,15 +1964,16 @@ class Beatmap:
         difficulties : array
             2D array containing smoothed time, difficulty pairs.
         """
+        times, values = self.hit_object_difficulty(
+            easy=easy,
+            hard_rock=hard_rock,
+            double_time=double_time,
+            half_time=half_time
+        )
+
         return _moving_average_by_time(
-            self.hit_object_difficulty(
-                strain,
-                easy=easy,
-                hard_rock=hard_rock,
-                double_time=double_time,
-                half_time=half_time,
-                include_times=True,
-            ),
+            times,
+            values,
             smoothing_window,
             num_points,
         )
