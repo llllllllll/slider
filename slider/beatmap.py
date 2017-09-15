@@ -918,17 +918,18 @@ def _moving_average_by_time(times, data, delta, num):
     times : np.ndarray
         The array of times to use in the average.
     data : np.ndarray
-        The array of values to take the average of.
-    delta : int
+        The array of values to take the average of. Each column is averaged independently.
+    delta : int or float
         The length of the leading and trailing window in seconds
     num : int
         The number of samples to take.
 
     Returns
     -------
+    times : np.ndarray
+        A column vector of the times sampled at.
     averages : np.ndarray
-        A two column array where the first column is the time and the second
-        column is the reduction at the time. The length of axis 0 is ``num``.
+        A column array of the averages. 1 column per column in the input
     """
 
     # take an even sample from 0 to the end time
@@ -945,16 +946,15 @@ def _moving_average_by_time(times, data, delta, num):
 
     # append a nan to the end of the values so that we can do many slices all
     # the way to the end in reduceat
-    values = np.vstack([data, [np.nan, np.nan]])
+    values = np.vstack([data, [np.nan] * data.shape[1]])
 
     # sum the values in the ranges ``[window_start_ixs, window_stop_ixs)``
-    speed_window_sums = np.add.reduceat(values[:, 0], window_ixs.ravel())[::2]
-    aim_window_sums = np.add.reduceat(values[:, 1], window_ixs.ravel())[::2]
+    window_sums = (np.add.reduceat(i, window_ixs.ravel())[::2] for i in values.transpose())
     window_sizes = np.diff(window_ixs, axis=1).ravel()
     # convert window_sizes of 0 to 1 (inplace) to prevent division by zero
     np.clip(window_sizes, 1, None, out=window_sizes)
 
-    out_values = np.stack([speed_window_sums / window_sizes, aim_window_sums / window_sizes], axis=1)
+    out_values = np.stack([i / window_sizes for i in window_sums], axis=1)
 
     return out_times.reshape((-1, 1)), out_values
 
@@ -1887,10 +1887,10 @@ class Beatmap:
 
         Returns
         ----------
-        difficulties : array
-            1D array of difficulties.
-            If include_times is True, the array is 2D
-            and contains time, difficulty pairs.
+        times : np.ndarray
+            Single column array of times as ``timedelta64[ns]``
+        difficulties : np.ndarray
+            Array of difficulties as ``float64``. Speed in the first column, aim in the second.
         """
         cs = self.cs()
         # NOTE: This is different than normal conversion
