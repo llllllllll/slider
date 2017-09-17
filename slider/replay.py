@@ -70,23 +70,77 @@ class Action:
 
 
 class HitResult(namedtuple('HitResult', ('hit_object', 'score'))):
-    pass
+    """An abstract hit result.
+
+    Parameters
+    ----------
+    hit_object : HitObject
+        The hit object the result is for.
+    score : HitScore
+        The score achieved.
+    """
 
 
 class CircleHitResult(namedtuple('CircleHitResult',
                                  HitResult._fields
                                  + ('action', 'aim_error', 'time_error', 'closest_aim_action', 'closest_time_action')),
                       HitResult):
-    pass
+    """A hit result for a Circle hit object
+
+    Parameters
+    ----------
+    hit_object : Circle
+        The hit object the result is for.
+    score : HitScore
+        The score achieved.
+    action : Action or None
+        The action that caused this result. None for misses.
+    aim_error : float
+        How far away (in osu! pixels) from the centre of the circle the hit was
+        or the closest action for a miss
+    time_error : timedelta
+        How far off in time the hit was from perfect.
+        or the closest action for a miss
+    closest_aim_action : Action, optional
+        The action that was closest in space during the hitwindow.
+        None for non-misses.
+    closest_time_action : Action, optional
+        The action that was closest in time during the hitwindow.
+        None for non-misses.
+    """
 CircleHitResult.__new__.__defaults__ = (None, None)
 
 
-class SliderHitResult(namedtuple('SliderHitResult', HitResult._fields + ('slider_break', 'actions', 'ticks_hit')), HitResult):
-    pass
+class SliderHitResult(namedtuple('SliderHitResult',
+                                 HitResult._fields + ('actions', 'slider_break', 'ticks_hit')),
+                      HitResult):
+    """A hit result for a Slider hit object
+
+    Parameters
+    ----------
+    hit_object : Slider
+        The hit object the result is for.
+    score : HitScore
+        The score achieved.
+    actions : list[Action]
+        The actions that caused this result.
+    slider_break : bool
+        Whether the result was a slider_break
+    ticks_hit : list[bool]
+        Which ticks were hit.
+    """
 
 
 class SpinnerHitResult(namedtuple('SpinnerHitResult', HitResult._fields), HitResult):
-    pass
+    """A hit result for a Spinner hit object
+
+    Parameters
+    ----------
+    hit_object : Spinner
+        The hit object the result is for.
+    score : HitScore
+        The score achieved.
+    """
 
 
 def _consume_byte(buffer):
@@ -220,13 +274,8 @@ def _process_circle(obj, action, hw, out_by, distance):
     else:
         # must be within the 50 hit window or we wouldn't be here
         score = HitScore.hit_50
-    return CircleHitResult(
-        obj,
-        score,
-        action,
-        distance,
-        out_by,
-    )
+
+    return CircleHitResult(obj, score, action, distance, out_by)
 
 
 def _process_slider(obj, rdata, head_hit, rad):
@@ -286,7 +335,7 @@ def _process_slider(obj, rdata, head_hit, rad):
     else:
         score = HitScore.hit_300
 
-    return SliderHitResult(obj, score, slider_break, actions, ticks_hit)
+    return SliderHitResult(obj, score, actions, slider_break, ticks_hit)
 
 class Replay:
     """An osu! replay.
