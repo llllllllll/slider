@@ -73,8 +73,12 @@ class HitResult(namedtuple('HitResult', ('hit_object', 'score'))):
     pass
 
 
-class CircleHitResult(namedtuple('CircleHitResult', HitResult._fields + ('action', 'time_error', 'aim_error')), HitResult):
+class CircleHitResult(namedtuple('CircleHitResult',
+                                 HitResult._fields
+                                 + ('action', 'aim_error', 'time_error', 'closest_aim_action', 'closest_time_action')),
+                      HitResult):
     pass
+CircleHitResult.__new__.__defaults__ = (None, None)
 
 
 class SliderHitResult(namedtuple('SliderHitResult', HitResult._fields + ('slider_break', 'actions', 'ticks_hit')), HitResult):
@@ -207,8 +211,7 @@ def _pressed(datum):
     return datum.key1 or datum.key2 or datum.mouse1 or datum.mouse2
 
 
-def _process_circle(obj, action, hw):
-    out_by = action.offset - obj.time
+def _process_circle(obj, action, hw, out_by, distance):
     abs_out_by = abs(out_by)
     if abs_out_by < datetime.timedelta(milliseconds=hw.hit_300):
         score = HitScore.hit_300
@@ -221,8 +224,8 @@ def _process_circle(obj, action, hw):
         obj,
         score,
         action,
+        distance,
         out_by,
-        _dist(obj.position, action.position),
     )
 
 
@@ -806,23 +809,33 @@ class Replay:
             while actions[i].offset < obj.time - datetime.timedelta(milliseconds=hw.hit_50):
                 i += 1
             starti = i
+            aim_closest = None
+            time_closest = None
             while actions[i].offset < obj.time + datetime.timedelta(milliseconds=hw.hit_50):
-                if (((actions[i].key1 and not actions[i - 1].key1)
-                    or (actions[i].key2 and not actions[i - 1].key2))
-                    and _within(actions[i].position, obj.position, rad)):
-                    # key pressed that wasn't before and
-                    # event is in hit window and correct location
-                    if isinstance(obj, Circle):
-                        result = _process_circle(obj, actions[i], hw)
-                    elif isinstance(obj, Slider):
-                        # Head was hit
-                        starti = i
-                        while actions[i].offset <= obj.end_time:
-                            i += 1
-                        result = _process_slider(
-                            obj, actions[starti:i + 1], True, rad
-                        )
-                    break
+                # event is in hit window
+                distance = _dist(actions[i].position, obj.position)
+                if ((actions[i].key1 and not actions[i - 1].key1)
+                    or (actions[i].key2 and not actions[i - 1].key2)):
+                    # and key pressed that wasn't before
+                    out_by = actions[i].offset - obj.time
+                    if distance < rad:
+                        # and correct location
+                        if isinstance(obj, Circle):
+                            result = _process_circle(obj, actions[i], hw, out_by, distance)
+                        elif isinstance(obj, Slider):
+                            # Head was hit
+                            starti = i
+                            while actions[i].offset <= obj.end_time:
+                                i += 1
+                            result = _process_slider(
+                                obj, actions[starti:i + 1], True, rad
+                            )
+                        break
+                    # wrong location
+                    if time_closest is None or abs(out_by) < abs(time_closest[1]):
+                        time_closest = (actions[i], out_by)
+                if aim_closest is None or distance < aim_closest[1]:
+                    aim_closest = (actions[i], distance)
                 i += 1
             else:
                 # no events in the hit window were in the correct location
@@ -834,7 +847,7 @@ class Replay:
                         obj, actions[starti:i + 1], False, rad
                     )
                 else:
-                    result = HitResult(obj, HitScore.miss)
+                    result = CircleHitResult(obj, HitScore.miss, None, aim_closest[1], time_closest[1], aim_closest[0], time_closest[0])
             results_append(result)
             i += 1
         return results
