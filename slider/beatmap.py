@@ -949,12 +949,12 @@ def _moving_average_by_time(times, data, delta, num):
     values = np.vstack([data, [np.nan] * data.shape[1]])
 
     # sum the values in the ranges ``[window_start_ixs, window_stop_ixs)``
-    window_sums = (np.add.reduceat(i, window_ixs.ravel())[::2] for i in values.transpose())
+    window_sums = np.add.reduceat(values, window_ixs.ravel())[::2]
     window_sizes = np.diff(window_ixs, axis=1).ravel()
     # convert window_sizes of 0 to 1 (inplace) to prevent division by zero
     np.clip(window_sizes, 1, None, out=window_sizes)
 
-    out_values = np.stack([i / window_sizes for i in window_sums], axis=1)
+    out_values = np.stack(window_sums / window_sizes.reshape((-1, 1)))
 
     return out_times.reshape((-1, 1)), out_values
 
