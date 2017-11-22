@@ -11,7 +11,7 @@ Included Tools
 Beatmap Parser
 ~~~~~~~~~~~~~~
 
-Slider includes an osu! beatmap parser for programatic access an manipulation of
+Slider includes an osu! beatmap parser for programatic access and manipulation of
 ``.osu`` and ``.osz`` files.
 
 Replay Parser
