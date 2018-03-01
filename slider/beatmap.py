@@ -2420,7 +2420,12 @@ class Beatmap:
                 f"hit counts don't sum to the total for the map, {s} != {os}"
             )
 
-        od = self.od(easy=easy, hard_rock=hard_rock)
+        od = self.od(
+            easy=easy,
+            hard_rock=hard_rock,
+            half_time=half_time,
+            double_time=double_time,
+        )
         ar = self.ar(
             easy=easy,
             hard_rock=hard_rock,
