@@ -338,10 +338,15 @@ class Library:
         beatmap_md5 = md5(data).hexdigest()
         beatmap_id = beatmap.beatmap_id
 
-        self._db.execute(
-            'INSERT INTO beatmaps VALUES (?,?,?)',
-            (beatmap_md5, beatmap_id, str(path)),
-        )
+        try:
+            self._db.execute(
+                'INSERT INTO beatmaps VALUES (?,?,?)',
+                (beatmap_md5, beatmap_id, str(path)),
+            )
+        except sqlite3.IntegretyError:
+            raise ValueError(
+                f'failed to write {beatmap.display_name} ({str(path)!r})'
+            )
 
     def download(self, beatmap_id, *, save=False):
         """Download a beatmap.
