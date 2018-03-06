@@ -27,7 +27,14 @@ setup(
         'Topic :: Games/Entertainment',
     ],
     url='https://github.com/llllllllll/slider',
-    install_requires=['pytz', 'requests', 'numpy', 'scipy', 'toolz'],
+    install_requires=[
+        'click',
+        'numpy',
+        'pytz',
+        'requests',
+        'scipy',
+        'toolz',
+    ],
     extras_require={
         'dev': [
             'flake8==3.3.0',
