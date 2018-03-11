@@ -459,6 +459,20 @@ class Client:
         self.api_key = api_key
         self.api_url = api_url
 
+    def copy(self):
+        """Create a copy suitable for use in a new thread.
+
+        Returns
+        -------
+        Client
+            The new copy.
+        """
+        return type(self)(
+            library=self.library.copy(),
+            api_key=self.api_key,
+            api_url=self.api_url,
+        )
+
     @staticmethod
     def _user_and_type(user_name, user_id, *, required):
         """Normalize user_name or user_id into the 'u' and 't' fields.

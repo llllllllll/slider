@@ -58,6 +58,7 @@ class Library:
                  download_url=DEFAULT_DOWNLOAD_URL):
         self.path = path = pathlib.Path(path)
 
+        self._cache_size = cache
         self._read_beatmap = lru_cache(cache)(self._raw_read_beatmap)
         self._db = db = sqlite3.connect(str(path / '.slider.db'))
         with db:
@@ -71,6 +72,20 @@ class Library:
                 """,
             )
         self._download_url = download_url
+
+    def copy(self):
+        """Create a copy suitable for use in a new thread.
+
+        Returns
+        -------
+        Library
+            The new copy.
+        """
+        return type(self)(
+            self.path,
+            cache=self._cache_size,
+            download_url=self._download_url,
+        )
 
     def close(self):
         """Close any resources used by this library.
