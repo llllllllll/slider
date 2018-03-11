@@ -673,7 +673,9 @@ class Slider(HitObject):
             ms_per_beat = tp.ms_per_beat
 
         pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
-        num_beats = np.round(((pixel_length * repeat) / pixels_per_beat) * 16) / 16
+        num_beats = (
+            np.round(((pixel_length * repeat) / pixels_per_beat) * 16) / 16
+        )
         duration = timedelta(milliseconds=np.ceil(num_beats * ms_per_beat))
 
         ticks = int(
@@ -909,7 +911,8 @@ def _moving_average_by_time(times, data, delta, num):
     times : np.ndarray
         The array of times to use in the average.
     data : np.ndarray
-        The array of values to take the average of. Each column is averaged independently.
+        The array of values to take the average of. Each column is averaged
+        independently.
     delta : int or float
         The length of the leading and trailing window in seconds
     num : int
@@ -924,7 +927,12 @@ def _moving_average_by_time(times, data, delta, num):
     """
 
     # take an even sample from 0 to the end time
-    out_times = np.linspace(times[0].item(), times[-1].item(), num, dtype='timedelta64[ns]')
+    out_times = np.linspace(
+        times[0].item(),
+        times[-1].item(),
+        num,
+        dtype='timedelta64[ns]',
+    )
     delta = np.timedelta64(int(delta * 1e9), 'ns')
 
     # compute the start and stop indices for each sampled window
@@ -1902,7 +1910,8 @@ class Beatmap:
         times : np.ndarray
             Single column array of times as ``timedelta64[ns]``
         difficulties : np.ndarray
-            Array of difficulties as ``float64``. Speed in the first column, aim in the second.
+            Array of difficulties as ``float64``. Speed in the first column,
+            aim in the second.
         """
         cs = self.cs()
         # NOTE: This is different than normal conversion
@@ -1920,7 +1929,10 @@ class Beatmap:
             def modify(e):
                 return e
 
-        times = np.empty((len(self.hit_objects) - 1, 1), dtype='timedelta64[ns]')
+        times = np.empty(
+            (len(self.hit_objects) - 1, 1),
+            dtype='timedelta64[ns]',
+        )
         strains = np.empty((len(self.hit_objects) - 1, 2), dtype=np.float64)
 
         hit_objects = map(modify, self.hit_objects)

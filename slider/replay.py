@@ -205,10 +205,14 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
         t = (datum.offset - obj.time) / duration
         if 0 <= t <= 1:
             nearest_pos = obj.curve(t)
-            if on and not (_pressed(datum) and _within(nearest_pos, datum.position, rad * 3)):
+            if (on and
+                not (_pressed(datum)
+                     and _within(nearest_pos, datum.position, rad * 3))):
                 t_changes_append(t)
                 on = False
-            elif not on and (_pressed(datum) and _within(nearest_pos, datum.position, rad)):
+            elif (not on and
+                  (_pressed(datum) and
+                   _within(nearest_pos, datum.position, rad))):
                 t_changes_append(t)
                 on = True
 
@@ -219,7 +223,9 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
         if bi % 2 == 0:
             # missed a tick
             if tick is tick_ts[-1]:
-                if len(t_changes) > 0 and len(t_changes) == bi and abs(tick_ts[-1] - t_changes[-1]) < 0.1:
+                if (len(t_changes) > 0 and
+                        len(t_changes) == bi and
+                        abs(tick_ts[-1] - t_changes[-1]) < 0.1):
                     # held close enough to last tick
                     continue
                 # end tick doesn't cause sliderbreak
@@ -747,7 +753,10 @@ class Replay:
                   "slider_breaks": [],
                   }
         hw = od_to_ms(beatmap.od(easy=self.easy, hard_rock=self.hard_rock))
-        rad = circle_radius(beatmap.cs(easy=self.easy, hard_rock=self.hard_rock))
+        rad = circle_radius(
+            beatmap.cs(easy=self.easy, hard_rock=self.hard_rock),
+        )
+        hit_50_threshold = datetime.timedelta(milliseconds=hw.hit_50)
         i = 0
         for obj in beatmap.hit_objects:
             if self.hard_rock:
@@ -758,13 +767,13 @@ class Replay:
                 continue
             # we can ignore events before the hit window so iterate
             # until we get past the beginning of the hit window
-            while actions[i].offset < obj.time - datetime.timedelta(milliseconds=hw.hit_50):
+            while actions[i].offset < obj.time - hit_50_threshold:
                 i += 1
             starti = i
-            while actions[i].offset < obj.time + datetime.timedelta(milliseconds=hw.hit_50):
+            while actions[i].offset < obj.time + hit_50_threshold:
                 if (((actions[i].key1 and not actions[i - 1].key1)
-                    or (actions[i].key2 and not actions[i - 1].key2))
-                    and _within(actions[i].position, obj.position, rad)):
+                        or (actions[i].key2 and not actions[i - 1].key2))
+                        and _within(actions[i].position, obj.position, rad)):
                     # key pressed that wasn't before and
                     # event is in hit window and correct location
                     if isinstance(obj, Circle):
