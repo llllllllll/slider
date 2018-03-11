@@ -358,7 +358,7 @@ class Library:
                 'INSERT INTO beatmaps VALUES (?,?,?)',
                 (beatmap_md5, beatmap_id, str(path)),
             )
-        except sqlite3.IntegretyError:
+        except sqlite3.IntegrityError:
             raise ValueError(
                 f'failed to write {beatmap.display_name} ({str(path)!r})'
             )
