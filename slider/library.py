@@ -359,9 +359,8 @@ class Library:
                 (beatmap_md5, beatmap_id, str(path)),
             )
         except sqlite3.IntegrityError:
-            raise ValueError(
-                f'failed to write {beatmap.display_name} ({str(path)!r})'
-            )
+            # ignore duplicate beatmaps
+            pass
 
     def download(self, beatmap_id, *, save=False):
         """Download a beatmap.
