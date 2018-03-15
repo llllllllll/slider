@@ -47,7 +47,8 @@ class TimingPoint:
     sample_set : int
         The set of hit sound samples that are used.
     volume : int
-        The volume of hit sounds in the range [0, 100].
+        The volume of hit sounds in the range [0, 100]. This value will be
+        clipped if outside the range.
     parent : TimingPoint or None
         The parent of an inherited timing point. An inherited timing point
         differs from a normal timing point in that the ``ms_per_beat`` value is
@@ -67,16 +68,12 @@ class TimingPoint:
                  volume,
                  parent,
                  kiai_mode):
-        if not (0 <= volume <= 100):
-            raise ValueError(
-                f'volume must be in the range [0, 100], got {volume!r}',
-            )
         self.offset = offset
         self.ms_per_beat = ms_per_beat
         self.meter = meter
         self.sample_type = sample_type
         self.sample_set = sample_set
-        self.volume = volume
+        self.volume = np.clip(volume, 0, 100)
         self.parent = parent
         self.kiai_mode = kiai_mode
 
