@@ -2421,8 +2421,8 @@ class Beatmap:
                 if count_miss is None else
                 count_miss,
             )
-        elif (count_300 + count_100 + count_50 + count_miss !=
-              len(self.hit_objects)):
+        elif np.all(count_300 + count_100 + count_50 + count_miss !=
+                    len(self.hit_objects)):
             s = count_300 + count_100 + count_50 + count_miss
             os = len(self.hit_objects)
             raise ValueError(
