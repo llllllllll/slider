@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -161,16 +160,18 @@
            <div itemprop="articleBody">
             
   <h1>Source code for slider.replay</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">datetime</span>
+<span></span><span class="kn">import</span> <span class="nn">bisect</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">unique</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">lzma</span>
 
+<span class="kn">from</span> <span class="nn">.beatmap</span> <span class="k">import</span> <span class="n">Circle</span><span class="p">,</span> <span class="n">Slider</span><span class="p">,</span> <span class="n">Spinner</span>
 <span class="kn">from</span> <span class="nn">.bit_enum</span> <span class="k">import</span> <span class="n">BitEnum</span>
 <span class="kn">from</span> <span class="nn">.game_mode</span> <span class="k">import</span> <span class="n">GameMode</span>
-<span class="kn">from</span> <span class="nn">.mod</span> <span class="k">import</span> <span class="n">Mod</span>
+<span class="kn">from</span> <span class="nn">.mod</span> <span class="k">import</span> <span class="n">Mod</span><span class="p">,</span> <span class="n">od_to_ms</span><span class="p">,</span> <span class="n">circle_radius</span>
 <span class="kn">from</span> <span class="nn">.position</span> <span class="k">import</span> <span class="n">Position</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">accuracy</span><span class="p">,</span> <span class="n">lazyval</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">accuracy</span><span class="p">,</span> <span class="n">lazyval</span><span class="p">,</span> <span class="n">orange</span>
 
 
 <span class="nd">@unique</span>
@@ -189,7 +190,7 @@
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    offset : timedelta</span>
-<span class="sd">        The offset since the previous action.</span>
+<span class="sd">        The offset since the beginning of the song.</span>
 <span class="sd">    position : Position</span>
 <span class="sd">        The position of the cursor.</span>
 <span class="sd">    key1 : bool</span>
@@ -297,19 +298,112 @@
     <span class="n">decompressed_data</span> <span class="o">=</span> <span class="n">lzma</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">compressed_data</span><span class="p">)</span>
 
     <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">raw_action</span> <span class="ow">in</span> <span class="n">decompressed_data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;,&#39;</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">raw_action</span><span class="p">:</span>
             <span class="k">continue</span>
-        <span class="n">offset</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">raw_action_mask</span> <span class="o">=</span> <span class="n">raw_action</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
+        <span class="n">raw_offset</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">raw_action_mask</span> <span class="o">=</span> <span class="n">raw_action</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
         <span class="n">action_mask</span> <span class="o">=</span> <span class="n">ActionBitMask</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">raw_action_mask</span><span class="p">))</span>
+        <span class="n">offset</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw_offset</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Action</span><span class="p">(</span>
-            <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">offset</span><span class="p">)),</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">offset</span><span class="p">),</span>
             <span class="n">Position</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)),</span>
             <span class="n">action_mask</span><span class="p">[</span><span class="s1">&#39;m1&#39;</span><span class="p">],</span>
             <span class="n">action_mask</span><span class="p">[</span><span class="s1">&#39;m2&#39;</span><span class="p">],</span>
             <span class="n">action_mask</span><span class="p">[</span><span class="s1">&#39;k1&#39;</span><span class="p">],</span>
             <span class="n">action_mask</span><span class="p">[</span><span class="s1">&#39;k2&#39;</span><span class="p">],</span>
         <span class="p">))</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_within</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Determines whether 2 points are within a distance of each other</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ---------</span>
+<span class="sd">    p1 : Position</span>
+<span class="sd">        The first point</span>
+<span class="sd">    p2 : Position</span>
+<span class="sd">        The second point</span>
+<span class="sd">    d : int or float</span>
+<span class="sd">        The distance</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bool</span>
+<span class="sd">        Whether the distance between the points is less than d</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">p1</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">p2</span><span class="o">.</span><span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">p1</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="n">p2</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&lt;</span> <span class="n">d</span> <span class="o">**</span> <span class="mi">2</span>
+
+
+<span class="k">def</span> <span class="nf">_pressed</span><span class="p">(</span><span class="n">datum</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">datum</span><span class="o">.</span><span class="n">key1</span> <span class="ow">or</span> <span class="n">datum</span><span class="o">.</span><span class="n">key2</span> <span class="ow">or</span> <span class="n">datum</span><span class="o">.</span><span class="n">mouse1</span> <span class="ow">or</span> <span class="n">datum</span><span class="o">.</span><span class="n">mouse2</span>
+
+
+<span class="k">def</span> <span class="nf">_process_circle</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">rdatum</span><span class="p">,</span> <span class="n">hw</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+    <span class="n">out_by</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">rdatum</span><span class="o">.</span><span class="n">offset</span> <span class="o">-</span> <span class="n">obj</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">out_by</span> <span class="o">&lt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">hw</span><span class="o">.</span><span class="n">hit_300</span><span class="p">):</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;300s&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">out_by</span> <span class="o">&lt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">hw</span><span class="o">.</span><span class="n">hit_100</span><span class="p">):</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;100s&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># must be within the 50 hit window or we wouldn&#39;t be here</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;50s&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_process_slider</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">rdata</span><span class="p">,</span> <span class="n">head_hit</span><span class="p">,</span> <span class="n">rad</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+    <span class="n">t_changes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">t_changes_append</span> <span class="o">=</span> <span class="n">t_changes</span><span class="o">.</span><span class="n">append</span>
+    <span class="n">duration</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">end_time</span> <span class="o">-</span> <span class="n">obj</span><span class="o">.</span><span class="n">time</span>
+
+    <span class="k">if</span> <span class="n">head_hit</span><span class="p">:</span>
+        <span class="n">t_changes_append</span><span class="p">((</span><span class="n">rdata</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">offset</span> <span class="o">-</span> <span class="n">obj</span><span class="o">.</span><span class="n">time</span><span class="p">)</span> <span class="o">/</span> <span class="n">duration</span><span class="p">)</span>
+        <span class="n">on</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;slider_breaks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="n">on</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="n">rdata</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="p">(</span><span class="n">datum</span><span class="o">.</span><span class="n">offset</span> <span class="o">-</span> <span class="n">obj</span><span class="o">.</span><span class="n">time</span><span class="p">)</span> <span class="o">/</span> <span class="n">duration</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">nearest_pos</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">curve</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">on</span> <span class="ow">and</span>
+                <span class="ow">not</span> <span class="p">(</span><span class="n">_pressed</span><span class="p">(</span><span class="n">datum</span><span class="p">)</span>
+                     <span class="ow">and</span> <span class="n">_within</span><span class="p">(</span><span class="n">nearest_pos</span><span class="p">,</span> <span class="n">datum</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">rad</span> <span class="o">*</span> <span class="mi">3</span><span class="p">))):</span>
+                <span class="n">t_changes_append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">on</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="ow">not</span> <span class="n">on</span> <span class="ow">and</span>
+                  <span class="p">(</span><span class="n">_pressed</span><span class="p">(</span><span class="n">datum</span><span class="p">)</span> <span class="ow">and</span>
+                   <span class="n">_within</span><span class="p">(</span><span class="n">nearest_pos</span><span class="p">,</span> <span class="n">datum</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">rad</span><span class="p">))):</span>
+                <span class="n">t_changes_append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">on</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">tick_ts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">orange</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">tick_rate</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">num_beats</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">tick_rate</span><span class="p">))</span>
+    <span class="n">missed_points</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">head_hit</span> <span class="k">else</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">tick</span> <span class="ow">in</span> <span class="n">tick_ts</span><span class="p">:</span>
+        <span class="n">bi</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_left</span><span class="p">(</span><span class="n">t_changes</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bi</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># missed a tick</span>
+            <span class="k">if</span> <span class="n">tick</span> <span class="ow">is</span> <span class="n">tick_ts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t_changes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">t_changes</span><span class="p">)</span> <span class="o">==</span> <span class="n">bi</span> <span class="ow">and</span>
+                        <span class="nb">abs</span><span class="p">(</span><span class="n">tick_ts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">t_changes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">):</span>
+                    <span class="c1"># held close enough to last tick</span>
+                    <span class="k">continue</span>
+                <span class="c1"># end tick doesn&#39;t cause sliderbreak</span>
+            <span class="k">elif</span> <span class="n">obj</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;slider_breaks&quot;</span><span class="p">]:</span>
+                <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;slider_breaks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="n">missed_points</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">missed_points</span> <span class="o">==</span> <span class="n">obj</span><span class="o">.</span><span class="n">ticks</span><span class="p">:</span>
+        <span class="c1"># all ticks and head missed -&gt; miss</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;misses&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">missed_points</span> <span class="o">&gt;</span> <span class="n">obj</span><span class="o">.</span><span class="n">ticks</span> <span class="o">/</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;50s&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">missed_points</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;100s&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;300s&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Replay"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay">[docs]</a><span class="k">class</span> <span class="nc">Replay</span><span class="p">:</span>
@@ -549,8 +643,24 @@
             <span class="n">spun_out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spun_out</span><span class="p">,</span>
         <span class="p">)</span>
 
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">failed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Did the user fail this attempt?</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">life_bar_graph</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Replay.from_path"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_path">[docs]</a>    <span class="k">def</span> <span class="nf">from_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Replay.from_path"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_path">[docs]</a>    <span class="k">def</span> <span class="nf">from_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                  <span class="n">path</span><span class="p">,</span>
+                  <span class="o">*</span><span class="p">,</span>
+                  <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">retrieve_beatmap</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Read in a ``Replay`` object from a ``.osr`` file on disk.</span>
 
 <span class="sd">        Parameters</span>
@@ -564,6 +674,8 @@
 <span class="sd">        save : bool, optional</span>
 <span class="sd">            If the beatmap needs to be downloaded with the client, should it be</span>
 <span class="sd">            saved to disk?</span>
+<span class="sd">        retrieve_beatmap : bool, optional</span>
+<span class="sd">            Whether to retrieve the beatmap the replay is for.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -576,10 +688,22 @@
 <span class="sd">            Raised when the file cannot be parsed as an ``.osr`` file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">)</span></div>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span>
+                <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">,</span>
+                <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
+                <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span>
+                <span class="n">retrieve_beatmap</span><span class="o">=</span><span class="n">retrieve_beatmap</span><span class="p">,</span>
+            <span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Replay.from_directory"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_directory">[docs]</a>    <span class="k">def</span> <span class="nf">from_directory</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Replay.from_directory"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_directory">[docs]</a>    <span class="k">def</span> <span class="nf">from_directory</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                       <span class="n">path</span><span class="p">,</span>
+                       <span class="o">*</span><span class="p">,</span>
+                       <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">retrieve_beatmap</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Read in a list of ``Replay`` objects from a directory of ``.osr``</span>
 <span class="sd">        files.</span>
 
@@ -594,6 +718,8 @@
 <span class="sd">        save : bool, optional</span>
 <span class="sd">            If the beatmap needs to be downloaded with the client, should it be</span>
 <span class="sd">            saved to disk?</span>
+<span class="sd">        retrieve_beatmap : bool, optional</span>
+<span class="sd">            Whether to retrieve the beatmap the replay is for.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -606,13 +732,25 @@
 <span class="sd">            Raised when any file cannot be parsed as an ``.osr`` file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">library</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">)</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span>
+                <span class="n">p</span><span class="p">,</span>
+                <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">,</span>
+                <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
+                <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span>
+                <span class="n">retrieve_beatmap</span><span class="o">=</span><span class="n">retrieve_beatmap</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osr&#39;</span><span class="p">)</span>
         <span class="p">]</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Replay.from_file"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Replay.from_file"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.from_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                  <span class="n">file</span><span class="p">,</span>
+                  <span class="o">*</span><span class="p">,</span>
+                  <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">retrieve_beatmap</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Read in a ``Replay`` object from an open file object.</span>
 
 <span class="sd">        Parameters</span>
@@ -626,6 +764,8 @@
 <span class="sd">        save : bool, optional</span>
 <span class="sd">            If the beatmap needs to be downloaded with the client, should it be</span>
 <span class="sd">            saved to disk?</span>
+<span class="sd">        retrieve_beatmap : bool, optional</span>
+<span class="sd">            Whether to retrieve the beatmap the replay is for.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -642,21 +782,23 @@
             <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">,</span>
             <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
             <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span>
+            <span class="n">retrieve_beatmap</span><span class="o">=</span><span class="n">retrieve_beatmap</span>
         <span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Replay.parse"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Replay.parse"><a class="viewcode-back" href="../../appendix.html#slider.replay.Replay.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+              <span class="n">data</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">retrieve_beatmap</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Parse a replay from ``.osr`` file data.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        data : bytes</span>
 <span class="sd">            The data from an ``.osr`` file.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        replay : Replay</span>
-<span class="sd">            The parsed replay.</span>
 <span class="sd">        library : Library, optional</span>
 <span class="sd">            The library of beatmaps.</span>
 <span class="sd">        client : Client, optional.</span>
@@ -664,20 +806,33 @@
 <span class="sd">        save : bool, optional</span>
 <span class="sd">            If the beatmap needs to be downloaded with the client, should it be</span>
 <span class="sd">            saved to disk?</span>
+<span class="sd">        retrieve_beatmap : bool, optional</span>
+<span class="sd">            Whether to retrieve the beatmap the replay is for.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        replay : Replay</span>
+<span class="sd">            The parsed replay.</span>
 
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
 <span class="sd">        ValueError</span>
 <span class="sd">            Raised when ``data`` is not in the ``.osr`` format.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">library</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;one of library or client must be passed&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">retrieve_beatmap</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">library</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;one of library or client must be passed if you wish the&#39;</span>
+                    <span class="s1">&#39; beatmap to be retrieved&#39;</span><span class="p">,</span>
+                <span class="p">)</span>
 
-        <span class="n">use_client</span> <span class="o">=</span> <span class="n">client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">use_client</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">library</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;only one of library or client can be passed&#39;</span><span class="p">)</span>
-            <span class="n">library</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">library</span>
+            <span class="n">use_client</span> <span class="o">=</span> <span class="n">client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">use_client</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">library</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s1">&#39;only one of library or client can be passed&#39;</span>
+                    <span class="p">)</span>
+                <span class="n">library</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">library</span>
 
         <span class="n">buffer</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
@@ -705,14 +860,17 @@
         <span class="k">del</span> <span class="n">mod_kwargs</span><span class="p">[</span><span class="s1">&#39;relax2&#39;</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">mod_kwargs</span><span class="p">[</span><span class="s1">&#39;last_mod&#39;</span><span class="p">]</span>
 
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">beatmap</span> <span class="o">=</span> <span class="n">library</span><span class="o">.</span><span class="n">lookup_by_md5</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">use_client</span><span class="p">:</span>
-                <span class="k">raise</span>
-            <span class="n">beatmap</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">beatmap</span><span class="p">(</span>
-                <span class="n">beatmap_md5</span><span class="o">=</span><span class="n">beatmap_md5</span><span class="p">,</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">beatmap</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">retrieve_beatmap</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">beatmap</span> <span class="o">=</span> <span class="n">library</span><span class="o">.</span><span class="n">lookup_by_md5</span><span class="p">(</span><span class="n">beatmap_md5</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">use_client</span><span class="p">:</span>
+                    <span class="k">raise</span>
+                <span class="n">beatmap</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">beatmap</span><span class="p">(</span>
+                    <span class="n">beatmap_md5</span><span class="o">=</span><span class="n">beatmap_md5</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">beatmap</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">beatmap</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
@@ -735,6 +893,76 @@
             <span class="n">beatmap</span><span class="o">=</span><span class="n">beatmap</span><span class="p">,</span>
             <span class="o">**</span><span class="n">mod_kwargs</span><span class="p">,</span>
         <span class="p">)</span></div>
+
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">hits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Dictionary containing beatmap&#39;s hit objects sorted into</span>
+<span class="sd">        300s, 100s, 50s, misses, slider_breaks as they were hit in the replay</span>
+
+<span class="sd">        Each hit object will be in exactly one category except sliders which</span>
+<span class="sd">        may be in slider_breaks in addition to another category</span>
+
+<span class="sd">        Slider calculations are unreliable so some objects may in the wrong</span>
+<span class="sd">        category.</span>
+<span class="sd">        Spinners are not yet calculated so are always in the 300s category.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">beatmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beatmap</span>
+        <span class="n">actions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;300s&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                  <span class="s2">&quot;100s&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                  <span class="s2">&quot;50s&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                  <span class="s2">&quot;misses&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                  <span class="s2">&quot;slider_breaks&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                  <span class="p">}</span>
+        <span class="n">hw</span> <span class="o">=</span> <span class="n">od_to_ms</span><span class="p">(</span><span class="n">beatmap</span><span class="o">.</span><span class="n">od</span><span class="p">(</span><span class="n">easy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">easy</span><span class="p">,</span> <span class="n">hard_rock</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hard_rock</span><span class="p">))</span>
+        <span class="n">rad</span> <span class="o">=</span> <span class="n">circle_radius</span><span class="p">(</span>
+            <span class="n">beatmap</span><span class="o">.</span><span class="n">cs</span><span class="p">(</span><span class="n">easy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">easy</span><span class="p">,</span> <span class="n">hard_rock</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hard_rock</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">hit_50_threshold</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="n">hw</span><span class="o">.</span><span class="n">hit_50</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hard_rock</span><span class="p">:</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">hard_rock</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Spinner</span><span class="p">):</span>
+                <span class="c1"># spinners are hard</span>
+                <span class="n">scores</span><span class="p">[</span><span class="s1">&#39;300s&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="c1"># we can ignore events before the hit window so iterate</span>
+            <span class="c1"># until we get past the beginning of the hit window</span>
+            <span class="k">while</span> <span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;</span> <span class="n">obj</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="n">hit_50_threshold</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">starti</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">while</span> <span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;</span> <span class="n">obj</span><span class="o">.</span><span class="n">time</span> <span class="o">+</span> <span class="n">hit_50_threshold</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(((</span><span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">key1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">actions</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">key1</span><span class="p">)</span>
+                        <span class="ow">or</span> <span class="p">(</span><span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">key2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">actions</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">key2</span><span class="p">))</span>
+                        <span class="ow">and</span> <span class="n">_within</span><span class="p">(</span><span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">rad</span><span class="p">)):</span>
+                    <span class="c1"># key pressed that wasn&#39;t before and</span>
+                    <span class="c1"># event is in hit window and correct location</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Circle</span><span class="p">):</span>
+                        <span class="n">_process_circle</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hw</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Slider</span><span class="p">):</span>
+                        <span class="c1"># Head was hit</span>
+                        <span class="n">starti</span> <span class="o">=</span> <span class="n">i</span>
+                        <span class="k">while</span> <span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;=</span> <span class="n">obj</span><span class="o">.</span><span class="n">end_time</span><span class="p">:</span>
+                            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="n">_process_slider</span><span class="p">(</span>
+                            <span class="n">obj</span><span class="p">,</span> <span class="n">actions</span><span class="p">[</span><span class="n">starti</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="kc">True</span><span class="p">,</span> <span class="n">rad</span><span class="p">,</span> <span class="n">scores</span>
+                        <span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># no events in the hit window were in the correct location</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Slider</span><span class="p">):</span>
+                    <span class="c1"># Slider ticks might still be hit</span>
+                    <span class="k">while</span> <span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">offset</span> <span class="o">&lt;=</span> <span class="n">obj</span><span class="o">.</span><span class="n">end_time</span><span class="p">:</span>
+                        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">_process_slider</span><span class="p">(</span>
+                        <span class="n">obj</span><span class="p">,</span> <span class="n">actions</span><span class="p">[</span><span class="n">starti</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="kc">False</span><span class="p">,</span> <span class="n">rad</span><span class="p">,</span> <span class="n">scores</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">scores</span><span class="p">[</span><span class="s2">&quot;misses&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">scores</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>

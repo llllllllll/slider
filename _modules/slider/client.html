@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -587,6 +586,24 @@
         <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="UnknownBeatmap"><a class="viewcode-back" href="../../appendix.html#slider.client.UnknownBeatmap">[docs]</a><span class="k">class</span> <span class="nc">UnknownBeatmap</span><span class="p">(</span><span class="ne">LookupError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when a beatmap id or md5 is not known.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    kind : {&#39;id&#39;, &#39;md5&#39;}</span>
+<span class="sd">        The kind of identifier used.</span>
+<span class="sd">    id_ : str</span>
+<span class="sd">        The unknown beatmap id.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="p">,</span> <span class="n">id_</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">=</span> <span class="n">kind</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="n">id_</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;no beatmap found that matched </span><span class="si">{self.kind}</span><span class="s1">: </span><span class="si">{self.id_}</span><span class="s1">&#39;</span></div>
+
+
 <div class="viewcode-block" id="Client"><a class="viewcode-back" href="../../appendix.html#slider.client.Client">[docs]</a><span class="k">class</span> <span class="nc">Client</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A client for interacting with the osu! rest API.</span>
 
@@ -603,6 +620,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">library</span> <span class="o">=</span> <span class="n">library</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span> <span class="o">=</span> <span class="n">api_key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="n">api_url</span>
+
+<div class="viewcode-block" id="Client.copy"><a class="viewcode-back" href="../../appendix.html#slider.client.Client.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a copy suitable for use in a new thread.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Client</span>
+<span class="sd">            The new copy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+            <span class="n">library</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">library</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="n">api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span>
+            <span class="n">api_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_user_and_type</span><span class="p">(</span><span class="n">user_name</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">required</span><span class="p">):</span>
@@ -744,7 +775,7 @@
 
         <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span>
-            <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="n">include_converted_beatmaps</span><span class="p">,</span>
+            <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">include_converted_beatmaps</span><span class="p">)),</span>
             <span class="s1">&#39;limit&#39;</span><span class="p">:</span> <span class="n">limit</span><span class="p">,</span>
         <span class="p">}</span>
 
@@ -763,7 +794,7 @@
             <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_info</span>
 
         <span class="k">if</span> <span class="n">game_mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">game_mode</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">game_mode</span><span class="p">)</span>
 
         <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
             <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.api_url}</span><span class="s1">/get_beatmaps&#39;</span><span class="p">,</span>
@@ -788,7 +819,17 @@
         <span class="p">]</span>
 
         <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">beatmap_md5</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">converted</span><span class="p">,</span> <span class="o">=</span> <span class="n">converted</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">converted</span><span class="p">,</span> <span class="o">=</span> <span class="n">converted</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">kind</span> <span class="o">=</span> <span class="s1">&#39;id&#39;</span>
+                    <span class="n">id_</span> <span class="o">=</span> <span class="n">beatmap_id</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">kind</span> <span class="o">=</span> <span class="s1">&#39;md5&#39;</span>
+                    <span class="n">id_</span> <span class="o">=</span> <span class="n">beatmap_md5</span>
+
+                <span class="k">raise</span> <span class="n">UnknownBeatmap</span><span class="p">(</span><span class="n">kind</span><span class="p">,</span> <span class="n">id_</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">converted</span></div>
 
@@ -877,7 +918,7 @@
                 <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span>
                 <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="n">user</span><span class="p">,</span>
                 <span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="n">type_</span><span class="p">,</span>
-                <span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="n">game_mode</span><span class="p">,</span>
+                <span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">game_mode</span><span class="p">),</span>
                 <span class="s1">&#39;event_days&#39;</span><span class="p">:</span> <span class="n">event_days</span><span class="p">,</span>
             <span class="p">},</span>
         <span class="p">)</span>
@@ -976,7 +1017,7 @@
                 <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span>
                 <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="n">user</span><span class="p">,</span>
                 <span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="n">type_</span><span class="p">,</span>
-                <span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="n">game_mode</span><span class="p">,</span>
+                <span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">game_mode</span><span class="p">),</span>
                 <span class="s1">&#39;limit&#39;</span><span class="p">:</span> <span class="n">limit</span><span class="p">,</span>
             <span class="p">},</span>
         <span class="p">)</span>

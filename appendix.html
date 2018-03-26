@@ -36,7 +36,7 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="slider 0.1.0 documentation" href="index.html"/>
-        <link rel="prev" title="Model" href="model.html"/> 
+        <link rel="prev" title="Osu! API" href="client.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#beatmap">Beatmap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#library">Library</a></li>
@@ -104,7 +103,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#game-modes">Game Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#mods">Mods</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#predictions">Predictions</a></li>
 </ul>
 </li>
 </ul>
@@ -486,6 +484,12 @@ approach rate is changed.</p>
 </table>
 </dd></dl>
 
+<dl class="attribute">
+<dt id="slider.beatmap.Beatmap.display_name">
+<code class="descname">display_name</code><a class="headerlink" href="#slider.beatmap.Beatmap.display_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the map as it appears in game.</p>
+</dd></dl>
+
 <dl class="classmethod">
 <dt id="slider.beatmap.Beatmap.from_file">
 <em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.from_file" title="Permalink to this definition">¶</a></dt>
@@ -607,6 +611,47 @@ approach rate is changed.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="slider.beatmap.Beatmap.hit_object_difficulty">
+<code class="descname">hit_object_difficulty</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.hit_object_difficulty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.hit_object_difficulty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the difficulty of each hit object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>easy</strong> : bool</p>
+<blockquote>
+<div><p>Compute difficulty with easy.</p>
+</div></blockquote>
+<p><strong>hard_rock</strong> : bool</p>
+<blockquote>
+<div><p>Compute difficulty with hard rock.</p>
+</div></blockquote>
+<p><strong>double_time</strong> : bool</p>
+<blockquote>
+<div><p>Compute difficulty with double time.</p>
+</div></blockquote>
+<p><strong>half_time</strong> : bool</p>
+<blockquote>
+<div><p>Compute difficulty with half time.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>times</strong> : np.ndarray</p>
+<blockquote>
+<div><p>Single column array of times as <code class="docutils literal"><span class="pre">timedelta64[ns]</span></code></p>
+</div></blockquote>
+<p><strong>difficulties</strong> : np.ndarray</p>
+<blockquote class="last">
+<div><p>Array of difficulties as <code class="docutils literal"><span class="pre">float64</span></code>. Speed in the first column,
+aim in the second.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="slider.beatmap.Beatmap.hp">
 <code class="descname">hp</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.hp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.hp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the Health Drain (HP) value for different mods.</p>
@@ -636,7 +681,7 @@ approach rate is changed.</p>
 
 <dl class="method">
 <dt id="slider.beatmap.Beatmap.od">
-<code class="descname">od</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.od"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.od" title="Permalink to this definition">¶</a></dt>
+<code class="descname">od</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>half_time=False</em>, <em>double_time=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.od"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.od" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the Overall Difficulty (OD) value for different mods.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -649,6 +694,14 @@ approach rate is changed.</p>
 <p><strong>hard_rock</strong> : bool, optional</p>
 <blockquote>
 <div><p>OD with the hard rock mod enabled.</p>
+</div></blockquote>
+<p><strong>half_time</strong> : bool, optional</p>
+<blockquote>
+<div><p>Effective OD with the half time mod enabled.</p>
+</div></blockquote>
+<p><strong>double_time</strong> : bool, optional</p>
+<blockquote>
+<div><p>Effective OD with the double time mod enabled.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -702,72 +755,76 @@ approach rate is changed.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>combo</strong> : int, optional</p>
 <blockquote>
-<div><blockquote>
 <div><p>The combo achieved on the map. Defaults to max combo.</p>
 </div></blockquote>
-<dl class="docutils">
-<dt>accuracy <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
-<dd><p class="first last">The accuracy achieved in the range [0, 1]. If not provided
+<p><strong>accuracy</strong> : float, optional</p>
+<blockquote>
+<div><p>The accuracy achieved in the range [0, 1]. If not provided
 and none of <code class="docutils literal"><span class="pre">count_300</span></code>, <code class="docutils literal"><span class="pre">count_100</span></code>, or <code class="docutils literal"><span class="pre">count_50</span></code>
 provided then the this defaults to 100%</p>
-</dd>
-<dt>count_300 <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">The number of 300s hit.</p>
-</dd>
-<dt>count_100 <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">The number of 100s hit.</p>
-</dd>
-<dt>count_50 <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">The number of 50s hit.</p>
-</dd>
-<dt>count_miss <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">The number of misses.</p>
-</dd>
-<dt>no_fail <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Account for no fail mod.</p>
-</dd>
-<dt>easy <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Account for the easy mod.</p>
-</dd>
-<dt>hidden <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Account for the hidden mod.</p>
-</dd>
-<dt>hard_rock <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Account for the hard rock mod.</p>
-</dd>
-<dt>double_time <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Account for the double time mod.</p>
-</dd>
-<dt>half_time <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Account for the half time mod.</p>
-</dd>
-<dt>flashlight <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Account for the flashlight mod.</p>
-</dd>
-<dt>spun_out <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Account for the spun out mod.</p>
-</dd>
-<dt>version <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">The version of the performance points calculation to use.</p>
-</dd>
-</dl>
 </div></blockquote>
-<p class="last"><strong>g</strong></p>
+<p><strong>count_300</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of 300s hit.</p>
+</div></blockquote>
+<p><strong>count_100</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of 100s hit.</p>
+</div></blockquote>
+<p><strong>count_50</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of 50s hit.</p>
+</div></blockquote>
+<p><strong>count_miss</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of misses.</p>
+</div></blockquote>
+<p><strong>no_fail</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for no fail mod.</p>
+</div></blockquote>
+<p><strong>easy</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the easy mod.</p>
+</div></blockquote>
+<p><strong>hidden</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the hidden mod.</p>
+</div></blockquote>
+<p><strong>hard_rock</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the hard rock mod.</p>
+</div></blockquote>
+<p><strong>double_time</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the double time mod.</p>
+</div></blockquote>
+<p><strong>half_time</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the half time mod.</p>
+</div></blockquote>
+<p><strong>flashlight</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the flashlight mod.</p>
+</div></blockquote>
+<p><strong>spun_out</strong> : bool, optional</p>
+<blockquote>
+<div><p>Account for the spun out mod.</p>
+</div></blockquote>
+<p><strong>version</strong> : int, optional</p>
+<blockquote>
+<div><p>The version of the performance points calculation to use.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pp</strong> : float</p>
+<blockquote class="last">
+<div><p>The performance points awarded for the specified play.</p>
+</div></blockquote>
 </td>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pp</strong> : float</p>
-<blockquote>
-<div><blockquote>
-<div><p>The performance points awarded for the specified play.</p>
-</div></blockquote>
 <p class="rubric">Notes</p>
 <p><code class="docutils literal"><span class="pre">accuracy</span></code> or hit counts may be passed as array-likes in which case
 the resulting <code class="docutils literal"><span class="pre">pp</span></code> will be a sequence of the same length. This is
@@ -803,19 +860,12 @@ beatmap.</p>
 <span class="go">array([ 245.0240618 ,  249.77318802,  256.50049755,  266.24423831, 280.54452189,  301.66016166])</span>
 </pre></div>
 </div>
-</div></blockquote>
+</dd></dl>
+
 <dl class="method">
-<dt id="Beatmap.rhythm_awkwardness">
-<code class="descname">rhythm_awkwardness</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Beatmap.rhythm_awkwardness" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Module:</th><td class="field-body">slider.beatmap</td>
-</tr>
-</tbody>
-</table>
-<p>The rhythm awkwardness component of the song.</p>
+<dt id="slider.beatmap.Beatmap.rhythm_awkwardness">
+<code class="descname">rhythm_awkwardness</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em><span class="sig-paren">)</span><a class="headerlink" href="#slider.beatmap.Beatmap.rhythm_awkwardness" title="Permalink to this definition">¶</a></dt>
+<dd><p>The rhythm awkwardness component of the song.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -849,17 +899,59 @@ beatmap.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Beatmap.speed_stars">
-<code class="descname">speed_stars</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Beatmap.speed_stars" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
+<dt id="slider.beatmap.Beatmap.smoothed_difficulty">
+<code class="descname">smoothed_difficulty</code><span class="sig-paren">(</span><em>smoothing_window</em>, <em>num_points</em>, <em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.smoothed_difficulty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.smoothed_difficulty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate a smoothed difficulty at evenly spaced points in time
+between the beginning of the song and the last hit object of the map.</p>
+<p>Done by taking an average of difficulties of hit objects within a
+certain time window of each point</p>
+<p>Useful if you want to calculate a difficulty curve for the map
+since the unsmoothed values vary locally a lot.</p>
+<table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Module:</th><td class="field-body">slider.beatmap</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>smoothing_window</strong> : int or float</p>
+<blockquote>
+<div><p>Time window (in seconds) for the moving average.
+Bigger will make a smoother curve.</p>
+</div></blockquote>
+<p><strong>num_points</strong> : int</p>
+<blockquote>
+<div><p>Number of points to calculate the average at.</p>
+</div></blockquote>
+<p><strong>easy</strong> : bool</p>
+<blockquote>
+<div><p>Compute difficulty with easy.</p>
+</div></blockquote>
+<p><strong>hard_rock</strong> : bool</p>
+<blockquote>
+<div><p>Compute difficulty with hard rock.</p>
+</div></blockquote>
+<p><strong>double_time</strong> : bool</p>
+<blockquote>
+<div><p>Compute difficulty with double time.</p>
+</div></blockquote>
+<p><strong>half_time</strong> : bool</p>
+<blockquote>
+<div><p>Compute difficulty with half time.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>difficulties</strong> : array</p>
+<blockquote class="last">
+<div><p>2D array containing smoothed time, difficulty pairs.</p>
+</div></blockquote>
+</td>
 </tr>
 </tbody>
 </table>
-<p>The speed part of the stars.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="slider.beatmap.Beatmap.speed_stars">
+<code class="descname">speed_stars</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em><span class="sig-paren">)</span><a class="headerlink" href="#slider.beatmap.Beatmap.speed_stars" title="Permalink to this definition">¶</a></dt>
+<dd><p>The speed part of the stars.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -893,17 +985,9 @@ beatmap.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Beatmap.stars">
-<code class="descname">stars</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Beatmap.stars" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Module:</th><td class="field-body">slider.beatmap</td>
-</tr>
-</tbody>
-</table>
-<p>The stars as seen in osu!.</p>
+<dt id="slider.beatmap.Beatmap.stars">
+<code class="descname">stars</code><span class="sig-paren">(</span><em>*</em>, <em>easy=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>half_time=False</em><span class="sig-paren">)</span><a class="headerlink" href="#slider.beatmap.Beatmap.stars" title="Permalink to this definition">¶</a></dt>
+<dd><p>The stars as seen in osu!.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -936,18 +1020,10 @@ beatmap.</p>
 </table>
 </dd></dl>
 
-<dl class="last method">
-<dt id="Beatmap.timing_point_at">
-<code class="descname">timing_point_at</code><span class="sig-paren">(</span><em>time</em><span class="sig-paren">)</span><a class="headerlink" href="#Beatmap.timing_point_at" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Module:</th><td class="field-body">slider.beatmap</td>
-</tr>
-</tbody>
-</table>
-<p>Get the <code class="xref py py-class docutils literal"><span class="pre">slider.beatmap.TimingPoint</span></code> at the given time.</p>
+<dl class="method">
+<dt id="slider.beatmap.Beatmap.timing_point_at">
+<code class="descname">timing_point_at</code><span class="sig-paren">(</span><em>time</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Beatmap.timing_point_at"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Beatmap.timing_point_at" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the <code class="xref py py-class docutils literal"><span class="pre">slider.beatmap.TimingPoint</span></code> at the given time.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -968,10 +1044,6 @@ beatmap.</p>
 </table>
 </dd></dl>
 
-</td>
-</tr>
-</tbody>
-</table>
 </dd></dl>
 
 <dl class="class">
@@ -1071,7 +1143,7 @@ the type.</p>
 
 <dl class="class">
 <dt id="slider.beatmap.Slider">
-<em class="property">class </em><code class="descclassname">slider.beatmap.</code><code class="descname">Slider</code><span class="sig-paren">(</span><em>position</em>, <em>time</em>, <em>end_time</em>, <em>hitsound</em>, <em>slider_type</em>, <em>points</em>, <em>repeat</em>, <em>length</em>, <em>ticks</em>, <em>edge_sounds</em>, <em>edge_additions</em>, <em>addition='0:0:0:0'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Slider"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Slider" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">slider.beatmap.</code><code class="descname">Slider</code><span class="sig-paren">(</span><em>position</em>, <em>time</em>, <em>end_time</em>, <em>hitsound</em>, <em>curve</em>, <em>repeat</em>, <em>length</em>, <em>ticks</em>, <em>num_beats</em>, <em>tick_rate</em>, <em>ms_per_beat</em>, <em>edge_sounds</em>, <em>edge_additions</em>, <em>addition='0:0:0:0'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/beatmap.html#Slider"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.beatmap.Slider" title="Permalink to this definition">¶</a></dt>
 <dd><p>A slider hit element.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1093,13 +1165,9 @@ the type.</p>
 <blockquote>
 <div><p>The sound played on the ticks of the slider.</p>
 </div></blockquote>
-<p><strong>slider_type</strong> : {&#8216;L&#8217;, &#8216;B&#8217;, &#8216;P&#8217;, &#8216;C&#8217;}</p>
+<p><strong>curve</strong> : Curve</p>
 <blockquote>
-<div><p>The type of slider. Linear, Bezier, Perfect, and Catmull.</p>
-</div></blockquote>
-<p><strong>points</strong> : iterable[Position]</p>
-<blockquote>
-<div><p>The points that this slider travels through.</p>
+<div><p>The slider&#8217;s curve function.</p>
 </div></blockquote>
 <p><strong>length</strong> : int</p>
 <blockquote>
@@ -1108,6 +1176,19 @@ the type.</p>
 <p><strong>ticks</strong> : int</p>
 <blockquote>
 <div><p>The number of slider ticks including the head and tail of the slider.</p>
+</div></blockquote>
+<p><strong>num_beats</strong> : int</p>
+<blockquote>
+<div><p>The number of beats that this slider spans.</p>
+</div></blockquote>
+<p><strong>tick_rate</strong> : float</p>
+<blockquote>
+<div><p>The rate at which ticks appear along sliders.</p>
+</div></blockquote>
+<p><strong>ms_per_beat</strong> : int</p>
+<blockquote>
+<div><p>The milliseconds per beat during the segment of the beatmap that this
+slider appears in.</p>
 </div></blockquote>
 <p><strong>edge_sounds</strong> : list[int]</p>
 <blockquote>
@@ -1139,11 +1220,11 @@ the type.</p>
 <blockquote>
 <div><p>Where this spinner appears on the screen.</p>
 </div></blockquote>
-<p><strong>time</strong> : int</p>
+<p><strong>time</strong> : timedelta</p>
 <blockquote>
 <div><p>When this spinner appears in the map.</p>
 </div></blockquote>
-<p><strong>end_time</strong> : int</p>
+<p><strong>end_time</strong> : timedelta</p>
 <blockquote>
 <div><p>When this spinner ends in the map.</p>
 </div></blockquote>
@@ -1199,7 +1280,7 @@ the type.</p>
 <p><strong>cache</strong> : int, optional</p>
 <blockquote>
 <div><p>The amount of beatmaps to cache in memory. This uses
-<code class="xref py py-func docutils literal"><span class="pre">functools.lru_cache()</span></code>, and if set to None will cache everything.</p>
+<a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.lru_cache" title="(in Python v3.6)"><code class="xref py py-func docutils literal"><span class="pre">functools.lru_cache()</span></code></a>, and if set to None will cache everything.</p>
 </div></blockquote>
 <p><strong>download_url</strong> : str, optional</p>
 <blockquote class="last">
@@ -1215,9 +1296,27 @@ the type.</p>
 <dd><p>Close any resources used by this library.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="slider.library.Library.copy">
+<code class="descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a copy suitable for use in a new thread.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Library</p>
+<blockquote class="last">
+<div><p>The new copy.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="classmethod">
 <dt id="slider.library.Library.create_db">
-<em class="property">classmethod </em><code class="descname">create_db</code><span class="sig-paren">(</span><em>path</em>, <em>*</em>, <em>recurse=True</em>, <em>cache=2048</em>, <em>download_url='https://osu.ppy.sh/osu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.create_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.create_db" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">create_db</code><span class="sig-paren">(</span><em>path</em>, <em>*</em>, <em>recurse=True</em>, <em>cache=2048</em>, <em>download_url='https://osu.ppy.sh/osu'</em>, <em>show_progress=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.create_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.create_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a Library from a directory of <code class="docutils literal"><span class="pre">.osu</span></code> files.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1234,12 +1333,16 @@ the type.</p>
 <p><strong>cache</strong> : int, optional</p>
 <blockquote>
 <div><p>The amount of beatmaps to cache in memory. This uses
-<code class="xref py py-func docutils literal"><span class="pre">functools.lru_cache()</span></code>, and if set to None will cache
+<a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.lru_cache" title="(in Python v3.6)"><code class="xref py py-func docutils literal"><span class="pre">functools.lru_cache()</span></code></a>, and if set to None will cache
 everything.</p>
 </div></blockquote>
 <p><strong>download_url</strong> : str, optional</p>
-<blockquote class="last">
+<blockquote>
 <div><p>The default location to download beatmaps from.</p>
+</div></blockquote>
+<p><strong>show_progress</strong> : bool, optional</p>
+<blockquote class="last">
+<div><p>Display a progress bar?</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1280,7 +1383,7 @@ happens, just re-run <code class="docutils literal"><span class="pre">create_db<
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_id</strong> : int</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_id</strong> : int or str</p>
 <blockquote>
 <div><p>The id of the beatmap to download.</p>
 </div></blockquote>
@@ -1300,6 +1403,12 @@ happens, just re-run <code class="docutils literal"><span class="pre">create_db<
 </table>
 </dd></dl>
 
+<dl class="attribute">
+<dt id="slider.library.Library.ids">
+<code class="descname">ids</code><a class="headerlink" href="#slider.library.Library.ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>All of the beatmap ids that this has downloaded.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="slider.library.Library.lookup_by_id">
 <code class="descname">lookup_by_id</code><span class="sig-paren">(</span><em>beatmap_id</em>, <em>*</em>, <em>download=False</em>, <em>save=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/library.html#Library.lookup_by_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.library.Library.lookup_by_id" title="Permalink to this definition">¶</a></dt>
@@ -1308,7 +1417,7 @@ happens, just re-run <code class="docutils literal"><span class="pre">create_db<
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_id</strong> : int</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_id</strong> : int or str</p>
 <blockquote>
 <div><p>The id of the beatmap to lookup.</p>
 </div></blockquote>
@@ -1366,6 +1475,12 @@ happens, just re-run <code class="docutils literal"><span class="pre">create_db<
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="slider.library.Library.md5s">
+<code class="descname">md5s</code><a class="headerlink" href="#slider.library.Library.md5s" title="Permalink to this definition">¶</a></dt>
+<dd><p>All of the beatmap hashes that this has downloaded.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1467,6 +1582,24 @@ game modes.</p>
 <blockquote class="last">
 <div><p>The maximum number of beatmaps to return. This must be less than
 500.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="slider.client.Client.copy">
+<code class="descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#Client.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.Client.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a copy suitable for use in a new thread.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Client</p>
+<blockquote class="last">
+<div><p>The new copy.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -1658,6 +1791,28 @@ breaks.</p>
 </table>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="slider.client.UnknownBeatmap">
+<em class="property">class </em><code class="descclassname">slider.client.</code><code class="descname">UnknownBeatmap</code><span class="sig-paren">(</span><em>kind</em>, <em>id_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/client.html#UnknownBeatmap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.client.UnknownBeatmap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a beatmap id or md5 is not known.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>kind</strong> : {&#8216;id&#8217;, &#8216;md5&#8217;}</p>
+<blockquote>
+<div><p>The kind of identifier used.</p>
+</div></blockquote>
+<p><strong>id_</strong> : str</p>
+<blockquote class="last">
+<div><p>The unknown beatmap id.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="class">
@@ -2317,7 +2472,7 @@ time. These appear in sorted order. The values are in the range [0, 1].</p>
 </table>
 <dl class="classmethod">
 <dt id="slider.replay.Replay.from_directory">
-<em class="property">classmethod </em><code class="descname">from_directory</code><span class="sig-paren">(</span><em>path</em>, <em>*</em>, <em>library=None</em>, <em>client=None</em>, <em>save=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_directory" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_directory</code><span class="sig-paren">(</span><em>path</em>, <em>*</em>, <em>library=None</em>, <em>client=None</em>, <em>save=False</em>, <em>retrieve_beatmap=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_directory" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read in a list of <code class="docutils literal"><span class="pre">Replay</span></code> objects from a directory of <code class="docutils literal"><span class="pre">.osr</span></code>
 files.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2341,6 +2496,10 @@ files.</p>
 <div><p>If the beatmap needs to be downloaded with the client, should it be
 saved to disk?</p>
 </div></blockquote>
+<p><strong>retrieve_beatmap</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to retrieve the beatmap the replay is for.</p>
+</div></blockquote>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>replays</strong> : list[Replay]</p>
@@ -2361,7 +2520,7 @@ saved to disk?</p>
 
 <dl class="classmethod">
 <dt id="slider.replay.Replay.from_file">
-<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>file</em>, <em>*</em>, <em>library=None</em>, <em>client=None</em>, <em>save=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_file" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>file</em>, <em>*</em>, <em>library=None</em>, <em>client=None</em>, <em>save=False</em>, <em>retrieve_beatmap=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read in a <code class="docutils literal"><span class="pre">Replay</span></code> object from an open file object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2384,6 +2543,10 @@ saved to disk?</p>
 <div><p>If the beatmap needs to be downloaded with the client, should it be
 saved to disk?</p>
 </div></blockquote>
+<p><strong>retrieve_beatmap</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to retrieve the beatmap the replay is for.</p>
+</div></blockquote>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>replay</strong> : Replay</p>
@@ -2404,7 +2567,7 @@ saved to disk?</p>
 
 <dl class="classmethod">
 <dt id="slider.replay.Replay.from_path">
-<em class="property">classmethod </em><code class="descname">from_path</code><span class="sig-paren">(</span><em>path</em>, <em>*</em>, <em>library=None</em>, <em>client=None</em>, <em>save=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_path" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_path</code><span class="sig-paren">(</span><em>path</em>, <em>*</em>, <em>library=None</em>, <em>client=None</em>, <em>save=False</em>, <em>retrieve_beatmap=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.from_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.from_path" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read in a <code class="docutils literal"><span class="pre">Replay</span></code> object from a <code class="docutils literal"><span class="pre">.osr</span></code> file on disk.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2427,6 +2590,10 @@ saved to disk?</p>
 <div><p>If the beatmap needs to be downloaded with the client, should it be
 saved to disk?</p>
 </div></blockquote>
+<p><strong>retrieve_beatmap</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to retrieve the beatmap the replay is for.</p>
+</div></blockquote>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>replay</strong> : Replay</p>
@@ -2447,7 +2614,7 @@ saved to disk?</p>
 
 <dl class="classmethod">
 <dt id="slider.replay.Replay.parse">
-<em class="property">classmethod </em><code class="descname">parse</code><span class="sig-paren">(</span><em>data</em>, <em>*</em>, <em>library=None</em>, <em>client=None</em>, <em>save=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.parse" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">parse</code><span class="sig-paren">(</span><em>data</em>, <em>*</em>, <em>library=None</em>, <em>client=None</em>, <em>save=False</em>, <em>retrieve_beatmap=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/replay.html#Replay.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.replay.Replay.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse a replay from <code class="docutils literal"><span class="pre">.osr</span></code> file data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2456,12 +2623,6 @@ saved to disk?</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>data</strong> : bytes</p>
 <blockquote>
 <div><p>The data from an <code class="docutils literal"><span class="pre">.osr</span></code> file.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>replay</strong> : Replay</p>
-<blockquote>
-<div><p>The parsed replay.</p>
 </div></blockquote>
 <p><strong>library</strong> : Library, optional</p>
 <blockquote>
@@ -2475,6 +2636,16 @@ saved to disk?</p>
 <blockquote>
 <div><p>If the beatmap needs to be downloaded with the client, should it be
 saved to disk?</p>
+</div></blockquote>
+<p><strong>retrieve_beatmap</strong> : bool, optional</p>
+<blockquote>
+<div><p>Whether to retrieve the beatmap the replay is for.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>replay</strong> : Replay</p>
+<blockquote>
+<div><p>The parsed replay.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -2500,7 +2671,7 @@ saved to disk?</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>offset</strong> : timedelta</p>
 <blockquote>
-<div><p>The offset since the previous action.</p>
+<div><p>The offset since the beginning of the song.</p>
 </div></blockquote>
 <p><strong>position</strong> : Position</p>
 <blockquote>
@@ -2962,293 +3133,6 @@ passed will be set to False.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="predictions">
-<h2>Predictions<a class="headerlink" href="#predictions" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="slider.model.train.train_model">
-<code class="descclassname">slider.model.train.</code><code class="descname">train_model</code><span class="sig-paren">(</span><em>beatmap_features</em>, <em>accuracies</em>, <em>model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/train.html#train_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.train.train_model" title="Permalink to this definition">¶</a></dt>
-<dd><p>Train a model on the given beatmap and the accuracy achieved on it.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap_features</strong> : np.ndarray[float64]</p>
-<blockquote>
-<div><p>An array with one row per beatmap to train on where the columns are the
-features of the map.</p>
-</div></blockquote>
-<p><strong>accuracies</strong> : np.ndarray[float64]</p>
-<blockquote>
-<div><p>An array with the same length as <code class="docutils literal"><span class="pre">beatmap_features</span></code> which is the
-actual accuracy achieved on the beatmap.</p>
-</div></blockquote>
-<p><strong>model</strong> : OsuModel, optional</p>
-<blockquote>
-<div><p>The model to use.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>model</strong> : Regressor</p>
-<blockquote class="last">
-<div><p>The scikit-learn model fit with the input data. New observations can
-be added by re-fitting the new replays.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="slider.model.train.train_from_replay_directory">
-<code class="descclassname">slider.model.train.</code><code class="descname">train_from_replay_directory</code><span class="sig-paren">(</span><em>path</em>, <em>library</em>, <em>age=None</em>, <em>model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/train.html#train_from_replay_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.train.train_from_replay_directory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Train a model from a directory of replays.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : str or pathlib.Path</p>
-<blockquote>
-<div><p>The path to the directory of <code class="docutils literal"><span class="pre">.osr</span></code> files.</p>
-</div></blockquote>
-<p><strong>library</strong> : Library</p>
-<blockquote>
-<div><p>The beatmap library to use when parsing the replays.</p>
-</div></blockquote>
-<p><strong>age</strong> : datetime.timedelta, optional</p>
-<blockquote>
-<div><p>Only count replays less than this age old.</p>
-</div></blockquote>
-<p><strong>model</strong> : OsuModel, optional</p>
-<blockquote>
-<div><p>The model to use.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>model</strong> : Regressor</p>
-<blockquote class="last">
-<div><p>The scikit-learn model fit with the input data. New observations can
-be added by re-fitting the new replays.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-<p class="rubric">Notes</p>
-<p>The same beatmap may appear more than once if there are multiple replays
-for this beatmap.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="slider.model.train.test_model_from_replay_directory">
-<code class="descclassname">slider.model.train.</code><code class="descname">test_model_from_replay_directory</code><span class="sig-paren">(</span><em>path</em>, <em>library</em>, <em>age=None</em>, <em>model=None</em>, <em>test_size=None</em>, <em>train_size=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/train.html#test_model_from_replay_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.train.test_model_from_replay_directory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Train a model from a directory of replays.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : str or pathlib.Path</p>
-<blockquote>
-<div><p>The path to the directory of <code class="docutils literal"><span class="pre">.osr</span></code> files.</p>
-</div></blockquote>
-<p><strong>library</strong> : Library</p>
-<blockquote>
-<div><p>The beatmap library to use when parsing the replays.</p>
-</div></blockquote>
-<p><strong>age</strong> : datetime.timedelta, optional</p>
-<blockquote>
-<div><p>Only count replays less than this age old.</p>
-</div></blockquote>
-<p><strong>model</strong> : OsuModel, optional</p>
-<blockquote>
-<div><p>The model to use.</p>
-</div></blockquote>
-<p><strong>test_size</strong> : float, optional</p>
-<blockquote>
-<div><p>The percent of data to use to test the model. The default is 0.25.</p>
-</div></blockquote>
-<p><strong>train_size</strong> : float, optional</p>
-<blockquote>
-<div><p>The percent of data to use to train the model. The default is 0.75.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>model</strong> : Regressor</p>
-<blockquote>
-<div><p>The scikit-learn model fit with the input data. New observations can
-be added by re-fitting the new replays.</p>
-</div></blockquote>
-<p><strong>predictions</strong> : np.ndarray[float64]</p>
-<blockquote>
-<div><p>The predictions made for the test features.</p>
-</div></blockquote>
-<p><strong>actual</strong> : np.ndarray[float64]</p>
-<blockquote class="last">
-<div><p>The actual values for accuracies of the test label.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-<p class="rubric">Notes</p>
-<p>The same beatmap may appear more than once if there are multiple replays
-for this beatmap.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="slider.model.model.OsuModel">
-<em class="property">class </em><code class="descclassname">slider.model.model.</code><code class="descname">OsuModel</code><a class="reference internal" href="_modules/slider/model/model.html#OsuModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.model.OsuModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base mixin for sklearn models to clip the results and add a
-<code class="docutils literal"><span class="pre">predict_beatmap</span></code> method.</p>
-<dl class="method">
-<dt id="slider.model.model.OsuModel.predict_beatmap">
-<code class="descname">predict_beatmap</code><span class="sig-paren">(</span><em>beatmap</em>, <em>*mods</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/model.html#OsuModel.predict_beatmap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.model.OsuModel.predict_beatmap" title="Permalink to this definition">¶</a></dt>
-<dd><p>Predict the user&#8217;s score for the given beatmap.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap</strong> : Beatmap</p>
-<blockquote>
-<div><p>The map to predict the performance of.</p>
-</div></blockquote>
-<p><strong>**kwargs</strong></p>
-<blockquote>
-<div><p>The mods used.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>accuracy</strong> : float</p>
-<blockquote class="last">
-<div><p>The user&#8217;s expected accuracy in the range [0, 1].</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="slider.model.model.MLPRegressor">
-<em class="property">class </em><code class="descclassname">slider.model.model.</code><code class="descname">MLPRegressor</code><span class="sig-paren">(</span><em>alpha=0.009</em>, <em>solver='lbfgs'</em>, <em>activation='tanh'</em>, <em>hidden_layer_sizes=(54</em>, <em>199</em>, <em>66)</em>, <em>max_iter=1000</em>, <em>tol=1e-09</em>, <em>warm_start=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/model.html#MLPRegressor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.model.MLPRegressor" title="Permalink to this definition">¶</a></dt>
-<dd><p>An osu! aware MLPRegressor.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="slider.model.features.extract_features">
-<code class="descclassname">slider.model.features.</code><code class="descname">extract_features</code><span class="sig-paren">(</span><em>beatmap</em>, <em>*</em>, <em>easy=False</em>, <em>hidden=False</em>, <em>hard_rock=False</em>, <em>double_time=False</em>, <em>relax=False</em>, <em>half_time=False</em>, <em>flashlight=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/features.html#extract_features"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.features.extract_features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extract all features from a beatmap.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmap</strong> : Beatmap</p>
-<blockquote>
-<div><p>The beatmap to extract features from.</p>
-</div></blockquote>
-<p><strong>easy</strong> : bool, optional</p>
-<blockquote>
-<div><p>Was the easy mod used?</p>
-</div></blockquote>
-<p><strong>hidden</strong> : bool, optional</p>
-<blockquote>
-<div><p>Was the hidden mod used?</p>
-</div></blockquote>
-<p><strong>hard_rock</strong> : bool, optional</p>
-<blockquote>
-<div><p>Was the hard rock mod used?</p>
-</div></blockquote>
-<p><strong>double_time</strong> : bool, optional</p>
-<blockquote>
-<div><p>Was the double time mod used?</p>
-</div></blockquote>
-<p><strong>hard</strong> : bool, optional</p>
-<blockquote>
-<div><p>Was the half time mod used?</p>
-</div></blockquote>
-<p><strong>flashlight</strong> : bool, optional</p>
-<blockquote>
-<div><p>Was the flashlight mod used?</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>features</strong> : dict[str, np.float64]</p>
-<blockquote class="last">
-<div><p>The features by name.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="slider.model.features.extract_feature_array">
-<code class="descclassname">slider.model.features.</code><code class="descname">extract_feature_array</code><span class="sig-paren">(</span><em>beatmaps_and_mods</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/features.html#extract_feature_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.features.extract_feature_array" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extract all features from a beatmap.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>beatmaps_and_mods</strong> : list[Beatmap, dict[str, bool]]</p>
-<blockquote>
-<div><p>The beatmaps and mod information to extract features from.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>features</strong> : np.ndarray[float64]</p>
-<blockquote class="last">
-<div><p>The features as an array.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="slider.model.features.extract_from_replay_directory">
-<code class="descclassname">slider.model.features.</code><code class="descname">extract_from_replay_directory</code><span class="sig-paren">(</span><em>path</em>, <em>library</em>, <em>age=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/slider/model/features.html#extract_from_replay_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#slider.model.features.extract_from_replay_directory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extract a labeled feature set from a path to directory of replays.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : str or pathlib.Path</p>
-<blockquote>
-<div><p>The path to the directory of <code class="docutils literal"><span class="pre">.osr</span></code> files.</p>
-</div></blockquote>
-<p><strong>library</strong> : Library</p>
-<blockquote>
-<div><p>The beatmap library to use when parsing the replays.</p>
-</div></blockquote>
-<p><strong>age</strong> : datetime.timedelta, optional</p>
-<blockquote>
-<div><p>Only count replays less than this age old.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>features</strong> : np.ndarray[float]</p>
-<blockquote>
-<div><p>The array of input data with one row per play.</p>
-</div></blockquote>
-<p><strong>accuracies</strong> : np.ndarray[float]</p>
-<blockquote class="last">
-<div><p>The array of accuracies achieved on each of the beatmaps in
-<code class="docutils literal"><span class="pre">features</span></code>.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-<p class="rubric">Notes</p>
-<p>The same beatmap may appear more than once if there are multiple replays
-for this beatmap.</p>
-</dd></dl>
-
-</div>
 </div>
 
 
@@ -3262,7 +3146,7 @@ for this beatmap.</p>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="model.html" class="btn btn-neutral" title="Model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="client.html" class="btn btn-neutral" title="Osu! API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

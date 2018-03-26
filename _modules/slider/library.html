@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -161,48 +160,41 @@
            <div itemprop="articleBody">
             
   <h1>Source code for slider.library</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">dbm</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
+<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">md5</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">sleep</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+<span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="kn">from</span> <span class="nn">.beatmap</span> <span class="k">import</span> <span class="n">Beatmap</span>
+<span class="kn">from</span> <span class="nn">.cli</span> <span class="k">import</span> <span class="n">maybe_show_progress</span>
 
 
-<span class="k">class</span> <span class="nc">Cache</span><span class="p">:</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;win&#39;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">sanitize_filename</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">invalid_character</span> <span class="ow">in</span> <span class="sa">r</span><span class="s1">&#39;:*?&quot;\/|&lt;&gt;&#39;</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">invalid_character</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">name</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">sanitize_filename</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_dbm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># busy wait for the other consumers to be done with this</span>
-        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">dbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">),</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
-            <span class="k">except</span> <span class="n">dbm</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
-                <span class="n">sleep</span><span class="p">(</span><span class="mf">0.05</span><span class="p">)</span>
+<span class="n">sanitize_filename</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">Sanitize a filename so that it is safe to write to the filesystem.</span>
 
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbm</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+<span class="s2">Parameters</span>
+<span class="s2">----------</span>
+<span class="s2">name : str</span>
+<span class="s2">    The name of the file without the directory.</span>
 
-    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbm</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
-            <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-
-    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbm</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
-            <span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dbm</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-            <span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-            <span class="k">return</span> <span class="n">value</span>
+<span class="s2">Returns</span>
+<span class="s2">-------</span>
+<span class="s2">sanitized_name : str</span>
+<span class="s2">    The name with invalid characters stripped out.</span>
+<span class="s2">&quot;&quot;&quot;</span>
 
 
 <div class="viewcode-block" id="Library"><a class="viewcode-back" href="../../appendix.html#slider.library.Library">[docs]</a><span class="k">class</span> <span class="nc">Library</span><span class="p">:</span>
@@ -228,15 +220,40 @@
                  <span class="n">download_url</span><span class="o">=</span><span class="n">DEFAULT_DOWNLOAD_URL</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_size</span> <span class="o">=</span> <span class="n">cache</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_read_beatmap</span> <span class="o">=</span> <span class="n">lru_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">_raw_read_beatmap</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">Cache</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s1">&#39;.slider.db&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="o">=</span> <span class="n">db</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s1">&#39;.slider.db&#39;</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">db</span><span class="p">:</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sd">&quot;&quot;&quot;\</span>
+<span class="sd">                CREATE TABLE IF NOT EXISTS beatmaps (</span>
+<span class="sd">                    md5 BLOB PRIMARY KEY,</span>
+<span class="sd">                    id INT,</span>
+<span class="sd">                    path TEXT UNIQUE NOT NULL</span>
+<span class="sd">                )</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_download_url</span> <span class="o">=</span> <span class="n">download_url</span>
+
+<div class="viewcode-block" id="Library.copy"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a copy suitable for use in a new thread.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Library</span>
+<span class="sd">            The new copy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+            <span class="n">cache</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache_size</span><span class="p">,</span>
+            <span class="n">download_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_download_url</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Library.close"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Close any resources used by this library.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_read_beatmap</span><span class="o">.</span><span class="n">cache_clear</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
     <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -271,12 +288,12 @@
             <span class="k">for</span> <span class="n">directory</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">filenames</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osu&#39;</span><span class="p">):</span>
-                        <span class="k">yield</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                        <span class="k">yield</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
                 <span class="n">path</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">path</span>
                 <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osu&#39;</span><span class="p">):</span>
-                    <span class="k">yield</span> <span class="n">path</span>
+                    <span class="k">yield</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
 <div class="viewcode-block" id="Library.create_db"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.create_db">[docs]</a>    <span class="k">def</span> <span class="nf">create_db</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
@@ -284,7 +301,8 @@
                   <span class="o">*</span><span class="p">,</span>
                   <span class="n">recurse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                   <span class="n">cache</span><span class="o">=</span><span class="n">DEFAULT_CACHE_SIZE</span><span class="p">,</span>
-                  <span class="n">download_url</span><span class="o">=</span><span class="n">DEFAULT_DOWNLOAD_URL</span><span class="p">):</span>
+                  <span class="n">download_url</span><span class="o">=</span><span class="n">DEFAULT_DOWNLOAD_URL</span><span class="p">,</span>
+                  <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Create a Library from a directory of ``.osu`` files.</span>
 
 <span class="sd">        Parameters</span>
@@ -299,25 +317,42 @@
 <span class="sd">            everything.</span>
 <span class="sd">        download_url : str, optional</span>
 <span class="sd">            The default location to download beatmaps from.</span>
+<span class="sd">        show_progress : bool, optional</span>
+<span class="sd">            Display a progress bar?</span>
 
 <span class="sd">        Notes</span>
 <span class="sd">        -----</span>
 <span class="sd">        Moving the underlying ``.osu`` files invalidates the library. If this</span>
 <span class="sd">        happens, just re-run ``create_db`` again.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="n">write_to_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_cache</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">db_path</span> <span class="o">=</span> <span class="n">path</span> <span class="o">/</span> <span class="s1">&#39;.slider.db&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># ensure the db is cleared</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">pass</span>
 
-        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_osu_files</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">):</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span> <span class="n">download_url</span><span class="o">=</span><span class="n">download_url</span><span class="p">)</span>
+        <span class="n">write_to_db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_db</span>
 
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">beatmap</span> <span class="o">=</span> <span class="n">Beatmap</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8-sig&#39;</span><span class="p">))</span>
-            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;failed to parse </span><span class="si">{entry.path}</span><span class="s1">&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="n">progress</span> <span class="o">=</span> <span class="n">maybe_show_progress</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_osu_files</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">),</span>
+            <span class="n">show_progress</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Processing beatmaps: &#39;</span><span class="p">,</span>
+            <span class="n">item_show_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="s1">&#39;Done!&#39;</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stem</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="p">,</span> <span class="n">progress</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 
-            <span class="n">write_to_cache</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">beatmap</span> <span class="o">=</span> <span class="n">Beatmap</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8-sig&#39;</span><span class="p">))</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;failed to parse </span><span class="si">{path}</span><span class="s1">&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+                <span class="n">write_to_db</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span></div>
 
@@ -332,17 +367,37 @@
 <span class="sd">        This is a ``staticmethod`` to avoid a cycle from self to the lru_cache</span>
 <span class="sd">        back to self.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">Beatmap</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;id:</span><span class="si">{beatmap_id}</span><span class="s1">&#39;</span><span class="p">])</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">beatmap_id</span>
+                <span class="n">path_query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="s1">&#39;SELECT path FROM beatmaps WHERE id = ?&#39;</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">beatmap_id</span><span class="p">,),</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">beatmap_md5</span>
+                <span class="n">path_query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="s1">&#39;SELECT path FROM beatmaps WHERE md5 = ?&#39;</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">beatmap_md5</span><span class="p">,),</span>
+                <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">Beatmap</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;md5:</span><span class="si">{beatmap_md5}</span><span class="s1">&#39;</span><span class="p">])</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">path_query</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">path</span><span class="p">,</span> <span class="o">=</span> <span class="n">path</span>
+
+        <span class="c1"># Make path relative to the root path. We save paths relative to</span>
+        <span class="c1"># ``self.path`` so a library can be relocated without requiring a</span>
+        <span class="c1"># rebuild</span>
+        <span class="k">return</span> <span class="n">Beatmap</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">/</span> <span class="n">path</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Library.lookup_by_id"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.lookup_by_id">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Retrieve a beatmap by its beatmap id.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        beatmap_id : int</span>
+<span class="sd">        beatmap_id : int or str</span>
 <span class="sd">            The id of the beatmap to lookup.</span>
 
 <span class="sd">        Returns</span>
@@ -404,17 +459,18 @@
         <span class="k">if</span> <span class="n">beatmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">beatmap</span> <span class="o">=</span> <span class="n">Beatmap</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8-sig&#39;</span><span class="p">))</span>
 
-        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">/</span> <span class="p">(</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">/</span> <span class="n">sanitize_filename</span><span class="p">(</span>
             <span class="n">f</span><span class="s1">&#39;</span><span class="si">{beatmap.artist}</span><span class="s1"> - &#39;</span>
             <span class="n">f</span><span class="s1">&#39;</span><span class="si">{beatmap.title}</span><span class="s1"> &#39;</span>
             <span class="n">f</span><span class="s1">&#39;(</span><span class="si">{beatmap.creator}</span><span class="s1">)&#39;</span>
             <span class="n">f</span><span class="s1">&#39;[</span><span class="si">{beatmap.version}</span><span class="s1">]&#39;</span>
             <span class="n">f</span><span class="s1">&#39;.osu&#39;</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_cache</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_db</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">beatmap</span></div>
 
 <div class="viewcode-block" id="Library.delete"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">remove_file</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -427,14 +483,22 @@
 <span class="sd">        remove_file : bool, optional</span>
 <span class="sd">            Remove the .osu file from disk.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;id:</span><span class="si">{beatmap.beatmap_id}</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="n">md5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;id_to_md5:</span><span class="si">{beatmap.beatmap_id}</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;md5:</span><span class="si">{md5}</span><span class="s1">&#39;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">remove_file</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">remove_file</span><span class="p">:</span>
+                <span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="s1">&#39;SELECT path FROM beatmaps WHERE id = ?&#39;</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">beatmap</span><span class="o">.</span><span class="n">beatmap_id</span><span class="p">,),</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_write_to_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Write data to the cache.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s1">&#39;DELETE FROM beatmaps WHERE id = ?&#39;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">beatmap</span><span class="o">.</span><span class="n">beatmap_id</span><span class="p">,),</span>
+            <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_write_to_db</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Write data to the database.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -445,25 +509,27 @@
 <span class="sd">        path : str</span>
 <span class="sd">            The path to save</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-
+        <span class="c1"># save paths relative to ``self.path`` so a library can be relocated</span>
+        <span class="c1"># without requiring a rebuild</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
         <span class="n">beatmap_md5</span> <span class="o">=</span> <span class="n">md5</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;md5:</span><span class="si">{beatmap_md5}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
-
         <span class="n">beatmap_id</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">beatmap_id</span>
-        <span class="k">if</span> <span class="n">beatmap_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># very old beatmaps didn&#39;t store the id in the ``.osu``</span>
-            <span class="c1"># file</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;id:</span><span class="si">{beatmap_id}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
-            <span class="c1"># map the id back to the hash</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;id_to_md5:{{beatmap_id}}&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatmap_md5</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s1">&#39;INSERT INTO beatmaps VALUES (?,?,?)&#39;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">beatmap_md5</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)),</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">IntegrityError</span><span class="p">:</span>
+            <span class="c1"># ignore duplicate beatmaps</span>
+            <span class="k">pass</span>
 
 <div class="viewcode-block" id="Library.download"><a class="viewcode-back" href="../../appendix.html#slider.library.Library.download">[docs]</a>    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap_id</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Download a beatmap.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        beatmap_id : int</span>
+<span class="sd">        beatmap_id : int or str</span>
 <span class="sd">            The id of the beatmap to download.</span>
 <span class="sd">        save : bool, optional</span>
 <span class="sd">            Save the beatmap to disk?</span>
@@ -486,16 +552,20 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">md5s</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;All of the beatmap hashes that this has downloaded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
-            <span class="n">key</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;md5:&#39;</span><span class="p">)</span>
+            <span class="n">md5</span> <span class="k">for</span> <span class="n">md5</span><span class="p">,</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;SELECT md5 FROM beatmaps&#39;</span><span class="p">)</span>
         <span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;All of the beatmap ids that this has downloaded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
-            <span class="nb">int</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span>
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;id:&#39;</span><span class="p">)</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">id_</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">id_</span><span class="p">,</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;SELECT id FROM beatmaps&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">id_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">)</span></div>
 </pre></div>
 

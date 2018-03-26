@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -161,124 +160,96 @@
            <div itemprop="articleBody">
             
   <h1>Source code for slider.model.train</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+<span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">..game_mode</span> <span class="k">import</span> <span class="n">GameMode</span>
+<span class="kn">from</span> <span class="nn">..replay</span> <span class="k">import</span> <span class="n">Replay</span>
 
 
-<span class="kn">from</span> <span class="nn">.features</span> <span class="k">import</span> <span class="n">extract_from_replay_directory</span>
-<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">Model</span>
-
-
-<div class="viewcode-block" id="train_model"><a class="viewcode-back" href="../../../appendix.html#slider.model.train.train_model">[docs]</a><span class="k">def</span> <span class="nf">train_model</span><span class="p">(</span><span class="n">beatmap_features</span><span class="p">,</span> <span class="n">accuracies</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train a model on the given beatmap and the accuracy achieved on it.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    beatmap_features : np.ndarray[float64]</span>
-<span class="sd">        An array with one row per beatmap to train on where the columns are the</span>
-<span class="sd">        features of the map.</span>
-<span class="sd">    accuracies : np.ndarray[float64]</span>
-<span class="sd">        An array with the same length as ``beatmap_features`` which is the</span>
-<span class="sd">        actual accuracy achieved on the beatmap.</span>
-<span class="sd">    model : OsuModel, optional</span>
-<span class="sd">        The model to use.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    model : Regressor</span>
-<span class="sd">        The scikit-learn model fit with the input data. New observations can</span>
-<span class="sd">        be added by re-fitting the new replays.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">()</span>
-
-    <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">beatmap_features</span><span class="p">,</span> <span class="n">accuracies</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">model</span></div>
-
-
-<div class="viewcode-block" id="train_from_replay_directory"><a class="viewcode-back" href="../../../appendix.html#slider.model.train.train_from_replay_directory">[docs]</a><span class="k">def</span> <span class="nf">train_from_replay_directory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">library</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train a model from a directory of replays.</span>
+<div class="viewcode-block" id="load_replay_directory"><a class="viewcode-back" href="../../../appendix.html#slider.model.train.load_replay_directory">[docs]</a><span class="k">def</span> <span class="nf">load_replay_directory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span>
+                          <span class="o">*</span><span class="p">,</span>
+                          <span class="n">library</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">age</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load all eligible replays from a directory.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    path : str or pathlib.Path</span>
 <span class="sd">        The path to the directory of ``.osr`` files.</span>
-<span class="sd">    library : Library</span>
+<span class="sd">    library : Library, optional</span>
 <span class="sd">        The beatmap library to use when parsing the replays.</span>
+<span class="sd">    client : Client, optional</span>
+<span class="sd">        The client to use when parsing the replays.</span>
 <span class="sd">    age : datetime.timedelta, optional</span>
 <span class="sd">        Only count replays less than this age old.</span>
-<span class="sd">    model : OsuModel, optional</span>
-<span class="sd">        The model to use.</span>
+<span class="sd">    save: bool, optional</span>
+<span class="sd">        If the beatmap does not exist, and a client is used to fetch it, should</span>
+<span class="sd">        the beatmap be saved to disk?</span>
 
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    model : Regressor</span>
-<span class="sd">        The scikit-learn model fit with the input data. New observations can</span>
-<span class="sd">        be added by re-fitting the new replays.</span>
+<span class="sd">    Yields</span>
+<span class="sd">    ------</span>
+<span class="sd">    replay : Replay</span>
+<span class="sd">        The eligible replays in the directory.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    The same beatmap may appear more than once if there are multiple replays</span>
 <span class="sd">    for this beatmap.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">train_model</span><span class="p">(</span>
-        <span class="o">*</span><span class="n">extract_from_replay_directory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">library</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="n">age</span><span class="p">),</span>
-        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
-    <span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">replays</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osr&#39;</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">Replay</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span>
+                    <span class="n">entry</span><span class="p">,</span>
+                    <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
+                    <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">,</span>
+                    <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="c1"># throw out any maps that fail to parse or download</span>
+                <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">eligible_replays</span><span class="p">(</span><span class="n">replays</span><span class="p">(),</span> <span class="n">age</span><span class="o">=</span><span class="n">age</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="test_model_from_replay_directory"><a class="viewcode-back" href="../../../appendix.html#slider.model.train.test_model_from_replay_directory">[docs]</a><span class="k">def</span> <span class="nf">test_model_from_replay_directory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span>
-                                     <span class="n">library</span><span class="p">,</span>
-                                     <span class="n">age</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">test_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">train_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train a model from a directory of replays.</span>
+<div class="viewcode-block" id="eligible_replays"><a class="viewcode-back" href="../../../appendix.html#slider.model.train.eligible_replays">[docs]</a><span class="k">def</span> <span class="nf">eligible_replays</span><span class="p">(</span><span class="n">replays</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Filter replays down to just the replays we want to train with.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    path : str or pathlib.Path</span>
-<span class="sd">        The path to the directory of ``.osr`` files.</span>
-<span class="sd">    library : Library</span>
-<span class="sd">        The beatmap library to use when parsing the replays.</span>
+<span class="sd">    replays : iterable[Replay]</span>
+<span class="sd">        The replays to filter.</span>
 <span class="sd">    age : datetime.timedelta, optional</span>
 <span class="sd">        Only count replays less than this age old.</span>
-<span class="sd">    model : OsuModel, optional</span>
-<span class="sd">        The model to use.</span>
-<span class="sd">    test_size : float, optional</span>
-<span class="sd">        The percent of data to use to test the model. The default is 0.25.</span>
-<span class="sd">    train_size : float, optional</span>
-<span class="sd">        The percent of data to use to train the model. The default is 0.75.</span>
 
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    model : Regressor</span>
-<span class="sd">        The scikit-learn model fit with the input data. New observations can</span>
-<span class="sd">        be added by re-fitting the new replays.</span>
-<span class="sd">    predictions : np.ndarray[float64]</span>
-<span class="sd">        The predictions made for the test features.</span>
-<span class="sd">    actual : np.ndarray[float64]</span>
-<span class="sd">        The actual values for accuracies of the test label.</span>
+<span class="sd">    Yields</span>
+<span class="sd">    ------</span>
+<span class="sd">    replay : Replay</span>
+<span class="sd">        The eligible replays in the directory.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    The same beatmap may appear more than once if there are multiple replays</span>
 <span class="sd">    for this beatmap.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">replay</span> <span class="ow">in</span> <span class="n">replays</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">age</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">replay</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">&gt;</span> <span class="n">age</span><span class="p">:</span>
+            <span class="k">continue</span>
 
-    <span class="n">features</span><span class="p">,</span> <span class="n">accuracy</span> <span class="o">=</span> <span class="n">extract_from_replay_directory</span><span class="p">(</span>
-        <span class="n">path</span><span class="p">,</span>
-        <span class="n">library</span><span class="p">,</span>
-        <span class="n">age</span><span class="o">=</span><span class="n">age</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">train_features</span><span class="p">,</span> <span class="n">test_features</span><span class="p">,</span> <span class="n">train_acc</span><span class="p">,</span> <span class="n">test_acc</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
-        <span class="n">features</span><span class="p">,</span>
-        <span class="n">accuracy</span><span class="p">,</span>
-        <span class="n">test_size</span><span class="o">=</span><span class="n">test_size</span><span class="p">,</span>
-        <span class="n">train_size</span><span class="o">=</span><span class="n">train_size</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">m</span> <span class="o">=</span> <span class="n">train_model</span><span class="p">(</span><span class="n">train_features</span><span class="p">,</span> <span class="n">train_acc</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_features</span><span class="p">),</span> <span class="n">test_acc</span></div>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="n">GameMode</span><span class="o">.</span><span class="n">standard</span> <span class="ow">or</span>
+                <span class="n">replay</span><span class="o">.</span><span class="n">autoplay</span> <span class="ow">or</span>
+                <span class="n">replay</span><span class="o">.</span><span class="n">auto_pilot</span> <span class="ow">or</span>
+                <span class="n">replay</span><span class="o">.</span><span class="n">cinema</span> <span class="ow">or</span>
+                <span class="n">replay</span><span class="o">.</span><span class="n">relax</span> <span class="ow">or</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="c1"># ignore plays with mods that are not representative of user skill</span>
+            <span class="k">yield</span> <span class="n">replay</span></div>
 </pre></div>
 
            </div>

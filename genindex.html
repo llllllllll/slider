@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a></li>
 </ul>
 
@@ -264,12 +263,18 @@
 </li>
       <li><a href="appendix.html#slider.client.Client">Client (class in slider.client)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.library.Library.close">close() (slider.library.Library method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.mod.Mod.coop">coop (slider.mod.Mod attribute)</a>
 </li>
+      <li><a href="appendix.html#slider.client.Client.copy">copy() (slider.client.Client method)</a>
+
+      <ul>
+        <li><a href="appendix.html#slider.library.Library.copy">(slider.library.Library method)</a>
+</li>
+      </ul></li>
       <li><a href="appendix.html#slider.library.Library.create_db">create_db() (slider.library.Library class method)</a>
 </li>
       <li><a href="appendix.html#slider.beatmap.Beatmap.cs">cs() (slider.beatmap.Beatmap method)</a>
@@ -283,6 +288,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.library.Library.delete">delete() (slider.library.Library method)</a>
+</li>
+      <li><a href="appendix.html#slider.beatmap.Beatmap.display_name">display_name (slider.beatmap.Beatmap attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -298,17 +305,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.mod.Mod.easy">easy (slider.mod.Mod attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.client.Genre.electronic">electronic (slider.client.Genre attribute)</a>
 </li>
       <li><a href="appendix.html#slider.client.Language.english">english (slider.client.Language attribute)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="appendix.html#slider.model.features.extract_feature_array">extract_feature_array() (in module slider.model.features)</a>
-</li>
-      <li><a href="appendix.html#slider.model.features.extract_features">extract_features() (in module slider.model.features)</a>
-</li>
-      <li><a href="appendix.html#slider.model.features.extract_from_replay_directory">extract_from_replay_directory() (in module slider.model.features)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -372,11 +373,13 @@
 </li>
       <li><a href="appendix.html#slider.client.User.high_scores">high_scores() (slider.client.User method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.client.HighScore">HighScore (class in slider.client)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.client.Genre.hip_hop">hip_hop (slider.client.Genre attribute)</a>
+</li>
+      <li><a href="appendix.html#slider.beatmap.Beatmap.hit_object_difficulty">hit_object_difficulty() (slider.beatmap.Beatmap method)</a>
 </li>
       <li><a href="appendix.html#slider.beatmap.HitObject">HitObject (class in slider.beatmap)</a>
 </li>
@@ -390,10 +393,12 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="appendix.html#slider.client.Language.instrumental">instrumental (slider.client.Language attribute)</a>
+      <li><a href="appendix.html#slider.library.Library.ids">ids (slider.library.Library attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="appendix.html#slider.client.Language.instrumental">instrumental (slider.client.Language attribute)</a>
+</li>
       <li><a href="appendix.html#slider.client.Language.italian">italian (slider.client.Language attribute)</a>
 </li>
   </ul></td>
@@ -460,7 +465,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.game_mode.GameMode.mania">mania (slider.game_mode.GameMode attribute)</a>
 </li>
-      <li><a href="appendix.html#slider.model.model.MLPRegressor">MLPRegressor (class in slider.model.model)</a>
+      <li><a href="appendix.html#slider.library.Library.md5s">md5s (slider.library.Library attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -491,8 +496,6 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.beatmap.Beatmap.od">od() (slider.beatmap.Beatmap method)</a>
-</li>
-      <li><a href="appendix.html#slider.model.model.OsuModel">OsuModel (class in slider.model.model)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -532,8 +535,6 @@
 </li>
       <li><a href="appendix.html#slider.position.Position">Position (class in slider.position)</a>
 </li>
-      <li><a href="appendix.html#slider.model.model.OsuModel.predict_beatmap">predict_beatmap() (slider.model.model.OsuModel method)</a>
-</li>
   </ul></td>
 </tr></table>
 
@@ -560,7 +561,7 @@
 </li>
       <li><a href="appendix.html#slider.replay.Replay">Replay (class in slider.replay)</a>
 </li>
-      <li><a href="appendix.html#Beatmap.rhythm_awkwardness">rhythm_awkwardness() (Beatmap method)</a>
+      <li><a href="appendix.html#slider.beatmap.Beatmap.rhythm_awkwardness">rhythm_awkwardness() (slider.beatmap.Beatmap method)</a>
 </li>
       <li><a href="appendix.html#slider.client.Genre.rock">rock (slider.client.Genre attribute)</a>
 </li>
@@ -576,9 +577,11 @@
 </li>
       <li><a href="appendix.html#slider.beatmap.Slider">Slider (class in slider.beatmap)</a>
 </li>
+      <li><a href="appendix.html#slider.beatmap.Beatmap.smoothed_difficulty">smoothed_difficulty() (slider.beatmap.Beatmap method)</a>
+</li>
       <li><a href="appendix.html#slider.client.Language.spanish">spanish (slider.client.Language attribute)</a>
 </li>
-      <li><a href="appendix.html#Beatmap.speed_stars">speed_stars() (Beatmap method)</a>
+      <li><a href="appendix.html#slider.beatmap.Beatmap.speed_stars">speed_stars() (slider.beatmap.Beatmap method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -588,7 +591,7 @@
 </li>
       <li><a href="appendix.html#slider.game_mode.GameMode.standard">standard (slider.game_mode.GameMode attribute)</a>
 </li>
-      <li><a href="appendix.html#Beatmap.stars">stars() (Beatmap method)</a>
+      <li><a href="appendix.html#slider.beatmap.Beatmap.stars">stars() (slider.beatmap.Beatmap method)</a>
 </li>
       <li><a href="appendix.html#slider.mod.Mod.sudden_death">sudden_death (slider.mod.Mod attribute)</a>
 </li>
@@ -602,17 +605,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="appendix.html#slider.game_mode.GameMode.taiko">taiko (slider.game_mode.GameMode attribute)</a>
 </li>
-      <li><a href="appendix.html#slider.mod.Mod.target_practice">target_practice (slider.mod.Mod attribute)</a>
-</li>
-      <li><a href="appendix.html#slider.model.train.test_model_from_replay_directory">test_model_from_replay_directory() (in module slider.model.train)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="appendix.html#Beatmap.timing_point_at">timing_point_at() (Beatmap method)</a>
+      <li><a href="appendix.html#slider.mod.Mod.target_practice">target_practice (slider.mod.Mod attribute)</a>
 </li>
-      <li><a href="appendix.html#slider.model.train.train_from_replay_directory">train_from_replay_directory() (in module slider.model.train)</a>
-</li>
-      <li><a href="appendix.html#slider.model.train.train_model">train_model() (in module slider.model.train)</a>
+      <li><a href="appendix.html#slider.beatmap.Beatmap.timing_point_at">timing_point_at() (slider.beatmap.Beatmap method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -620,14 +617,16 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="appendix.html#slider.client.UnknownBeatmap">UnknownBeatmap (class in slider.client)</a>
+</li>
       <li><a href="appendix.html#slider.bit_enum.BitEnum.unpack">unpack() (slider.bit_enum.BitEnum class method)</a>
 </li>
       <li><a href="appendix.html#slider.client.Genre.unspecified">unspecified (slider.client.Genre attribute)</a>
 </li>
-      <li><a href="appendix.html#slider.client.User">User (class in slider.client)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="appendix.html#slider.client.User">User (class in slider.client)</a>
+</li>
       <li><a href="appendix.html#slider.client.Client.user">user() (slider.client.Client method)</a>
 </li>
       <li><a href="appendix.html#slider.client.Client.user_best">user_best() (slider.client.Client method)</a>

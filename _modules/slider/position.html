@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -178,7 +177,28 @@
 <span class="sd">    -----</span>
 <span class="sd">    The visible region of the osu! standard playfield is [0, 512] by [0, 384].</span>
 <span class="sd">    Positions may fall outside of this range for slider curve control points.</span>
-<span class="sd">    &quot;&quot;&quot;</span></div>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_max</span> <span class="o">=</span> <span class="mi">512</span>
+    <span class="n">y_max</span> <span class="o">=</span> <span class="mi">384</span></div>
+
+
+<span class="k">class</span> <span class="nc">Point</span><span class="p">(</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Point&#39;</span><span class="p">,</span> <span class="s1">&#39;x y offset&#39;</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;A position and time on the osu! screen.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : int or float</span>
+<span class="sd">        The x coordinate in the range.</span>
+<span class="sd">    y : int or float</span>
+<span class="sd">        The y coordinate in the range.</span>
+<span class="sd">    offset : int or float</span>
+<span class="sd">        The time</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The visible region of the osu! standard playfield is [0, 512] by [0, 384].</span>
+<span class="sd">    Positions may fall outside of this range for slider curve control points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 </pre></div>
 
            </div>

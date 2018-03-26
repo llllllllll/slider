@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a></li>
 </ul>
 
@@ -168,7 +167,7 @@
 <h2>Included Tools<a class="headerlink" href="#included-tools" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="beatmap-parser">
 <h3>Beatmap Parser<a class="headerlink" href="#beatmap-parser" title="Permalink to this headline">¶</a></h3>
-<p>Slider includes an osu! beatmap parser for programatic access an manipulation of
+<p>Slider includes an osu! beatmap parser for programatic access and manipulation of
 <code class="docutils literal"><span class="pre">.osu</span></code> and <code class="docutils literal"><span class="pre">.osz</span></code> files.</p>
 </div>
 <div class="section" id="replay-parser">
@@ -182,10 +181,11 @@ counts, and input stream data out of <code class="docutils literal"><span class=
 information about users or beatmaps.</p>
 </div>
 </div>
-<div class="section" id="model">
-<h2>Model<a class="headerlink" href="#model" title="Permalink to this headline">¶</a></h2>
-<p>Slider includes a simple model for predicting future performance based on
-replay data.</p>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<p>Slider currently requires Python 3.6+.</p>
+<p>Slider also requires a few PyData tools like numpy and scipy; see the
+<code class="docutils literal"><span class="pre">setup.py</span></code> for a full list of required packages.</p>
 </div>
 <div class="section" id="thanks">
 <h2>Thanks<a class="headerlink" href="#thanks" title="Permalink to this headline">¶</a></h2>
@@ -215,16 +215,6 @@ providing resources for writing these tools.</p>
 <li class="toctree-l2"><a class="reference internal" href="client.html#beatmaps">Beatmaps</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="model.html#basic-attributes">Basic Attributes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html#mods">Mods</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html#bpm">BPM</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html#hit-objects">Hit Objects</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html#note-angles">Note Angles</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html#osu-difficulty-metrics">Osu! Difficulty Metrics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html#performance-points-curve">Performance Points Curve</a></li>
-</ul>
-</li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">Appendix</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#beatmap">Beatmap</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#library">Library</a></li>
@@ -233,7 +223,6 @@ providing resources for writing these tools.</p>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#game-modes">Game Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#mods">Mods</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#utilities">Utilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="appendix.html#predictions">Predictions</a></li>
 </ul>
 </li>
 </ul>

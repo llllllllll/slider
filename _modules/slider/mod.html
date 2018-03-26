@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -161,7 +160,9 @@
            <div itemprop="articleBody">
             
   <h1>Source code for slider.mod</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">.bit_enum</span> <span class="k">import</span> <span class="n">BitEnum</span>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+
+<span class="kn">from</span> <span class="nn">.bit_enum</span> <span class="k">import</span> <span class="n">BitEnum</span>
 
 
 <div class="viewcode-block" id="Mod"><a class="viewcode-back" href="../../appendix.html#slider.mod.Mod">[docs]</a><span class="k">class</span> <span class="nc">Mod</span><span class="p">(</span><span class="n">BitEnum</span><span class="p">):</span>
@@ -310,7 +311,51 @@
     <span class="k">return</span> <span class="p">(</span><span class="mi">512</span> <span class="o">/</span> <span class="mi">16</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="p">(</span><span class="n">cs</span> <span class="o">-</span> <span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="mi">5</span><span class="p">)</span></div>
 
 
+<span class="k">class</span> <span class="nc">HitWindows</span><span class="p">(</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;HitWindows&#39;</span><span class="p">,</span> <span class="s1">&#39;hit_300, hit_100, hit_50&#39;</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;Times to hit an object at various accuracies</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    hit_300 : int</span>
+<span class="sd">        The maxumium number of milliseconds away from exactly on time a hit</span>
+<span class="sd">        can be to still be a 300</span>
+<span class="sd">    hit_100 : int</span>
+<span class="sd">        The maxumium number of milliseconds away from exactly on time a hit</span>
+<span class="sd">        can be to still be a 100</span>
+<span class="sd">    hit_50 : int</span>
+<span class="sd">        The maxumium number of milliseconds away from exactly on time a hit</span>
+<span class="sd">        can be to still be a 50</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    A hit further than the ``hit_50`` value away from the time of a hit object</span>
+<span class="sd">    is a miss.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
 <span class="k">def</span> <span class="nf">od_to_ms</span><span class="p">(</span><span class="n">od</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert an overall difficulty value into milliseconds to hit an object at</span>
+<span class="sd">    various accuracies.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    od : float</span>
+<span class="sd">        The overall difficulty.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    hw : HitWindows</span>
+<span class="sd">        A namedtuple of numbers of milliseconds to hit an object at different</span>
+<span class="sd">        accuracies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">HitWindows</span><span class="p">(</span>
+        <span class="n">hit_300</span><span class="o">=</span><span class="p">(</span><span class="mi">159</span> <span class="o">-</span> <span class="mi">12</span> <span class="o">*</span> <span class="n">od</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">hit_100</span><span class="o">=</span><span class="p">(</span><span class="mi">279</span> <span class="o">-</span> <span class="mi">16</span> <span class="o">*</span> <span class="n">od</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">hit_50</span><span class="o">=</span><span class="p">(</span><span class="mi">399</span> <span class="o">-</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">od</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">od_to_ms_300</span><span class="p">(</span><span class="n">od</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Convert an overall difficulty value into milliseconds to hit an object at</span>
 <span class="sd">    maximum accuracy.</span>
 
@@ -323,8 +368,32 @@
 <span class="sd">    -------</span>
 <span class="sd">    ms : float</span>
 <span class="sd">        The number of milliseconds to hit an object at maximum accuracy.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`slider.mod.ms_300_to_od`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="mf">79.5</span> <span class="o">-</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">od</span>
+
+
+<span class="k">def</span> <span class="nf">ms_300_to_od</span><span class="p">(</span><span class="n">ms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert the milliseconds to score a 300 into an OD value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ms : float</span>
+<span class="sd">        The length of the 300 window in milliseconds.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    od : float</span>
+<span class="sd">        The OD value that produces a 300 window of length ``ms``.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`slider.mod.od_to_ms_300`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">ms</span> <span class="o">-</span> <span class="mf">79.5</span><span class="p">)</span> <span class="o">/</span> <span class="o">-</span><span class="mi">6</span>
 </pre></div>
 
            </div>

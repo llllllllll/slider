@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>slider.model.features &mdash; slider 0.1.0 documentation</title>
+  <title>slider.model.manual_features &mdash; slider 0.1.0 documentation</title>
   
 
   
@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -143,7 +142,7 @@
         
           <li><a href="../../index.html">Module code</a> &raquo;</li>
         
-      <li>slider.model.features</li>
+      <li>slider.model.manual_features</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -160,16 +159,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <h1>Source code for slider.model.features</h1><div class="highlight"><pre>
+  <h1>Source code for slider.model.manual_features</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">unique</span><span class="p">,</span> <span class="n">IntEnum</span>
-<span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">..beatmap</span> <span class="k">import</span> <span class="n">Circle</span><span class="p">,</span> <span class="n">Slider</span>
-<span class="kn">from</span> <span class="nn">..replay</span> <span class="k">import</span> <span class="n">Replay</span>
 
 
 <span class="nd">@unique</span>
@@ -308,7 +304,7 @@
     <span class="k">return</span> <span class="n">hit_object_count</span><span class="p">(</span><span class="n">circles</span><span class="p">,</span> <span class="n">sliders</span><span class="p">,</span> <span class="n">spinners</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="extract_features"><a class="viewcode-back" href="../../../appendix.html#slider.model.features.extract_features">[docs]</a><span class="k">def</span> <span class="nf">extract_features</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span>
+<span class="k">def</span> <span class="nf">extract_features</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span>
                      <span class="o">*</span><span class="p">,</span>
                      <span class="n">easy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                      <span class="n">hidden</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -316,7 +312,8 @@
                      <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                      <span class="n">relax</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                      <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                     <span class="n">flashlight</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                     <span class="n">flashlight</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">_cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extract all features from a beatmap.</span>
 
 <span class="sd">    Parameters</span>
@@ -341,6 +338,25 @@
 <span class="sd">    features : dict[str, np.float64]</span>
 <span class="sd">        The features by name.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># we often see many of the same replay when training, this allows</span>
+        <span class="c1"># us to locally cache the features of a beatmap</span>
+        <span class="n">cache_key</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">beatmap</span><span class="p">,</span>
+            <span class="n">easy</span><span class="p">,</span>
+            <span class="n">hidden</span><span class="p">,</span>
+            <span class="n">hard_rock</span><span class="p">,</span>
+            <span class="n">double_time</span><span class="p">,</span>
+            <span class="n">relax</span><span class="p">,</span>
+            <span class="n">half_time</span><span class="p">,</span>
+            <span class="n">flashlight</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="c1"># ignore the direction of the angle, just take the magnitude</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hit_object_angles</span><span class="p">(</span>
         <span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects_no_spinners</span><span class="p">,</span>
@@ -363,7 +379,7 @@
         <span class="n">flashlight</span><span class="o">=</span><span class="n">flashlight</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="p">{</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="p">{</span>
         <span class="c1"># basic stats</span>
         <span class="s1">&#39;OD&#39;</span><span class="p">:</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">od</span><span class="p">(</span><span class="n">easy</span><span class="o">=</span><span class="n">easy</span><span class="p">,</span> <span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">),</span>
         <span class="s1">&#39;CS&#39;</span><span class="p">:</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">cs</span><span class="p">(</span><span class="n">easy</span><span class="o">=</span><span class="n">easy</span><span class="p">,</span> <span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">),</span>
@@ -436,14 +452,15 @@
         <span class="s1">&#39;PP-99%&#39;</span><span class="p">:</span> <span class="n">pp_99</span><span class="p">,</span>
         <span class="s1">&#39;PP-100%&#39;</span><span class="p">:</span> <span class="n">pp_100</span><span class="p">,</span>
 
-    <span class="p">}</span></div>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">features</span>
+
+    <span class="k">return</span> <span class="n">features</span>
 
 
-<span class="k">def</span> <span class="nf">_fst</span><span class="p">(</span><span class="n">tup</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-
-<div class="viewcode-block" id="extract_feature_array"><a class="viewcode-back" href="../../../appendix.html#slider.model.features.extract_feature_array">[docs]</a><span class="k">def</span> <span class="nf">extract_feature_array</span><span class="p">(</span><span class="n">beatmaps_and_mods</span><span class="p">):</span>
+<div class="viewcode-block" id="extract_feature_array"><a class="viewcode-back" href="../../../appendix.html#slider.model.manual_features.extract_feature_array">[docs]</a><span class="k">def</span> <span class="nf">extract_feature_array</span><span class="p">(</span><span class="n">beatmaps_and_mods</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extract all features from a beatmap.</span>
 
 <span class="sd">    Parameters</span>
@@ -456,13 +473,14 @@
 <span class="sd">    features : np.ndarray[float64]</span>
 <span class="sd">        The features as an array.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
         <span class="p">[</span>
             <span class="p">[</span>
                 <span class="n">snd</span> <span class="k">for</span>
                 <span class="n">fst</span><span class="p">,</span> <span class="n">snd</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
-                    <span class="n">extract_features</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span> <span class="o">**</span><span class="n">mods</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
-                    <span class="n">key</span><span class="o">=</span><span class="n">_fst</span><span class="p">,</span>
+                    <span class="n">extract_features</span><span class="p">(</span><span class="n">beatmap</span><span class="p">,</span> <span class="o">**</span><span class="n">mods</span><span class="p">,</span> <span class="n">_cache</span><span class="o">=</span><span class="n">cache</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+                    <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">tup</span><span class="p">:</span> <span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="p">)</span>
             <span class="p">]</span>
             <span class="k">for</span> <span class="n">beatmap</span><span class="p">,</span> <span class="n">mods</span> <span class="ow">in</span> <span class="n">beatmaps_and_mods</span>
@@ -470,71 +488,44 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="extract_from_replay_directory"><a class="viewcode-back" href="../../../appendix.html#slider.model.features.extract_from_replay_directory">[docs]</a><span class="k">def</span> <span class="nf">extract_from_replay_directory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">library</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extract a labeled feature set from a path to directory of replays.</span>
+<div class="viewcode-block" id="extract_features_and_labels"><a class="viewcode-back" href="../../../appendix.html#slider.model.manual_features.extract_features_and_labels">[docs]</a><span class="k">def</span> <span class="nf">extract_features_and_labels</span><span class="p">(</span><span class="n">replays</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extract all features from the beatmap of a replay as well as the</span>
+<span class="sd">    accuracies.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    path : str or pathlib.Path</span>
-<span class="sd">        The path to the directory of ``.osr`` files.</span>
-<span class="sd">    library : Library</span>
-<span class="sd">        The beatmap library to use when parsing the replays.</span>
-<span class="sd">    age : datetime.timedelta, optional</span>
-<span class="sd">        Only count replays less than this age old.</span>
+<span class="sd">    replays : iterable[Replay]</span>
+<span class="sd">        The replays to extract training information from.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    features : np.ndarray[float]</span>
-<span class="sd">        The array of input data with one row per play.</span>
-<span class="sd">    accuracies : np.ndarray[float]</span>
-<span class="sd">        The array of accuracies achieved on each of the beatmaps in</span>
-<span class="sd">        ``features``.</span>
-
-<span class="sd">    Notes</span>
-<span class="sd">    -----</span>
-<span class="sd">    The same beatmap may appear more than once if there are multiple replays</span>
-<span class="sd">    for this beatmap.</span>
+<span class="sd">    features : np.ndarray[float64]</span>
+<span class="sd">        The features as an array.</span>
+<span class="sd">    accuracies : np.ndarray[float64]</span>
+<span class="sd">        The accuracies as an array.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">beatmaps_and_mods</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">accuracies</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">append_beatmap_and_mods</span> <span class="o">=</span> <span class="n">beatmaps_and_mods</span><span class="o">.</span><span class="n">append</span>
 
-    <span class="n">beatmap_and_mod_append</span> <span class="o">=</span> <span class="n">beatmaps_and_mods</span><span class="o">.</span><span class="n">append</span>
-    <span class="n">accuracy_append</span> <span class="o">=</span> <span class="n">accuracies</span><span class="o">.</span><span class="n">append</span>
+    <span class="n">accuracy</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">append_accuracy</span> <span class="o">=</span> <span class="n">accuracy</span><span class="o">.</span><span class="n">append</span>
 
-    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.osr&#39;</span><span class="p">):</span>
-            <span class="k">continue</span>
-
-        <span class="n">replay</span> <span class="o">=</span> <span class="n">Replay</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">age</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">replay</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">&gt;</span> <span class="n">age</span><span class="p">:</span>
-            <span class="k">continue</span>
-
-        <span class="k">if</span> <span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">autoplay</span> <span class="ow">or</span>
-                <span class="n">replay</span><span class="o">.</span><span class="n">spun_out</span> <span class="ow">or</span>
-                <span class="n">replay</span><span class="o">.</span><span class="n">auto_pilot</span> <span class="ow">or</span>
-                <span class="n">replay</span><span class="o">.</span><span class="n">cinema</span> <span class="ow">or</span>
-                <span class="n">replay</span><span class="o">.</span><span class="n">relax</span><span class="p">):</span>
-            <span class="c1"># ignore plays with mods that are not representative of user skill</span>
-            <span class="k">continue</span>
-
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">continue</span>
-
-        <span class="n">beatmap_and_mod_append</span><span class="p">((</span>
-            <span class="n">replay</span><span class="o">.</span><span class="n">beatmap</span><span class="p">,</span> <span class="p">{</span>
-                <span class="s1">&#39;easy&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">easy</span><span class="p">,</span>
+    <span class="k">for</span> <span class="n">replay</span> <span class="ow">in</span> <span class="n">replays</span><span class="p">:</span>
+        <span class="n">beatmaps_and_mods</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+            <span class="n">replay</span><span class="o">.</span><span class="n">beatmap</span><span class="p">,</span>
+            <span class="p">{</span>
                 <span class="s1">&#39;hidden&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">hidden</span><span class="p">,</span>
-                <span class="s1">&#39;hard_rock&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">hard_rock</span><span class="p">,</span>
+                <span class="s1">&#39;flashlight&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">flashlight</span><span class="p">,</span>
                 <span class="s1">&#39;double_time&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">double_time</span><span class="p">,</span>
                 <span class="s1">&#39;half_time&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">half_time</span><span class="p">,</span>
-                <span class="s1">&#39;flashlight&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">flashlight</span><span class="p">,</span>
+                <span class="s1">&#39;hard_rock&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">hard_rock</span><span class="p">,</span>
+                <span class="s1">&#39;easy&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">easy</span><span class="p">,</span>
+                <span class="s1">&#39;relax&#39;</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">relax</span><span class="p">,</span>
             <span class="p">},</span>
         <span class="p">))</span>
-        <span class="n">accuracy_append</span><span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">accuracy</span><span class="p">)</span>
+        <span class="n">append_accuracy</span><span class="p">(</span><span class="n">replay</span><span class="o">.</span><span class="n">accuracy</span><span class="p">)</span>
 
-    <span class="n">fs</span> <span class="o">=</span> <span class="n">extract_feature_array</span><span class="p">(</span><span class="n">beatmaps_and_mods</span><span class="p">)</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">fs</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">accuracies</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="n">extract_features</span><span class="p">(</span><span class="n">beatmaps_and_mods</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">accuracy</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

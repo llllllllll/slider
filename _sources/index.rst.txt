@@ -8,7 +8,6 @@
    working-with-beatmaps
    replays
    client
-   model
    appendix
 
 Indices and tables

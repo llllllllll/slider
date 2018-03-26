@@ -1,0 +1,950 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>slider.model.lstm &mdash; slider 0.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="slider 0.1.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> slider
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../what-is-a-beatmap.html">What is a Beatmap?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../replays.html">Replays</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../client.html">Osu! API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../appendix.html">Appendix</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">slider</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>slider.model.lstm</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for slider.model.lstm</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">chain</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cytoolz</span> <span class="k">as</span> <span class="nn">toolz</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">toolz</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">keras</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+        <span class="s1">&#39;keras and tensorflow are required to use the lstm model&#39;</span>
+    <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+<span class="k">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span>
+
+<span class="kn">from</span> <span class="nn">..beatmap</span> <span class="k">import</span> <span class="n">Slider</span>
+<span class="kn">from</span> <span class="nn">..mod</span> <span class="k">import</span> <span class="n">od_to_ms</span><span class="p">,</span> <span class="n">circle_radius</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="k">import</span> <span class="n">dichotomize</span>
+<span class="kn">from</span> <span class="nn">.model</span> <span class="k">import</span> <span class="n">OsuModel</span>
+
+
+<span class="k">class</span> <span class="nc">Scaler</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Standardize the features of an array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_std</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span>
+        <span class="k">if</span> <span class="n">mean</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;{type(self).__name__} has not been fit&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mean</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_std</span>
+        <span class="k">if</span> <span class="n">std</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;{type(self).__name__} has not been fit&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">std</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fit the scaler to the data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : np.ndarray</span>
+<span class="sd">            The data to fit the scaler to.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        transformed : np.ndarray</span>
+<span class="sd">            The transformed input data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_std</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Scale data based on the fit data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : np.ndarray</span>
+<span class="sd">            The data to transform.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        transformed : np.ndarray</span>
+<span class="sd">            The transformed input data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">std</span>
+
+
+<span class="k">class</span> <span class="nc">CappedLoss</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A collection of loss functions with a cap.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    upper : float</span>
+<span class="sd">        The upper limit of the loss function.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This is useful when there is an upper limit to the distance you can be</span>
+<span class="sd">    wrong by. For example, if a prediction is more than 190 milliseconds away</span>
+<span class="sd">    from the true click time, it will never change the user&#39;s accuracy or score</span>
+<span class="sd">    so we can set a hard cap.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">upper</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span> <span class="o">=</span> <span class="n">upper</span>
+
+    <span class="k">def</span> <span class="nf">mae</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">predicted</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+            <span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+                <span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">true</span> <span class="o">-</span> <span class="n">predicted</span><span class="p">),</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">mse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">predicted</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+            <span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+                <span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">true</span> <span class="o">-</span> <span class="n">predicted</span><span class="p">)),</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+
+<span class="k">class</span> <span class="nc">_InnerLSTM</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;An LSTM model for osu! which trains on windows of (x, y, time) events.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    context : int</span>
+<span class="sd">        The number of leading and trailing hit objects or slider ticks to look</span>
+<span class="sd">        at.</span>
+<span class="sd">    hidden_layer_sizes : tuple[int, int]</span>
+<span class="sd">        The sizes of the hidden layers.</span>
+<span class="sd">    dropout : float</span>
+<span class="sd">        The droput ratio.</span>
+<span class="sd">    activation : str</span>
+<span class="sd">        The activation function. Must be one of:</span>
+<span class="sd">        &#39;tanh&#39;, &#39;softplus, &#39;softsign&#39;, &#39;relu&#39;, &#39;sigmoid&#39;, &#39;hard_sigmoid&#39;, or</span>
+<span class="sd">        &#39;linear&#39;.</span>
+<span class="sd">    loss : {&#39;mse&#39;, &#39;mae&#39;, &#39;mape&#39;, &#39;male&#39;, &#39;cosine&#39;</span>
+<span class="sd">        The loss function.</span>
+<span class="sd">    optimizer : str</span>
+<span class="sd">        The optimizer to use.</span>
+<span class="sd">    max_hit_objects : int</span>
+<span class="sd">        The maximum number of hit objects allows in a beatmap. Data will be</span>
+<span class="sd">        padded to fit this shape.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The inner model does not know about the difference between hidden and</span>
+<span class="sd">    non-hidden plays. :class:`~slider.model.lstm.LSTM` internally</span>
+<span class="sd">    holds two ``_InnerLSTM``\s which are fitted to the hidden and</span>
+<span class="sd">    non-hidden plays respectively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span>
+
+    <span class="n">_missing_value</span> <span class="o">=</span> <span class="mf">1e9</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="o">*</span><span class="p">,</span>
+                 <span class="n">context</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                 <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+                 <span class="n">hidden_layer_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
+                 <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+                 <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;tanh&#39;</span><span class="p">,</span>
+                 <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;mse&#39;</span><span class="p">,</span>
+                 <span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;adam&#39;</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_context</span> <span class="o">=</span> <span class="n">context</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">=</span> <span class="n">window</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">context</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Sequential</span><span class="p">([</span>
+            <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
+                <span class="n">hidden_layer_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
+                <span class="n">return_sequences</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">input_shape</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">window</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
+                <span class="n">hidden_layer_sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+            <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span><span class="n">activation</span><span class="p">),</span>
+        <span class="p">])</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+            <span class="c1"># cap the loss at 190 because that is the maximum time offset</span>
+            <span class="c1"># which could still be a miss</span>
+            <span class="n">loss</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">CappedLoss</span><span class="p">(</span><span class="mi">190</span><span class="p">),</span> <span class="n">loss</span><span class="p">),</span>
+            <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scaler</span> <span class="o">=</span> <span class="n">Scaler</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_extract_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                          <span class="n">beatmap</span><span class="p">,</span>
+                          <span class="o">*</span><span class="p">,</span>
+                          <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extract the feature array from a beatmap.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The beatmap to extract features for.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Extract features for double time?</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Extract features for half time?</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            Extract features for hard rock?</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hit_objects</span> <span class="o">=</span> <span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects_no_spinners</span>
+
+        <span class="c1"># events holds an (x, y, time) tuple for every hit object and slider</span>
+        <span class="c1"># tick; slider ticks are in ms</span>
+        <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_event</span> <span class="o">=</span> <span class="n">events</span><span class="o">.</span><span class="n">append</span>
+        <span class="n">extend_events</span> <span class="o">=</span> <span class="n">events</span><span class="o">.</span><span class="n">extend</span>
+
+        <span class="c1"># hit_object_ixs holds the indices into ``events`` where hit objects</span>
+        <span class="c1"># appear</span>
+        <span class="n">hit_object_ixs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_hit_object_ixs</span> <span class="o">=</span> <span class="n">hit_object_ixs</span><span class="o">.</span><span class="n">append</span>
+        <span class="k">for</span> <span class="n">hit_object</span> <span class="ow">in</span> <span class="n">hit_objects</span><span class="p">:</span>
+            <span class="c1"># mark this index in events as the location of a hit object.</span>
+            <span class="n">append_hit_object_ixs</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">double_time</span><span class="p">:</span>
+                <span class="n">hit_object</span> <span class="o">=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">double_time</span>
+            <span class="k">elif</span> <span class="n">half_time</span><span class="p">:</span>
+                <span class="n">hit_object</span> <span class="o">=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">half_time</span>
+
+            <span class="k">if</span> <span class="n">hard_rock</span><span class="p">:</span>
+                <span class="n">hit_object</span> <span class="o">=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">hard_rock</span>
+
+            <span class="n">position</span> <span class="o">=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">position</span>
+            <span class="n">append_event</span><span class="p">((</span>
+                <span class="n">position</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+                <span class="n">position</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">hit_object</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+            <span class="p">))</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hit_object</span><span class="p">,</span> <span class="n">Slider</span><span class="p">):</span>
+                <span class="c1"># add all the slider ticks</span>
+                <span class="n">extend_events</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">tick_points</span>
+                <span class="p">)</span>
+
+        <span class="c1"># the padding data for hit objects that are too close to the start</span>
+        <span class="c1"># or end of a beatmap</span>
+        <span class="n">context_padding</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="c1"># convert the events into a 2d array of shape (len(events), 3)</span>
+        <span class="n">event_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
+
+        <span class="c1"># the baseline data to take windows out of</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span>
+            <span class="n">context_padding</span><span class="p">,</span>
+            <span class="n">event_array</span><span class="p">,</span>
+            <span class="n">context_padding</span><span class="p">,</span>
+        <span class="p">])</span>
+
+        <span class="c1"># convert the hit object indices into a column vector; we add context</span>
+        <span class="c1"># to account for the padding</span>
+        <span class="n">hit_object_ixs_array</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">hit_object_ixs</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span>
+        <span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+        <span class="c1"># get an array of offsets from some base ``ix`` which correspond to a</span>
+        <span class="c1"># fully populated window; this is a row vector</span>
+        <span class="n">context_ix_offsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_context</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># broadcast the hit_object_ixs together with the context_ix_offsets</span>
+        <span class="c1"># to get an indexer which produces a 3d array which is a sequence of</span>
+        <span class="c1"># windows of events</span>
+        <span class="n">window_ixs</span> <span class="o">=</span> <span class="n">hit_object_ixs_array</span> <span class="o">+</span> <span class="n">context_ix_offsets</span>
+
+        <span class="c1"># a sequence of windows of events where the time is still absolute</span>
+        <span class="n">windows</span> <span class="o">=</span> <span class="n">baseline</span><span class="p">[</span><span class="n">window_ixs</span><span class="p">]</span>
+
+        <span class="c1"># slice out the time of each hit object; add a new axis to have a shape</span>
+        <span class="c1"># of (len(hit_objects), 1)</span>
+        <span class="n">hit_object_times</span> <span class="o">=</span> <span class="n">windows</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+        <span class="c1"># subtract the hit object time from the event time to make each event&#39;s</span>
+        <span class="c1"># time relative to the current hit object</span>
+        <span class="n">windows</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-=</span> <span class="n">hit_object_times</span>
+
+        <span class="c1"># fill the nans with a large value to be finite</span>
+        <span class="n">windows</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">windows</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_missing_value</span>
+
+        <span class="k">return</span> <span class="n">windows</span>
+
+    <span class="k">def</span> <span class="nf">_extract_differences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">replay</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extract the time and position differences for each hit object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        replay : Replay</span>
+<span class="sd">            The replay to get differences for.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        differences : np.ndarray</span>
+<span class="sd">            An array of shape (len(hit_objects), 2) where the first column</span>
+<span class="sd">            is the time offset in milliseconds and the second column is the</span>
+<span class="sd">            magnitude of (x, y) error in osu! pixels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get the x, y, and time of each click</span>
+        <span class="n">clicks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">(</span>
+                <span class="n">second</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+                <span class="n">second</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">second</span><span class="o">.</span><span class="n">offset</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">first</span><span class="p">,</span> <span class="n">second</span> <span class="ow">in</span> <span class="n">toolz</span><span class="o">.</span><span class="n">sliding_window</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">replay</span><span class="o">.</span><span class="n">actions</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">second</span><span class="o">.</span><span class="n">key1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">first</span><span class="o">.</span><span class="n">key1</span> <span class="ow">or</span>
+                <span class="n">second</span><span class="o">.</span><span class="n">key2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">first</span><span class="o">.</span><span class="n">key2</span><span class="p">)</span>
+        <span class="p">])</span>
+
+        <span class="n">double_time</span> <span class="o">=</span> <span class="n">replay</span><span class="o">.</span><span class="n">double_time</span>
+        <span class="n">half_time</span> <span class="o">=</span> <span class="n">replay</span><span class="o">.</span><span class="n">half_time</span>
+        <span class="n">hard_rock</span> <span class="o">=</span> <span class="n">replay</span><span class="o">.</span><span class="n">hard_rock</span>
+
+        <span class="c1"># accumulate the (x, y, start time) of each hit object</span>
+        <span class="n">hit_object_coords</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_coord</span> <span class="o">=</span> <span class="n">hit_object_coords</span><span class="o">.</span><span class="n">append</span>
+        <span class="k">for</span> <span class="n">hit_object</span> <span class="ow">in</span> <span class="n">replay</span><span class="o">.</span><span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects_no_spinners</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">double_time</span><span class="p">:</span>
+                <span class="n">hit_object</span> <span class="o">=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">double_time</span>
+            <span class="k">elif</span> <span class="n">half_time</span><span class="p">:</span>
+                <span class="n">hit_object</span> <span class="o">=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">half_time</span>
+
+            <span class="k">if</span> <span class="n">hard_rock</span><span class="p">:</span>
+                <span class="n">hit_object</span> <span class="o">=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">hard_rock</span>
+
+            <span class="n">position</span> <span class="o">=</span> <span class="n">hit_object</span><span class="o">.</span><span class="n">position</span>
+            <span class="n">append_coord</span><span class="p">((</span>
+                <span class="n">position</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+                <span class="n">position</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">hit_object</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+            <span class="p">))</span>
+
+        <span class="c1"># convert the hit object coordinates into an array</span>
+        <span class="n">hit_object_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">hit_object_coords</span><span class="p">)</span>
+
+        <span class="c1"># get the time of each hit object as a row vector</span>
+        <span class="n">hit_object_times</span> <span class="o">=</span> <span class="n">hit_object_coords</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># get the time of each click as a column vector</span>
+        <span class="n">click_times</span> <span class="o">=</span> <span class="n">clicks</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+
+        <span class="c1"># find the nearest click by taking the absolute difference from</span>
+        <span class="c1"># every hit object to every click (whose shape is:</span>
+        <span class="c1"># (len(clicks), len(hit_objects))) and reducing with agrgmin to</span>
+        <span class="c1"># get the index of the best match for each hit object</span>
+        <span class="n">nearest_click_ix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+            <span class="n">hit_object_times</span> <span class="o">-</span> <span class="n">click_times</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># get the x, y, time of the matched clicks</span>
+        <span class="n">matched_clicks</span> <span class="o">=</span> <span class="n">clicks</span><span class="p">[</span><span class="n">nearest_click_ix</span><span class="p">]</span>
+
+        <span class="c1"># allocate an empty output</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">hit_object_coords</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float64&#39;</span><span class="p">)</span>
+
+        <span class="c1"># write the absolute time offset into column 1</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+            <span class="n">hit_object_times</span> <span class="o">-</span> <span class="n">matched_clicks</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># get the squared distance for the x and y axes</span>
+        <span class="n">squared_distance</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">hit_object_coords</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">matched_clicks</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="c1"># write the absolute distance from the circle into column 2</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="n">squared_distance</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">squared_distance</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">replays</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">extract_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_features</span>
+        <span class="n">extract_differences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_differences</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span>
+
+        <span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_features</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">append</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">append_labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">append</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">replay</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">replays</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{n:4}</span><span class="s1">: </span><span class="si">{replay!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="n">append_features</span><span class="p">(</span><span class="n">extract_features</span><span class="p">(</span>
+                <span class="n">replay</span><span class="o">.</span><span class="n">beatmap</span><span class="p">,</span>
+                <span class="n">double_time</span><span class="o">=</span><span class="n">replay</span><span class="o">.</span><span class="n">double_time</span><span class="p">,</span>
+                <span class="n">half_time</span><span class="o">=</span><span class="n">replay</span><span class="o">.</span><span class="n">half_time</span><span class="p">,</span>
+                <span class="n">hard_rock</span><span class="o">=</span><span class="n">replay</span><span class="o">.</span><span class="n">hard_rock</span><span class="p">,</span>
+            <span class="p">))</span>
+            <span class="n">append_labels</span><span class="p">(</span><span class="n">extract_differences</span><span class="p">(</span><span class="n">replay</span><span class="p">))</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scaler</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">features</span><span class="p">)),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">verbose</span><span class="p">)),</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">predict_differences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                            <span class="n">beatmap</span><span class="p">,</span>
+                            <span class="o">*</span><span class="p">,</span>
+                            <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Predict the time and position differences for each circle.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The beatmap to predict.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Predict double time offsets.</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Predict half time offsets.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            Predict hard_rock offsets.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        predicted_differences : np.ndarray</span>
+<span class="sd">            An array of shape (len(hit_objects), 2) where the first column</span>
+<span class="sd">            is the predicted time offset in milliseconds and the second</span>
+<span class="sd">            column is the predicted magnitude of (x, y) error in osu! pixels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_extract_features</span><span class="p">(</span>
+                    <span class="n">beatmap</span><span class="p">,</span>
+                    <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
+                    <span class="n">half_time</span><span class="o">=</span><span class="n">half_time</span><span class="p">,</span>
+                    <span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_fit_truncnorm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fit a truncated normal distribution to the array. The distribution</span>
+<span class="sd">        is truncated to ``[0, self._missing_value]``</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        array : np.ndarray</span>
+<span class="sd">            The data to fit.</span>
+<span class="sd">        lower : float</span>
+<span class="sd">            The lower bound.</span>
+<span class="sd">        upper : float</span>
+<span class="sd">            The upper bound.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        distribution : scipy.stats.truncnorm</span>
+<span class="sd">            A frozen truncated normal instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lower</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">upper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_missing_value</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">truncnorm</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">lower</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">upper</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span><span class="p">,</span>
+            <span class="n">loc</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span>
+            <span class="n">scale</span><span class="o">=</span><span class="n">std</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_predict_accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                          <span class="n">beatmap</span><span class="p">,</span>
+                          <span class="o">*</span><span class="p">,</span>
+                          <span class="n">double_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">half_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">hard_rock</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Predict the user&#39;s accuracy on the beatmap with the given mods.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The beatmap to predict.</span>
+<span class="sd">        double_time : bool, optional</span>
+<span class="sd">            Predict double time offsets.</span>
+<span class="sd">        half_time : bool, optional</span>
+<span class="sd">            Predict half time offsets.</span>
+<span class="sd">        hard_rock : bool, optional</span>
+<span class="sd">            Predict hard_rock offsets.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        predicted_accuracy : float</span>
+<span class="sd">            A scalar value for the user&#39;s predicted accuracy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">diffs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_differences</span><span class="p">(</span>
+            <span class="n">beatmap</span><span class="p">,</span>
+            <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
+            <span class="n">half_time</span><span class="o">=</span><span class="n">half_time</span><span class="p">,</span>
+            <span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">aim</span><span class="p">,</span> <span class="n">accuracy</span> <span class="o">=</span> <span class="n">diffs</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="n">aim_distribution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fit_truncnorm</span><span class="p">(</span><span class="n">aim</span><span class="p">)</span>
+        <span class="n">accuracy_distribution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fit_truncnorm</span><span class="p">(</span><span class="n">accuracy</span><span class="p">)</span>
+
+        <span class="n">hit_object_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">beatmap</span><span class="o">.</span><span class="n">hit_objects</span><span class="p">)</span>
+        <span class="n">sampled_aim</span> <span class="o">=</span> <span class="n">aim_distribution</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">hit_object_count</span><span class="p">)</span>
+        <span class="n">sampled_accuracy</span> <span class="o">=</span> <span class="n">accuracy_distribution</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">hit_object_count</span><span class="p">)</span>
+
+        <span class="n">hit_windows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="n">od_to_ms</span><span class="p">(</span>
+                <span class="n">beatmap</span><span class="o">.</span><span class="n">od</span><span class="p">(</span>
+                    <span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">,</span>
+                    <span class="n">double_time</span><span class="o">=</span><span class="n">double_time</span><span class="p">,</span>
+                    <span class="n">half_time</span><span class="o">=</span><span class="n">half_time</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+        <span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+        <span class="c1"># compare the sampled accuracy to the hit windows to produce a boolean</span>
+        <span class="c1"># array of shape (3, hit_object_count) where each element is if</span>
+        <span class="c1"># the sampled accuracy falls within the row&#39;s hit threshold</span>
+        <span class="n">hit_window_mask</span> <span class="o">=</span> <span class="n">sampled_accuracy</span> <span class="o">&lt;=</span> <span class="n">hit_windows</span>
+
+        <span class="n">accuracy_per_hit_object</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="c1"># if the aim is &gt; the circle radius then we missed and score 0</span>
+                <span class="n">sampled_aim</span> <span class="o">&gt;</span> <span class="n">circle_radius</span><span class="p">(</span><span class="n">beatmap</span><span class="o">.</span><span class="n">cs</span><span class="p">(</span><span class="n">hard_rock</span><span class="o">=</span><span class="n">hard_rock</span><span class="p">)),</span>
+                <span class="c1"># the sampled accuracy falls within the 300 point threshold</span>
+                <span class="n">hit_window_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="c1"># the sampled accuracy falls within the 100 point threshold</span>
+                <span class="n">hit_window_mask</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="c1"># the sampled accuracy falls within the 50 point threshold</span>
+                <span class="n">hit_window_mask</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="p">],</span>
+            <span class="p">[</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="mi">6</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="c1"># if we don&#39;t fall in the 300, 100, or 50 hit thresholds then we</span>
+            <span class="c1"># have a miss which scores 0 points.</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># return the mean accuracy</span>
+        <span class="k">return</span> <span class="n">accuracy_per_hit_object</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">predict_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap</span><span class="p">,</span> <span class="n">mods</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_accuracy</span><span class="p">(</span>
+            <span class="n">beatmap</span><span class="p">,</span>
+            <span class="n">double_time</span><span class="o">=</span><span class="n">mods</span><span class="p">[</span><span class="s1">&#39;double_time&#39;</span><span class="p">],</span>
+            <span class="n">half_time</span><span class="o">=</span><span class="n">mods</span><span class="p">[</span><span class="s1">&#39;half_time&#39;</span><span class="p">],</span>
+            <span class="n">hard_rock</span><span class="o">=</span><span class="n">mods</span><span class="p">[</span><span class="s1">&#39;hard_rock&#39;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">save_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+
+<div class="viewcode-block" id="LSTM"><a class="viewcode-back" href="../../../appendix.html#slider.model.lstm.LSTM">[docs]</a><span class="k">class</span> <span class="nc">LSTM</span><span class="p">(</span><span class="n">OsuModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An LSTM model for osu! which trains on windows of (x, y, time) events.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    context : int</span>
+<span class="sd">        The number of leading and trailing hit objects or slider ticks to look</span>
+<span class="sd">        at.</span>
+<span class="sd">    hidden_layer_sizes : tuple[int, int]</span>
+<span class="sd">        The sizes of the hidden layers.</span>
+<span class="sd">    dropout : float</span>
+<span class="sd">        The droput ratio.</span>
+<span class="sd">    activation : str</span>
+<span class="sd">        The activation function.</span>
+<span class="sd">    loss : str</span>
+<span class="sd">        The loss function.</span>
+<span class="sd">    optimizer : str</span>
+<span class="sd">        The optimizer to use.</span>
+<span class="sd">    max_hit_objects : int</span>
+<span class="sd">        The maximum number of hit objects allows in a beatmap. Data will be</span>
+<span class="sd">        padded to fit this shape.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hidden_model</span> <span class="o">=</span> <span class="n">_InnerLSTM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_non_hidden_model</span> <span class="o">=</span> <span class="n">_InnerLSTM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">save_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hidden_model</span><span class="o">.</span><span class="n">save_path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;hidden&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_non_hidden_model</span><span class="o">.</span><span class="n">save_path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;non-hidden&#39;</span><span class="p">))</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hidden_model</span> <span class="o">=</span> <span class="n">_InnerLSTM</span><span class="o">.</span><span class="n">load_path</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;hidden&#39;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_non_hidden_model</span> <span class="o">=</span> <span class="n">_InnerLSTM</span><span class="o">.</span><span class="n">load_path</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;non-hidden&#39;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">replays</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">hidden</span><span class="p">,</span> <span class="n">non_hidden</span> <span class="o">=</span> <span class="n">dichotomize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">replay</span><span class="p">:</span> <span class="n">replay</span><span class="o">.</span><span class="n">hidden</span><span class="p">,</span> <span class="n">replays</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;fitting the hidden replays&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hidden_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;fitting the non-hidden replays&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_non_hidden_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">non_hidden</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmaps_and_mods</span><span class="p">):</span>
+        <span class="n">hidden_model_predict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hidden_model</span><span class="o">.</span><span class="n">predict_one</span>
+        <span class="n">non_hidden_model_predict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_hidden_model</span><span class="o">.</span><span class="n">predict_one</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">(</span>
+                <span class="n">hidden_model_predict</span>
+                <span class="k">if</span> <span class="n">mods</span><span class="p">[</span><span class="s1">&#39;hidden&#39;</span><span class="p">]</span> <span class="k">else</span>
+                <span class="n">non_hidden_model_predict</span>
+            <span class="p">)(</span><span class="n">beatmap</span><span class="p">,</span> <span class="n">mods</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">beatmap</span><span class="p">,</span> <span class="n">mods</span> <span class="ow">in</span> <span class="n">beatmaps_and_mods</span>
+        <span class="p">])</span>
+
+<div class="viewcode-block" id="LSTM.predict_differences"><a class="viewcode-back" href="../../../appendix.html#slider.model.lstm.LSTM.predict_differences">[docs]</a>    <span class="k">def</span> <span class="nf">predict_differences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmaps_and_mods</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Low level predictions for a sequence of beatmaps and mods.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beatmaps_and_mods : iterable[(Beatmap, dict)]</span>
+<span class="sd">            The maps and mods to predict.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        differences : list[np.ndarray[float]]</span>
+<span class="sd">            For each beatmap and mod combination, an array of shape</span>
+<span class="sd">            ``(len(hit_objects), 2)`` where the first column holds the</span>
+<span class="sd">            predicted absolute click offset from the center of the circle and</span>
+<span class="sd">            the second column holds the absolute time offset for the predicted</span>
+<span class="sd">            click. The row indices match the order the beatmap and mod</span>
+<span class="sd">            combinations are passed.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This method is specific to the :class:`~slider.model.lstm.LSTM` model,</span>
+<span class="sd">        it may not be available on other model types.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hidden_model_predict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hidden_model</span><span class="o">.</span><span class="n">predict_differences</span>
+        <span class="n">non_hidden_model_predict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_hidden_model</span><span class="o">.</span><span class="n">predict_differences</span>
+
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="p">(</span>
+                <span class="n">hidden_model_predict</span>
+                <span class="k">if</span> <span class="n">mods</span><span class="p">[</span><span class="s1">&#39;hidden&#39;</span><span class="p">]</span> <span class="k">else</span>
+                <span class="n">non_hidden_model_predict</span>
+            <span class="p">)(</span>
+                <span class="n">beatmap</span><span class="p">,</span>
+                <span class="n">double_time</span><span class="o">=</span><span class="n">mods</span><span class="p">[</span><span class="s1">&#39;double_time&#39;</span><span class="p">],</span>
+                <span class="n">half_time</span><span class="o">=</span><span class="n">mods</span><span class="p">[</span><span class="s1">&#39;half_time&#39;</span><span class="p">],</span>
+                <span class="n">hard_rock</span><span class="o">=</span><span class="n">mods</span><span class="p">[</span><span class="s1">&#39;hard_rock&#39;</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">beatmap</span><span class="p">,</span> <span class="n">mods</span> <span class="ow">in</span> <span class="n">beatmaps_and_mods</span>
+        <span class="p">]</span></div>
+
+<div class="viewcode-block" id="LSTM.predict_beatmap_differences"><a class="viewcode-back" href="../../../appendix.html#slider.model.lstm.LSTM.predict_beatmap_differences">[docs]</a>    <span class="k">def</span> <span class="nf">predict_beatmap_differences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beatmap</span><span class="p">,</span> <span class="o">*</span><span class="n">mods</span><span class="p">,</span> <span class="o">**</span><span class="n">mods_scalar</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Predict the user&#39;s accuracy for the given beatmap.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        beatmap : Beatmap</span>
+<span class="sd">            The map to predict per hit object differences of.</span>
+<span class="sd">        *mods</span>
+<span class="sd">            A sequence of mod dictionaries to predict per hit object</span>
+<span class="sd">            differences for.</span>
+<span class="sd">        **mods_dict</span>
+<span class="sd">            Mods to predict per hit object differences for.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        differences :list[np.ndarray[float]]</span>
+<span class="sd">            For each mod combination, an array of shape</span>
+<span class="sd">            ``(len(hit_objects), 2)`` where the first column is the user&#39;s</span>
+<span class="sd">            expected absolute difference for the click position and the second</span>
+<span class="sd">            column is the expected absolute difference click time.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This method is specific to the :class:`~slider.model.lstm.LSTM` model,</span>
+<span class="sd">        it may not be available on other model types.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">mod_name</span> <span class="ow">in</span> <span class="s1">&#39;hidden&#39;</span><span class="p">,</span> <span class="s1">&#39;hard_rock&#39;</span><span class="p">,</span> <span class="s1">&#39;half_time&#39;</span><span class="p">,</span> <span class="s1">&#39;double_time&#39;</span><span class="p">:</span>
+            <span class="n">mods_scalar</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">mod_name</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_differences</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">beatmap</span><span class="p">,</span> <span class="n">ms</span><span class="p">)</span> <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">(</span><span class="n">mods</span><span class="p">,</span> <span class="p">[</span><span class="n">mods_scalar</span><span class="p">])</span>
+        <span class="p">])</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Joe Jevnik.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

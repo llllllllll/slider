@@ -95,7 +95,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../working-with-beatmaps.html">Working with <code class="docutils literal"><span class="pre">Beatmap</span></code>s</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../replays.html">Replays</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../client.html">Osu! API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../appendix.html">Appendix</a></li>
 </ul>
 
@@ -226,6 +225,45 @@
     <span class="n">points_of_hits</span> <span class="o">=</span> <span class="n">count_300</span> <span class="o">*</span> <span class="mi">300</span> <span class="o">+</span> <span class="n">count_100</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="n">count_50</span> <span class="o">*</span> <span class="mi">50</span>
     <span class="n">total_hits</span> <span class="o">=</span> <span class="n">count_300</span> <span class="o">+</span> <span class="n">count_100</span> <span class="o">+</span> <span class="n">count_50</span> <span class="o">+</span> <span class="n">count_miss</span>
     <span class="k">return</span> <span class="n">points_of_hits</span> <span class="o">/</span> <span class="p">(</span><span class="n">total_hits</span> <span class="o">*</span> <span class="mi">300</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">orange</span><span class="p">(</span><span class="n">_start_or_stop</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Range for arbitrary objects.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    start, stop, step : any</span>
+<span class="sd">        Arguments like :func:`range`.</span>
+
+<span class="sd">    Yields</span>
+<span class="sd">    ------</span>
+<span class="sd">    value : any</span>
+<span class="sd">        The values in the range ``[start, stop)`` with a step of ``step``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    ``o`` stands for object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="n">_start_or_stop</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">_start_or_stop</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">_start_or_stop</span>
+        <span class="n">stop</span><span class="p">,</span> <span class="n">step</span> <span class="o">=</span> <span class="n">args</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s1">&#39;orange takes from 1 to 3 positional arguments but&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; {len(args) + 1} were given&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">while</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">stop</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">start</span>
+        <span class="n">start</span> <span class="o">+=</span> <span class="n">step</span>
 </pre></div>
 
            </div>

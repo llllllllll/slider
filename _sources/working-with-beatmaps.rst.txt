@@ -30,7 +30,7 @@ Slider libraries can be created from the command line like:
 
 .. code-block:: bash
 
-   $ python -m slider library --beatmaps=/path/to/beatmap/root [--recurse/--no-recurse]
+   $ python -m slider library /path/to/beatmap/root [--recurse/--no-recurse]
 
 This command will search through ``/path/to/beatmap/root`` recursively and store
 metadata to allow slider to quickly find the ``.osu`` files. In the root of the
