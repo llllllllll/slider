@@ -902,3 +902,99 @@ class Client:
             )
             for d in as_dicts
         ]
+
+    _beatmap_best_aliases = _user_best_aliases
+
+    _beatmap_best_conversions = {
+        'beatmap_id': int,
+        'score': int,
+        'user_name': _identity,
+        'max_combo': int,
+        'count_300': int,
+        'count_100': int,
+        'count_50': int,
+        'count_miss': int,
+        'count_katu': int,
+        'count_geki': int,
+        'perfect': lambda m: bool(int(m)),
+        'mods': lambda m: {v for v in Mod.unpack(int(m)).values() if v},
+        'user_id': int,
+        'date': _parse_date,
+        'rank': _identity,
+        'pp': float,
+    }
+
+    def beatmap_best(self,
+                     *,
+                     beatmap_id,
+                     user_name=None,
+                     user_id=None,
+                     game_mode=GameMode.standard,
+                     mods=set(),
+                     limit=50):
+        """Retrieve information about a beatmap's best scores.
+
+        Parameters
+        ----------
+        beatmap_id : int
+            The id of the beatmap to look up.
+        user_name : str, optional
+            The name of the user to look up. This cannot be passed with
+            ``user_id``.
+        user_id : int, optional
+            The id of the user to look up. This cannot be passed with
+            ``user_name``
+        game_mode : GameMode, optional
+            The game mode to look up stats for. Defaults to osu! standard.
+        mods : set[Mod], optional
+           The mods to look up stats for.
+        limit : int, optional
+            The number of results to return in the range [1, 100]. Defaults to 50.
+
+        Returns
+        -------
+        high_scores : list[HighScore]
+            The user's best scores.
+        """
+        if user_name or user_id:
+            user, type_ = self._user_and_type(user_name, user_id, required=True)
+        else:
+            user, type_ = (None, None)
+
+        if not (1 <= limit <= 100):
+            raise ValueError(
+                f'limit must be in the range [1, 100], got: {limit!r}',
+            )
+
+        response = self.requester.get(
+            self.api_url + '/get_scores',
+            params={
+                'k': self.api_key,
+                'b': beatmap_id,
+                'u': user,
+                't': type_,
+                'm': int(game_mode),
+                'mods': int(functools.reduce(lambda x, y: int(x) | int(y), mods)) if mods != set() else None,
+                'limit': limit,
+            },
+            realms=["osu!api"],
+            wait=True,
+        )
+        response.raise_for_status()
+
+        as_dicts = (
+            {self._beatmap_best_aliases.get(k, k): v for k, v in score.items()}
+            for score in response.json()
+        )
+        return [
+            HighScore(
+                client=self,
+                beatmap_id=beatmap_id,
+                **{
+                    k: self._beatmap_best_conversions[k](v)
+                    for k, v in d.items()
+                    if k in self._beatmap_best_conversions
+                }
+            )
+            for d in as_dicts
+        ]
