@@ -166,6 +166,23 @@ class BeatmapResult:
 
     beatmap = _beatmap
 
+    def high_scores(self, limit=50):
+        """Lookup the beatmap's high scores.
+
+        Parameters
+        ----------
+        limit : int, optional
+            The number of scores to look up.
+
+        Returns
+        -------
+        high_scores : list[HighScore]
+            The user's high scores.
+        """
+        # TODO: fix docstring
+        # TODO: the actual function
+        pass
+
     def __repr__(self):
         return f'<{type(self).__qualname__}: {self.title} [{self.version}]>'
 
@@ -377,14 +394,18 @@ class HighScore:
                  date,
                  rank,
                  pp,
+                 score_id=None,
+                 user_name=None,
+                 replay_available=None,
                  _user=None):
 
         self._client = client
         self._library = client.library
         if _user is not None:
             self.user = _user
-
         self.beatmap_id = beatmap_id
+        if score_id is not None:
+            self.score_id = score_id
         self.score = score
         self.max_combo = max_combo
         self.count_300 = count_300
@@ -396,9 +417,13 @@ class HighScore:
         self.perfect = perfect
         self.mods = mods
         self.user_id = user_id
+        if user_name is not None:
+            self.user_name = user_name
         self.date = date
         self.rank = rank
         self.pp = pp
+        if replay_available is not None:
+            self.replay_available = replay_available
 
         self._beatmap = None
 
