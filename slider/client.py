@@ -445,7 +445,7 @@ class HighScore:
     def __repr__(self):
         return (
             f'<{type(self).__qualname__} user_id={self.user_id};'
-            f' beatmap_id=self.beatmap_id>'
+            f' beatmap_id={self.beatmap_id}>'
         )
 
 
