@@ -1,6 +1,7 @@
 import datetime
 from enum import IntEnum, unique
 
+import functools
 import pytz
 import requests
 
@@ -166,22 +167,24 @@ class BeatmapResult:
 
     beatmap = _beatmap
 
-    def high_scores(self, limit=50):
+    def high_scores(self, client, game_mode=GameMode.standard, limit=50):
         """Lookup the beatmap's high scores.
 
         Parameters
         ----------
+        client : Client
+            The client needed to make requests.
         limit : int, optional
             The number of scores to look up.
 
         Returns
         -------
         high_scores : list[HighScore]
-            The user's high scores.
+            The beatmap's high scores.
         """
-        # TODO: fix docstring
-        # TODO: the actual function
-        pass
+        client.beatmap_best(beatmap_id=self.beatmap_id,
+                            game_mode=game_mode,
+                            limit=limit)
 
     def __repr__(self):
         return f'<{type(self).__qualname__}: {self.title} [{self.version}]>'
