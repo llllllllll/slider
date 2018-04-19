@@ -93,6 +93,7 @@ class TimingPoint:
             self.kiai_mode,
         )
 
+    @lazyval
     def double_time(self):
         """The ``TimingPoint`` as it would appear with
         :data:`~slider.mod.Mod.double_time` enabled.
