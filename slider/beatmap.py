@@ -117,13 +117,9 @@ class TimingPoint:
         return round(60000 / ms_per_beat)
 
     def __repr__(self):
-        if self.parent is None:
-            inherited = 'inherited '
-        else:
-            inherited = ''
         return (
             f'<{type(self).__qualname__}:'
-            f' {inherited}{self.offset.total_seconds() * 1000:g}ms>'
+            f' {"parent " if self.parent is None else ""}{self.offset.total_seconds() * 1000:g}ms>'
         )
 
     @classmethod
@@ -663,7 +659,7 @@ class Slider(HitObject):
             tp = timing_points[0]
 
         if tp.parent is not None:
-            velocity_multiplier = -100 / tp.ms_per_beat
+            velocity_multiplier = tp.parent.ms_per_beat / tp.ms_per_beat
             ms_per_beat = tp.parent.ms_per_beat
         else:
             velocity_multiplier = 1
