@@ -21,8 +21,14 @@ class Position(namedtuple('Position', 'x y')):
 
     def __repr__(self):
         return (
-            f'<{type(self).__qualname__}: ({self.x}, {self.y})'
+            f'<{type(self).__qualname__}: ({self.x}, {self.y})>'
         )
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
+    def __hash__(self):
+        return hash((self.x, self.y))
 
 
 class Point(namedtuple('Point', 'x y offset')):
@@ -45,5 +51,5 @@ class Point(namedtuple('Point', 'x y offset')):
 
     def __repr__(self):
         return (
-            f'<{type(self).__qualname__}: ({self.x}, {self.y})'
+            f'<{type(self).__qualname__}: ({self.x}, {self.y}), {self.offset.total_seconds() * 1000:g}ms>'
         )

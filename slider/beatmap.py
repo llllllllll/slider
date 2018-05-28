@@ -5,6 +5,7 @@ import inspect
 from itertools import chain, islice, cycle
 import operator as op
 import re
+from typing import NamedTuple
 from zipfile import ZipFile
 
 import numpy as np
@@ -720,6 +721,26 @@ class HoldNote(HitObject):
             raise ValueError('extra data: {rest!r}')
 
         return cls(position, time, hitsound, *rest)
+
+
+# not a hit object, more of a slider object
+# don't know how this will look like for now
+class Tick(NamedTuple):
+    position: Position
+    time: timedelta
+    type: bool = False
+
+    def __repr__(self):
+        return (
+            f'<{type(self).__qualname__}{" note" if self.type else ""}: {self.position}, '
+            f'{self.time.total_seconds() * 1000:g}ms>'
+        )
+
+    def __eq__(self, other):
+        return self.position == other.position and self.time == other.time and self.type == other.type
+
+    def __hash__(self):
+        return hash((self.position, self.time, self.type))
 
 
 def _get_as_str(groups, section, field, default=no_default):
