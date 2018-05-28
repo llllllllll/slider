@@ -40,6 +40,19 @@ class Mod(BitEnum):
     scoreV2 = 1 << 29
 
     @classmethod
+    def __get_mapping(cls):
+        return {
+            'ez': cls.easy,
+            'hr': cls.hard_rock,
+            'ht': cls.half_time,
+            'dt': cls.double_time,
+            'hd': cls.hidden,
+            'fl': cls.flashlight,
+            'so': cls.spun_out,
+            'nf': cls.no_fail,
+        }
+
+    @classmethod
     def parse(cls, cs):
         """Parse a mod mask out of a list of shortened mod names.
 
@@ -57,16 +70,8 @@ class Mod(BitEnum):
             raise ValueError(f'malformed mods: {cs!r}')
 
         cs = cs.lower()
-        mapping = {
-            'ez': cls.easy,
-            'hr': cls.hard_rock,
-            'ht': cls.half_time,
-            'dt': cls.double_time,
-            'hd': cls.hidden,
-            'fl': cls.flashlight,
-            'so': cls.spun_out,
-            'nf': cls.no_fail,
-        }
+
+        mapping = cls.__get_mapping()
 
         mod = 0
         for n in range(0, len(cs), 2):
@@ -74,6 +79,30 @@ class Mod(BitEnum):
                 mod |= mapping[cs[n:n + 2]]
             except KeyError:
                 raise ValueError(f'unknown mod: {cs[n:n + 2]!r}')
+
+        return mod
+
+    @classmethod
+    def serialize(cls, mod_mask):
+        """Serialize a concatenated string of shortened mod names out of a mod mask.
+
+        Parameters
+        ----------
+        mod_mask : int
+            The mod mask.
+
+        Returns
+        -------
+        cs : str
+            The mod string.
+        """
+        if mod_mask >= 1 << 30:
+            raise ValueError(f'malformed mod mask: {mod_mask!r}')
+
+        mod = ""
+        for v, k in cls.__get_mapping().items():
+            if mod_mask & int(k) != 0:
+                mod += v
 
         return mod
 
