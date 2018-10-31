@@ -426,7 +426,7 @@ class Spinner(HitObject):
             raise ValueError('missing end_time')
 
         try:
-            end_time = int(end_time)
+            end_time = timedelta(milliseconds=int(end_time))
         except ValueError:
             raise ValueError(f'end_time should be an int, got {end_time!r}')
 
