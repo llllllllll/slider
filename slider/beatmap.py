@@ -84,7 +84,7 @@ class TimingPoint:
         """
         return type(self)(
             4 * self.offset / 3,
-            self.ms_per_beat if self.inherited else (4 * self.ms_per_beat / 3),
+            4 * self.ms_per_beat / 3,
             self.meter,
             self.sample_type,
             self.sample_set,
@@ -93,13 +93,14 @@ class TimingPoint:
             self.kiai_mode,
         )
 
+    @lazyval
     def double_time(self):
         """The ``TimingPoint`` as it would appear with
         :data:`~slider.mod.Mod.double_time` enabled.
         """
         return type(self)(
             2 * self.offset / 3,
-            self.ms_per_beat if self.inherited else (2 * self.ms_per_beat / 3),
+            2 * self.ms_per_beat / 3,
             self.meter,
             self.sample_type,
             self.sample_set,
@@ -111,22 +112,14 @@ class TimingPoint:
     @lazyval
     def bpm(self):
         """The bpm of this timing point.
-
-        If this is an inherited timing point this value will be None.
         """
         ms_per_beat = self.ms_per_beat
-        if ms_per_beat < 0:
-            return None
         return round(60000 / ms_per_beat)
 
     def __repr__(self):
-        if self.parent is None:
-            inherited = 'inherited '
-        else:
-            inherited = ''
         return (
             f'<{type(self).__qualname__}:'
-            f' {inherited}{self.offset.total_seconds() * 1000:g}ms>'
+            f' {"parent " if self.parent is None else ""}{self.offset.total_seconds() * 1000:g}ms>'
         )
 
     @classmethod
@@ -204,6 +197,9 @@ class TimingPoint:
             kiai_mode = bool(int(_get(rest, 5, '0')))
         except ValueError:
             raise ValueError(f'kiai_mode should be a bool, got {kiai_mode!r}')
+
+        if inherited:
+            ms_per_beat = round(parent.ms_per_beat * abs(ms_per_beat / 100), 5)
 
         return cls(
             offset=offset,
@@ -663,7 +659,7 @@ class Slider(HitObject):
             tp = timing_points[0]
 
         if tp.parent is not None:
-            velocity_multiplier = -100 / tp.ms_per_beat
+            velocity_multiplier = tp.parent.ms_per_beat / tp.ms_per_beat
             ms_per_beat = tp.parent.ms_per_beat
         else:
             velocity_multiplier = 1
