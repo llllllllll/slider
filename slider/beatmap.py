@@ -659,7 +659,7 @@ class Slider(HitObject):
             tp = timing_points[0]
 
         if tp.parent is not None:
-            velocity_multiplier = -100 / tp.ms_per_beat
+            velocity_multiplier = tp.parent.ms_per_beat / tp.ms_per_beat
             ms_per_beat = tp.parent.ms_per_beat
         else:
             velocity_multiplier = 1
