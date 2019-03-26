@@ -1290,7 +1290,7 @@ class Beatmap:
             bpm *= 0.75
         return bpm
 
-    def hp(self, *, easy=False, hard_rock=False):
+    def hp(self, *, scala=1.4, easy=False, hard_rock=False):
         """Compute the Health Drain (HP) value for different mods.
 
         Parameters
@@ -1305,14 +1305,14 @@ class Beatmap:
         hp : float
             The HP value.
         """
-        hp = self.circle_size
+        hp = self.hp_drain_rate
         if hard_rock:
-            hp = min(1.4 * hp, 10)
+            hp = min(scala * hp, 10)
         elif easy:
             hp /= 2
         return hp
 
-    def cs(self, *, easy=False, hard_rock=False):
+    def cs(self, *, scala=1.4, easy=False, hard_rock=False):
         """Compute the Circle Size (CS) value for different mods.
 
         Parameters
@@ -1329,13 +1329,14 @@ class Beatmap:
         """
         cs = self.circle_size
         if hard_rock:
-            cs = min(1.4 * cs, 10)
+            cs = min(scala * cs, 10)
         elif easy:
             cs /= 2
         return cs
 
     def od(self,
            *,
+           scala=1.4,
            easy=False,
            hard_rock=False,
            half_time=False,
@@ -1360,7 +1361,7 @@ class Beatmap:
         """
         od = self.overall_difficulty
         if hard_rock:
-            od = min(1.4 * od, 10)
+            od = min(scala * od, 10)
         elif easy:
             od /= 2
 
@@ -1373,6 +1374,7 @@ class Beatmap:
 
     def ar(self,
            *,
+           scala=1.4,
            easy=False,
            hard_rock=False,
            half_time=False,
@@ -1405,7 +1407,7 @@ class Beatmap:
         if easy:
             ar /= 2
         elif hard_rock:
-            ar = min(1.4 * ar, 10)
+            ar = min(scala * ar, 10)
 
         if double_time:
             ar = ms_to_ar(2 * ar_to_ms(ar) / 3)
