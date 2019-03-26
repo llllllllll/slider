@@ -11,7 +11,7 @@ import numpy as np
 
 from .game_mode import GameMode
 from .mod import ar_to_ms, ms_to_ar, circle_radius, od_to_ms_300, ms_300_to_od
-from .position import Position, Point
+from .position import Position, Tick
 from .utils import (
     accuracy as calculate_accuracy,
     lazyval,
@@ -504,30 +504,31 @@ class Slider(HitObject):
         """The position and time of each slider tick.
         """
         repeat = self.repeat
-
-        time = self.time
-        repeat_duration = (self.end_time - time) / repeat
+        time = self.time  # initial base time
+        beats_per_repeat = self.num_beats / repeat
+        ticks_per_repeat = self.tick_rate * beats_per_repeat
+        beats_per_tick =  beats_per_repeat / ticks_per_repeat
+        repeat_duration = timedelta(milliseconds=beats_per_repeat
+                                                 * self.ms_per_beat)
 
         curve = self.curve
 
         pre_repeat_ticks = []
-        append_tick = pre_repeat_ticks.append
 
-        beats_per_repeat = self.num_beats / repeat
-        for t in orange(self.tick_rate, beats_per_repeat, self.tick_rate):
+        for t in orange(beats_per_tick, beats_per_repeat, beats_per_tick):
             pos = curve(t / beats_per_repeat)
             timediff = timedelta(milliseconds=t * self.ms_per_beat)
-            append_tick(Point(pos.x, pos.y, time + timediff))
+            pre_repeat_ticks.append(Tick(pos, time + timediff, self))
 
         pos = curve(1)
         timediff = repeat_duration
-        append_tick(Point(pos.x, pos.y, time + timediff))
+        pre_repeat_ticks.append(Tick(pos, time + timediff, self, is_note=True))
 
         repeat_ticks = [
-            Point(p.x, p.y, pre_repeat_tick.offset)
+            Tick(p, pre_repeat_tick.time, self, pre_repeat_tick.is_note)
             for pre_repeat_tick, p in zip(
                 pre_repeat_ticks,
-                chain(pre_repeat_ticks[-2::-1], [self.position])
+                chain(map(lambda x: getattr(x, 'position'), pre_repeat_ticks[-2::-1]), [self.position])
             )
         ]
 
@@ -538,7 +539,7 @@ class Slider(HitObject):
         return list(
             chain.from_iterable(
                 (
-                    Point(p.x, p.y, p.offset + n * repeat_duration)
+                    Tick(p.position, p.time + n * repeat_duration, self, p.is_note)
                     for p in tick_sequence
                 )
                 for n, tick_sequence in enumerate(tick_sequences)
