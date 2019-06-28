@@ -3,7 +3,8 @@ data/
 notebooks/
 
 build/
-
+dist/
+*.egg
 *.egg-info
 
 # python artifacts
