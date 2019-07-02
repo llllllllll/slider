@@ -3,6 +3,17 @@ from .replay import _consume_int, _consume_string
 
 
 class CollectionDB:
+    """An osu! ``collection.db`` file.
+
+    Parameters
+    ----------
+    version : int
+        Version number (e.g. 20150203)
+    num_collections : int
+        Number of collections
+    collections : list[Collection]
+        List of :class:`~slider.collection.Collection` s
+    """
     def __init__(self, version, num_collections, collections):
         self.version = version
         self.num_collections = num_collections
@@ -10,15 +21,36 @@ class CollectionDB:
 
     @classmethod
     def from_path(cls, path):
+        """Read in a ``collection.db`` file from disk.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            The path to the file to read from.
+        """
         with open(path, 'rb') as f:
             return cls.from_file(f)
 
     @classmethod
     def from_file(cls, file):
+        """Read in a ``collection.db`` file from an open file object.
+
+        Parameters
+        ----------
+        file : file-like
+            The file object to read from.
+        """
         return cls.parse(file.read())
 
     @classmethod
     def parse(cls, data):
+        """Parse from ``collection.db`` data.
+
+        Parameters
+        ----------
+        data : bytes
+            The data from a ``collection.db`` file.
+        """
         buffer = bytearray(data)
 
         version = _consume_int(buffer)
@@ -31,6 +63,18 @@ class CollectionDB:
 
 
 class Collection:
+    """An osu! collection. One or more collections are present in a
+    `collection.db` file.
+
+    Parameters
+    ----------
+    name : str
+        The collection's name
+    num_beatmaps : int
+        How many beatmaps the collection contains
+    md5_hashes : list[str]
+        List of MD5 hashes of each beatmap
+    """
     def __init__(self, name, num_beatmaps, md5_hashes):
         self.name = name
         self.num_beatmaps = num_beatmaps
@@ -38,6 +82,13 @@ class Collection:
 
     @classmethod
     def parse(cls, buffer):
+        """Parse an osu! collection.
+
+        Parameters
+        ----------
+        buffer : bytearray
+            Buffer passed in from parsing ``CollectionDB``
+        """
         name = _consume_string(buffer)
         num_beatmaps = _consume_int(buffer)
         md5_hashes = []
