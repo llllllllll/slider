@@ -9,7 +9,8 @@ from .bit_enum import BitEnum
 from .game_mode import GameMode
 from .mod import Mod, od_to_ms, circle_radius
 from .position import Position
-from .utils import accuracy, lazyval, orange
+from .utils import (accuracy, lazyval, orange, consume_byte, consume_short,
+                    consume_int, consume_string, consume_datetime)
 
 
 @unique
@@ -60,67 +61,8 @@ class Action:
         )
 
 
-def _consume_byte(buffer):
-    result = buffer[0]
-    del buffer[0]
-    return result
-
-
-def _consume_short(buffer):
-    result = int.from_bytes(buffer[:2], 'little')
-    del buffer[:2]
-    return result
-
-
-def _consume_int(buffer):
-    result = int.from_bytes(buffer[:4], 'little')
-    del buffer[:4]
-    return result
-
-
-def _consume_long(buffer):
-    result = int.from_bytes(buffer[:8], 'little')
-    del buffer[:8]
-    return result
-
-
-def _consume_uleb128(buffer):
-    result = 0
-    shift = 0
-    while True:
-        byte = _consume_byte(buffer)
-        result |= (byte & 0x7f) << shift
-        if (byte & 0x80) == 0:
-            break
-        shift += 7
-
-    return result
-
-
-def _consume_string(buffer):
-    mode = _consume_byte(buffer)
-    if mode == 0:
-        return None
-    if mode != 0x0b:
-        raise ValueError(
-            f'unknown string start byte: {hex(mode)}, expected 0 or 0x0b',
-        )
-    byte_length = _consume_uleb128(buffer)
-    data = buffer[:byte_length]
-    del buffer[:byte_length]
-    return data.decode('utf-8')
-
-
-_windows_epoch = datetime.datetime(1, 1, 1)
-
-
-def _consume_datetime(buffer):
-    windows_ticks = _consume_long(buffer)
-    return _windows_epoch + datetime.timedelta(microseconds=windows_ticks / 10)
-
-
 def _consume_life_bar_graph(buffer):
-    life_bar_graph_raw = _consume_string(buffer)
+    life_bar_graph_raw = consume_string(buffer)
     return [
         (datetime.timedelta(milliseconds=int(offset)), float(value))
         for offset, value in (
@@ -130,7 +72,7 @@ def _consume_life_bar_graph(buffer):
 
 
 def _consume_actions(buffer):
-    compressed_byte_count = _consume_int(buffer)
+    compressed_byte_count = consume_int(buffer)
     compressed_data = buffer[:compressed_byte_count]
     del buffer[:compressed_byte_count]
     decompressed_data = lzma.decompress(compressed_data)
@@ -674,23 +616,23 @@ class Replay:
 
         buffer = bytearray(data)
 
-        mode = GameMode(_consume_byte(buffer))
-        version = _consume_int(buffer)
-        beatmap_md5 = _consume_string(buffer)
-        player_name = _consume_string(buffer)
-        replay_md5 = _consume_string(buffer)
-        count_300 = _consume_short(buffer)
-        count_100 = _consume_short(buffer)
-        count_50 = _consume_short(buffer)
-        count_geki = _consume_short(buffer)
-        count_katu = _consume_short(buffer)
-        count_miss = _consume_short(buffer)
-        score = _consume_int(buffer)
-        max_combo = _consume_short(buffer)
-        full_combo = bool(_consume_byte(buffer))
-        mod_mask = _consume_int(buffer)
+        mode = GameMode(consume_byte(buffer))
+        version = consume_int(buffer)
+        beatmap_md5 = consume_string(buffer)
+        player_name = consume_string(buffer)
+        replay_md5 = consume_string(buffer)
+        count_300 = consume_short(buffer)
+        count_100 = consume_short(buffer)
+        count_50 = consume_short(buffer)
+        count_geki = consume_short(buffer)
+        count_katu = consume_short(buffer)
+        count_miss = consume_short(buffer)
+        score = consume_int(buffer)
+        max_combo = consume_short(buffer)
+        full_combo = bool(consume_byte(buffer))
+        mod_mask = consume_int(buffer)
         life_bar_graph = _consume_life_bar_graph(buffer)
-        timestamp = _consume_datetime(buffer)
+        timestamp = consume_datetime(buffer)
         actions = _consume_actions(buffer)
 
         mod_kwargs = Mod.unpack(mod_mask)

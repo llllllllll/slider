@@ -1,5 +1,4 @@
-# TODO: not use replay private functions
-from .replay import _consume_int, _consume_string
+from .replay import consume_int, consume_string
 
 
 class CollectionDB:
@@ -53,8 +52,8 @@ class CollectionDB:
         """
         buffer = bytearray(data)
 
-        version = _consume_int(buffer)
-        num_collections = _consume_int(buffer)
+        version = consume_int(buffer)
+        num_collections = consume_int(buffer)
         collections = []
         for i in range(num_collections):
             collections.append(Collection.parse(buffer))
@@ -89,10 +88,10 @@ class Collection:
         buffer : bytearray
             Buffer passed in from parsing ``CollectionDB``
         """
-        name = _consume_string(buffer)
-        num_beatmaps = _consume_int(buffer)
+        name = consume_string(buffer)
+        num_beatmaps = consume_int(buffer)
         md5_hashes = []
         for i in range(num_beatmaps):
-            md5_hashes.append(_consume_string(buffer))
+            md5_hashes.append(consume_string(buffer))
 
         return cls(name, num_beatmaps, md5_hashes)
