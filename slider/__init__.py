@@ -5,6 +5,7 @@ from .mod import Mod
 from .position import Position
 from .replay import Replay
 from .library import Library
+from .collection import CollectionDB
 
 __version__ = '0.1.0'
 
@@ -17,4 +18,5 @@ __all__ = [
     'Mod',
     'Position',
     'Replay',
+    'CollectionDB',
 ]

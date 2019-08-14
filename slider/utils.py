@@ -1,4 +1,5 @@
 from functools import lru_cache
+import datetime
 
 
 class lazyval:
@@ -102,3 +103,64 @@ def orange(_start_or_stop, *args):
     while start < stop:
         yield start
         start += step
+
+
+# consume_* helper functions to read osu! binary files
+
+def consume_byte(buffer):
+    result = buffer[0]
+    del buffer[0]
+    return result
+
+
+def consume_short(buffer):
+    result = int.from_bytes(buffer[:2], 'little')
+    del buffer[:2]
+    return result
+
+
+def consume_int(buffer):
+    result = int.from_bytes(buffer[:4], 'little')
+    del buffer[:4]
+    return result
+
+
+def consume_long(buffer):
+    result = int.from_bytes(buffer[:8], 'little')
+    del buffer[:8]
+    return result
+
+
+def consume_uleb128(buffer):
+    result = 0
+    shift = 0
+    while True:
+        byte = consume_byte(buffer)
+        result |= (byte & 0x7f) << shift
+        if (byte & 0x80) == 0:
+            break
+        shift += 7
+
+    return result
+
+
+def consume_string(buffer):
+    mode = consume_byte(buffer)
+    if mode == 0:
+        return None
+    if mode != 0x0b:
+        raise ValueError(
+            f'unknown string start byte: {hex(mode)}, expected 0 or 0x0b',
+        )
+    byte_length = consume_uleb128(buffer)
+    data = buffer[:byte_length]
+    del buffer[:byte_length]
+    return data.decode('utf-8')
+
+
+_windows_epoch = datetime.datetime(1, 1, 1)
+
+
+def consume_datetime(buffer):
+    windows_ticks = consume_long(buffer)
+    return _windows_epoch + datetime.timedelta(microseconds=windows_ticks / 10)

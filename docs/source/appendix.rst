@@ -70,6 +70,15 @@ Replay
 .. autoclass:: slider.replay.Action
    :members:
 
+Collection
+----------
+
+.. autoclass:: slider.collection.CollectionDB
+   :members:
+
+.. autoclass:: slider.collection.Collection
+   :members:
+
 Game Modes
 ----------
 
