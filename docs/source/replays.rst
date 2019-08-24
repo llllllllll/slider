@@ -1,7 +1,7 @@
 Replays
 =======
 
-Osu! saves player replays in the osu!/r directory as ``.osz`` files. We can use
+Osu! saves player replays in the osu!/r directory as ``.osr`` files. We can use
 slider to read and process these binary files. Slider represents an osu! replay
 with the :class:`~slider.replay.Replay` object. This object stores metadata
 about the play like the user who was playing, when the replay was recorded, and
@@ -18,7 +18,7 @@ the beatmap id. This is likely so that revisions to the map will invalidate the
 old replay. The library contains a lookup table from md5 to beatmap object which
 is used to resolve the actual :class:`~slider.beatmap.Beatmap` object for the
 replay. To parse a replay, we can use :meth:`~slider.replay.Replay.from_path`
-and pass the path to the ``.osz`` file along with the
+and pass the path to the ``.osr`` file along with the
 :class:`~slider.library.Library`.
 
 Replay Data
