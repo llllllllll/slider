@@ -1,7 +1,7 @@
 Replays
 =======
 
-Osu! saves player replays in the osu!/r directory as ``.osr`` files. We can use
+Osu! saves player replays in the osu!/data/r directory as ``.osr`` files. We can use
 slider to read and process these binary files. Slider represents an osu! replay
 with the :class:`~slider.replay.Replay` object. This object stores metadata
 about the play like the user who was playing, when the replay was recorded, and
