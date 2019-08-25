@@ -166,7 +166,7 @@
             
   <div class="section" id="replays">
 <h1>Replays<a class="headerlink" href="#replays" title="Permalink to this headline">¶</a></h1>
-<p>Osu! saves player replays in the osu!/r directory as <code class="docutils literal"><span class="pre">.osz</span></code> files. We can use
+<p>Osu! saves player replays in the osu!/data/r directory as <code class="docutils literal"><span class="pre">.osr</span></code> files. We can use
 slider to read and process these binary files. Slider represents an osu! replay
 with the <a class="reference internal" href="appendix.html#slider.replay.Replay" title="slider.replay.Replay"><code class="xref py py-class docutils literal"><span class="pre">Replay</span></code></a> object. This object stores metadata
 about the play like the user who was playing, when the replay was recorded, and
@@ -181,7 +181,7 @@ the beatmap id. This is likely so that revisions to the map will invalidate the
 old replay. The library contains a lookup table from md5 to beatmap object which
 is used to resolve the actual <a class="reference internal" href="appendix.html#slider.beatmap.Beatmap" title="slider.beatmap.Beatmap"><code class="xref py py-class docutils literal"><span class="pre">Beatmap</span></code></a> object for the
 replay. To parse a replay, we can use <a class="reference internal" href="appendix.html#slider.replay.Replay.from_path" title="slider.replay.Replay.from_path"><code class="xref py py-meth docutils literal"><span class="pre">from_path()</span></code></a>
-and pass the path to the <code class="docutils literal"><span class="pre">.osz</span></code> file along with the
+and pass the path to the <code class="docutils literal"><span class="pre">.osr</span></code> file along with the
 <a class="reference internal" href="appendix.html#slider.library.Library" title="slider.library.Library"><code class="xref py py-class docutils literal"><span class="pre">Library</span></code></a>.</p>
 </div>
 <div class="section" id="replay-data">

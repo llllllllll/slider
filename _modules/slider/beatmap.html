@@ -379,7 +379,14 @@
         <span class="p">)</span>
 
 
-<div class="viewcode-block" id="HitObject"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.HitObject">[docs]</a><span class="k">class</span> <span class="nc">HitObject</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">HitObjectMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+
+<div class="viewcode-block" id="HitObject"><a class="viewcode-back" href="../../appendix.html#slider.beatmap.HitObject">[docs]</a><span class="k">class</span> <span class="nc">HitObject</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">HitObjectMeta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;An abstract hit element for osu! standard.</span>
 
 <span class="sd">    Parameters</span>
@@ -407,6 +414,10 @@
             <span class="n">f</span><span class="s1">&#39; {self.time.total_seconds() * 1000:g}ms&gt;&#39;</span>
         <span class="p">)</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span><span class="p">}</span>
+
     <span class="k">def</span> <span class="nf">_time_modify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Modify this ``HitObject`` by multiplying time related attributes</span>
 <span class="sd">        by the ``coefficient``.</span>
@@ -423,8 +434,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">time_related_attributes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_related_attributes</span>
         <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">time_related_attributes</span><span class="p">:</span>
                 <span class="n">value</span> <span class="o">*=</span> <span class="n">coefficient</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
