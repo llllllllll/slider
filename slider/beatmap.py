@@ -1305,7 +1305,7 @@ class Beatmap:
         hp : float
             The HP value.
         """
-        hp = self.circle_size
+        hp = self.hp_drain_rate
         if hard_rock:
             hp = min(1.4 * hp, 10)
         elif easy:
