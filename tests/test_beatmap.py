@@ -1,5 +1,9 @@
 from slider import Beatmap
+import slider.beatmap
+import slider.curve
+from slider.position import Position
 from datetime import timedelta
+from math import isclose
 
 tatoe_path = "data/AKINO from bless4 & CHiCO with " + \
         "HoneyWorks - MIIRO vs. Ai no Scenario (monstrata) [Tatoe].osu"
@@ -8,6 +12,9 @@ tatoe_path = "data/AKINO from bless4 & CHiCO with " + \
 def test_beatmap_parameters():
     beatmap = Beatmap.from_path(tatoe_path)
     assert beatmap.format_version == 14
+    assert beatmap.display_name == \
+           "AKINO from bless4 & CHiCO with HoneyWorks - MIIRO " + \
+           "vs. Ai no Scenario [Tatoe]"
 
     # [General]
     assert beatmap.audio_filename == "tatoe.mp3"
@@ -56,7 +63,7 @@ def test_beatmap_parameters():
     # [TimingPoints] (the first one at least)
     timing_points_0 = beatmap.timing_points[0]
     assert timing_points_0.offset == timedelta()
-    assert timing_points_0.ms_per_beat == 307.692307692308
+    assert isclose(timing_points_0.ms_per_beat, 307.692307692308)
     assert timing_points_0.meter == 4
     # sample_set and sample_type omitted, see #56
     assert timing_points_0.volume == 60
@@ -65,9 +72,37 @@ def test_beatmap_parameters():
 
     # [Colours] (skipped)
     # [HitObjects]
+    # Only hit object 0 tested for now
     hit_objects_0 = beatmap.hit_objects[0]
-    assert hit_objects_0.position.x == 243
-    assert hit_objects_0.position.y == 164
+    assert hit_objects_0.position == Position(x=243, y=164)
     assert hit_objects_0.time == timedelta(milliseconds=1076)
+    # Hit object note `type` is done by subclassing HitObject
+    assert isinstance(hit_objects_0, slider.beatmap.Slider)
+    # Slider specific parameters
+    assert hit_objects_0.end_time == timedelta(milliseconds=1173)
+    assert hit_objects_0.hitsound == 0
+    assert isinstance(hit_objects_0.curve, slider.curve.Linear)
+    assert hit_objects_0.curve.points == [Position(x=243, y=164),
+                                          Position(x=301, y=175)]
+    assert round(hit_objects_0.curve.req_length) == 45
+    assert isclose(hit_objects_0.length, 45.0000017166138)
+    assert hit_objects_0.ticks == 2
+    assert hit_objects_0.num_beats == 0.3125
+    assert hit_objects_0.tick_rate == 1.0
+    assert isclose(hit_objects_0.ms_per_beat, 307.692307692308)
+    assert hit_objects_0.edge_sounds == [2, 0]
+    assert hit_objects_0.edge_additions == ['0:0', '0:0']
+    assert hit_objects_0.addition == "0:0:0:0:"
 
 
+def test_beatmap_methods():
+    # Difficulty calculations omitted
+    beatmap = Beatmap.from_path(tatoe_path)
+
+    # These functions take in mods
+    assert beatmap.ar() == 9.5
+    assert beatmap.bpm_min() == 180
+    assert beatmap.bpm_max() == 195
+    assert beatmap.cs() == 4
+    assert beatmap.hp() == 6.5
+    assert beatmap.od() == 9
