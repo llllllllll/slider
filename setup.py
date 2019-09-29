@@ -11,7 +11,7 @@ if 'upload' in sys.argv:
 
 setup(
     name='slider',
-    version='0.1.0',
+    version='0.2.0',
     description='Utilities for working with osu! files and data',
     author='Joe Jevnik',
     author_email='joejev@gmail.com',

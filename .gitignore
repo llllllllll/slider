@@ -19,3 +19,5 @@ output/
 
 .ipynb_checkpoints/*
 *.ipynb
+
+data/*
