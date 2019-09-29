@@ -4,14 +4,14 @@ import sys
 
 long_description = ''
 
-if 'upload' in sys.argv:
+if 'sdist' in sys.argv:
     with open('README.rst') as f:
         long_description = f.read()
 
 
 setup(
     name='slider',
-    version='0.2.0',
+    version='0.2.1',
     description='Utilities for working with osu! files and data',
     author='Joe Jevnik',
     author_email='joejev@gmail.com',
