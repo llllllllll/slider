@@ -29,7 +29,7 @@ class Point(namedtuple('Point', 'x y offset')):
         The x coordinate in the range.
     y : int or float
         The y coordinate in the range.
-    offset : int or float
+    offset : timedelta
         The time
 
     Notes
