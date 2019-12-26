@@ -1329,7 +1329,7 @@ class Beatmap:
         """
         cs = self.circle_size
         if hard_rock:
-            cs = min(1.4 * cs, 10)
+            cs = min(1.3 * cs, 10)
         elif easy:
             cs /= 2
         return cs
