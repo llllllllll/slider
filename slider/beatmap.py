@@ -1910,8 +1910,7 @@ class Beatmap:
             Array of difficulties as ``float64``. Speed in the first column,
             aim in the second.
         """
-        cs = self.cs(easy=easy,
-                     hard_rock=hard_rock)
+        cs = self.cs(easy=easy, hard_rock=hard_rock)
         radius = circle_radius(cs)
 
         if double_time:
@@ -2012,8 +2011,7 @@ class Beatmap:
         half_time : bool
             Compute stars with half time.
         """
-        cs = self.cs(easy=easy,
-                     hard_rock=hard_rock)
+        cs = self.cs(easy=easy, hard_rock=hard_rock)
         radius = circle_radius(cs)
 
         difficulty_hit_objects = []
