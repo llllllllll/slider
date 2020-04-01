@@ -1427,6 +1427,12 @@ class Beatmap:
         return tuple(e for e in self.hit_objects if isinstance(e, Circle))
 
     @lazyval
+    def sliders(self):
+        """Just the sliders in the beatmap.
+        """
+        return tuple(e for e in self.hit_objects if isinstance(e, Slider))
+
+    @lazyval
     def max_combo(self):
         """The highest combo that can be achieved on this beatmap.
         """
