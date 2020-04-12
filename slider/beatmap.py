@@ -1450,7 +1450,9 @@ class Beatmap:
 
         if hard_rock:
             for hit_object in hit_objects:
-                hit_object.position.y = 384 - hit_object.position.y
+                p = hit_object.position
+                p_new = Position(p.y, 384 - p.y)
+                hit_object.position = p_new
 
         if stacking:
 
