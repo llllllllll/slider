@@ -1451,7 +1451,7 @@ class Beatmap:
         if hard_rock:
             for hit_object in hit_objects:
                 p = hit_object.position
-                p_new = Position(p.y, 384 - p.y)
+                p_new = Position(p.x, 384 - p.y)
                 hit_object.position = p_new
                 if isinstance(hit_object, Slider):
                     hit_object.curve = hit_object.curve.hard_rock
