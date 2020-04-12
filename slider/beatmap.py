@@ -1488,7 +1488,6 @@ class Beatmap:
                                 object_j = hit_objects[j]
                                 if distance(object_n.curve(1), object_j.position) < stack_distance:
                                     object_j.stack_height -= offset
-                                print(object_j.stack_height)
 
                             # We have hit a slider.  We should restart calculation using this as the new base.
                             # Breaking here will mean that the slider still has StackCount of 0, so will be handled in the i-outer-loop.
@@ -1529,7 +1528,6 @@ class Beatmap:
 
             for hit_object in hit_objects:
                 offset = stack_offset * hit_object.stack_height
-                print(offset)
                 p = hit_object.position
                 p_new = Position(p.x - offset, p.y - offset)
                 hit_object.position = p_new
