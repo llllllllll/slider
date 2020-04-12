@@ -1452,8 +1452,8 @@ class Beatmap:
                 hit_object.position.y = 384 - hit_object.position.y
 
         if stacking:
-            for i in hit_objects:
-                i.stack_height = 0
+            for hit_object in hit_objects:
+                hit_object.stack_height = 0
 
             ar = self.ar(easy=easy, hard_rock=hard_rock, half_time=half_time, double_time=double_time)
             stack_threshold = timedelta(milliseconds=ar_to_ms(ar) * (self.stack_leniency * 10))
