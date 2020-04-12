@@ -238,6 +238,7 @@ class HitObject:
         self.time = time
         self.hitsound = hitsound
         self.addition = addition
+        self.stack_height = 0
 
     def __repr__(self):
         return (
@@ -1452,8 +1453,6 @@ class Beatmap:
                 hit_object.position.y = 384 - hit_object.position.y
 
         if stacking:
-            for hit_object in hit_objects:
-                hit_object.stack_height = 0
 
             ar = self.ar(easy=easy, hard_rock=hard_rock, half_time=half_time, double_time=double_time)
             stack_threshold = timedelta(milliseconds=ar_to_ms(ar) * (self.stack_leniency * 10))
