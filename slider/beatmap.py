@@ -1418,6 +1418,8 @@ class Beatmap:
     def hit_objects(self,
                     *,
                     spinners=True,
+                    circles=True,
+                    sliders=True,
                     stacking=True,
                     easy=False,
                     hard_rock=False,
@@ -1538,19 +1540,13 @@ class Beatmap:
         if not spinners:
             hit_objects = tuple(e for e in hit_objects if not isinstance(e, Spinner))
 
+        if not circles:
+            hit_objects = tuple(e for e in hit_objects if not isinstance(e, Circle))
+
+        if not sliders:
+            hit_objects = tuple(e for e in hit_objects if not isinstance(e, Slider))
+
         return hit_objects
-
-    @lazyval
-    def circles(self):
-        """Just the circles in the beatmap.
-        """
-        return tuple(e for e in self._hit_objects if isinstance(e, Circle))
-
-    @lazyval
-    def sliders(self):
-        """Just the sliders in the beatmap.
-        """
-        return tuple(e for e in self._hit_objects if isinstance(e, Slider))
 
     @lazyval
     def max_combo(self):
