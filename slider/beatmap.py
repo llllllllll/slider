@@ -1416,6 +1416,7 @@ class Beatmap:
         return ar
 
     def hit_objects(self,
+                    *,
                     spinners=True,
                     stacking=True,
                     easy=False,
