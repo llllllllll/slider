@@ -26,6 +26,6 @@ jobs:
     - name: Lint with flake8
       run: |
         flake8 slider
-    - name: Test with nose
+    - name: Test with pytest
       run: |
         pytest slider/
