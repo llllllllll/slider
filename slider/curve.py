@@ -6,7 +6,7 @@ import numpy as np
 try:  # SciPy >= 0.19
     from scipy.special import comb
 except ImportError:
-    from scipy.misc import comb 
+    from scipy.misc import comb
 from toolz import sliding_window
 
 from .abc import ABCMeta, abstractmethod

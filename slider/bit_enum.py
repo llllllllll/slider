@@ -28,7 +28,7 @@ class BitEnum(enum.IntEnum):
                 (members[k] * bool(v) for k, v in kwargs.items()),
             )
         except KeyError as e:
-            raise TypeError('{e} is not a member of {cls.__qualname__}')
+            raise TypeError(f'{e} is not a member of {cls.__qualname__}')
 
     @classmethod
     def unpack(cls, bitmask):

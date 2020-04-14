@@ -1,31 +1,36 @@
+from datetime import timedelta
+from math import isclose
+import pathlib
+
 from slider import Beatmap
 import slider.beatmap
 import slider.curve
 from slider.position import Position
-from datetime import timedelta
-from math import isclose
 
-tatoe_path = "data/AKINO from bless4 & CHiCO with " + \
-        "HoneyWorks - MIIRO vs. Ai no Scenario (monstrata) [Tatoe].osu"
+tatoe_path = pathlib.Path(__file__).parent / (
+    'data/AKINO from bless4 & CHiCO with '
+    'HoneyWorks - MIIRO vs. Ai no Scenario (monstrata) [Tatoe].osu'
+)
 
 
 def test_beatmap_parameters():
     beatmap = Beatmap.from_path(tatoe_path)
     assert beatmap.format_version == 14
-    assert beatmap.display_name == \
-           "AKINO from bless4 & CHiCO with HoneyWorks - MIIRO " + \
-           "vs. Ai no Scenario [Tatoe]"
+    assert beatmap.display_name == (
+        'AKINO from bless4 & CHiCO with HoneyWorks - MIIRO '
+        'vs. Ai no Scenario [Tatoe]'
+    )
 
     # [General]
     assert beatmap.audio_filename == "tatoe.mp3"
     assert beatmap.audio_lead_in == timedelta()
     assert beatmap.preview_time == timedelta(milliseconds=6538)
-    assert beatmap.countdown == False
+    assert not beatmap.countdown
     assert beatmap.sample_set == "Normal"
     assert beatmap.stack_leniency == 0.7
     assert beatmap.mode == 0
-    assert beatmap.letterbox_in_breaks == False
-    assert beatmap.widescreen_storyboard == False
+    assert not beatmap.letterbox_in_breaks
+    assert not beatmap.widescreen_storyboard
 
     # [Editor]
     assert beatmap.distance_spacing == 1.1
@@ -37,17 +42,40 @@ def test_beatmap_parameters():
     assert beatmap.title == "MIIRO vs. Ai no Scenario"
     assert beatmap.title_unicode == "海色 vs. アイのシナリオ"
     assert beatmap.artist == "AKINO from bless4 & CHiCO with HoneyWorks"
-    assert beatmap.artist_unicode == \
-           "AKINO from bless4 & CHiCO with HoneyWorks"
+    assert beatmap.artist_unicode == (
+        "AKINO from bless4 & CHiCO with HoneyWorks"
+    )
     assert beatmap.creator == "monstrata"
     assert beatmap.version == "Tatoe"
     assert beatmap.source == ""
-    assert beatmap.tags == \
-           ['kyshiro', 'sukinathan', 'ktgster', 'pishifat', 'smoothie',
-            'world', 'walaowey', 'toybot', 'sheela901', 'yuii-', 'Sharkie',
-            'みいろ', 'tv', 'size', 'opening', 'kantai', 'collection',
-            'kancolle', 'fleet', 'girls', 'magic', 'kaito', '1412',
-            'まじっく快斗1412', '艦隊これくしょん', '-艦これ-']
+    assert beatmap.tags == [
+        'kyshiro',
+        'sukinathan',
+        'ktgster',
+        'pishifat',
+        'smoothie',
+        'world',
+        'walaowey',
+        'toybot',
+        'sheela901',
+        'yuii-',
+        'Sharkie',
+        'みいろ',
+        'tv',
+        'size',
+        'opening',
+        'kantai',
+        'collection',
+        'kancolle',
+        'fleet',
+        'girls',
+        'magic',
+        'kaito',
+        '1412',
+        'まじっく快斗1412',
+        '艦隊これくしょん',
+        '-艦これ-'
+    ]
     assert beatmap.beatmap_id == 735272
     assert beatmap.beatmap_set_id == 325158
 
