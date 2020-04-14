@@ -1,8 +1,13 @@
+import pathlib
+
 from slider import CollectionDB
 
 
 def test_collection_simple():
-    collection_db = CollectionDB.from_path("data/collection.db")
+    collection_db = CollectionDB.from_path(
+        pathlib.Path(__file__).parent /
+        'data/collection.db',
+    )
     assert collection_db.version == 20190410
     assert collection_db.num_collections == 2
 
