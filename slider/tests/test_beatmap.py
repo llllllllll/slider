@@ -1,10 +1,9 @@
 from datetime import timedelta
 from math import isclose
-import pathlib
 
 import pytest
 
-from slider import Beatmap
+import slider.example_data.beatmaps
 import slider.beatmap
 import slider.curve
 from slider.position import Position
@@ -12,12 +11,7 @@ from slider.position import Position
 
 @pytest.fixture
 def beatmap():
-    return Beatmap.from_path(
-        pathlib.Path(__file__).parent / (
-            'data/AKINO from bless4 & CHiCO with '
-            'HoneyWorks - MIIRO vs. Ai no Scenario (monstrata) [Tatoe].osu'
-        ),
-    )
+    return slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Tatoe')
 
 
 def test_version(beatmap):
