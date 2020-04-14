@@ -1415,7 +1415,6 @@ class Beatmap:
 
         return ar
 
-    @memoize
     def hit_objects(self,
                     spinners=True,
                     stacking=True,
