@@ -1417,9 +1417,9 @@ class Beatmap:
 
     def hit_objects(self,
                     *,
-                    spinners=True,
                     circles=True,
                     sliders=True,
+                    spinners=True,
                     stacking=True,
                     easy=False,
                     hard_rock=False,
@@ -1429,23 +1429,27 @@ class Beatmap:
 
         Parameters
         ----------
+        circles : bool, optional
+            If circles should be included.
+        sliders : bool, optional
+            If sliders should be included.
         spinners : bool, optional
             If spinners should be included.
         stacking : bool, optional
             If stacking should be calculated.
         easy : bool, optional
-            Calculate stacking with the easy mod enabled.
+            Get the effective position of the hit objects with easy enabled
         hard_rock : bool, optional
-            Hit_objects will be flipped on the y axis. Calculate stacking with the hard rock mod enabled.
+            Get the effective position of the hit objects with hard rock enabled
         half_time : bool, optional
-            Calculate stacking with the half time mod enabled.
+            Get the effective position of the hit objects with half time enabled
         double_time : bool, optional
-            Calculate stacking with the double time mod enabled.
+            Get the effective position of the hit objects with double time enabled.
 
         Returns
         -------
         hit_objects : list[HitObject]
-            The effective AR value.
+            The objects with their effective positions given the parameter set.
         """
 
         hit_objects = self._hit_objects
