@@ -1438,18 +1438,18 @@ class Beatmap:
         stacking : bool, optional
             If stacking should be calculated.
         easy : bool, optional
-            Get the effective position of the hit objects with easy enabled
+            Get the effective position of the hit objects with easy enabled.
         hard_rock : bool, optional
-            Get the effective position of the hit objects with hard rock enabled
+            Get the effective position of the hit objects with hard rock enabled.
         half_time : bool, optional
-            Get the effective position of the hit objects with half time enabled
+            Get the effective position of the hit objects with half time enabled.
         double_time : bool, optional
             Get the effective position of the hit objects with double time enabled.
 
         Returns
         -------
         hit_objects : list[HitObject]
-            The objects with their effective positions given the parameter set.
+            The objects with their effective positions and timings given the parameter set.
         """
 
         hit_objects = self._hit_objects
