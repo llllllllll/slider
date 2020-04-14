@@ -37,10 +37,10 @@ setup(
     ],
     extras_require={
         'dev': [
-            'flake8==3.3.0',
+            'flake8==3.7.9',
             'mccabe==0.6.1',
-            'pycodestyle==2.3.1',
-            'pyflakes==1.5.0',
+            'pyflakes==2.1.1',
+            'pytest==5.4.1',
         ],
     },
 )
