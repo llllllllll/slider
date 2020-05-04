@@ -238,7 +238,6 @@ class HitObject:
         self.time = time
         self.hitsound = hitsound
         self.addition = addition
-        self.stack_height = 0
 
     def __repr__(self):
         return (
