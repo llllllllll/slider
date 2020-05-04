@@ -132,6 +132,7 @@ def test_parse_section_hit_objects(beatmap):
     assert hit_objects_0.edge_additions == ['0:0', '0:0']
     assert hit_objects_0.addition == "0:0:0:0:"
 
+
 def test_hit_objects_stacking(beatmap):
     hit_objects_stacked = beatmap.hit_objects(stacking=True)
     assert len(hit_objects_stacked) == len(beatmap.hit_objects(stacking=False))
@@ -155,7 +156,7 @@ def test_hit_objects_hard_rock(beatmap):
     # Only hit object 0 tested for now
     hit_objects_hard_rock_0 = beatmap.hit_objects(hard_rock=True, stacking=False)[0]
     assert hit_objects_hard_rock_0.position == Position(x=243, y=220)
-    assert hit_objects_0.curve.points == [Position(x=243, y=220),
+    assert hit_objects_hard_rock_0.curve.points == [Position(x=243, y=220),
                                           Position(x=301, y=209)]
 
 
