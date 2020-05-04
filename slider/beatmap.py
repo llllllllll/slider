@@ -1166,6 +1166,7 @@ class Beatmap:
     _version_regex = re.compile(r'^osu file format v(\d+)$')
 
     def __init__(self,
+                 *,
                  format_version,
                  audio_filename,
                  audio_lead_in,
