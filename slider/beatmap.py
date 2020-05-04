@@ -1463,92 +1463,106 @@ class Beatmap:
             hit_objects = [ob.half_time for ob in hit_objects]
 
         if stacking:
-
-            ar = self.ar(easy=easy, hard_rock=hard_rock, half_time=half_time, double_time=double_time)
-            stack_threshold = timedelta(milliseconds=ar_to_ms(ar) * (self.stack_leniency * 10))
-            stack_distance = 3
-
-            for i in reversed(range(len(hit_objects))):
-                object_i = hit_objects[i]
-                if object_i.stack_height != 0 or isinstance(object_i, Spinner):
-                    continue
-
-                if isinstance(object_i, Circle):
-                    for n in reversed(range(i)):
-                        object_n = hit_objects[n]
-
-                        if isinstance(object_n, Spinner):
-                            continue
-
-                        if hasattr(object_n, "end_time"):
-                            end_time = object_n.end_time
-                        else:
-                            end_time = object_n.time
-
-                        if (object_i.time - end_time) > stack_threshold:
-                            # We are no longer within stacking range of the previous object.
-                            break
-
-                        if isinstance(object_n, Slider) and distance(object_n.curve(1), object_i.position) < stack_distance:
-                            offset = object_i.stack_height - object_n.stack_height + 1
-
-                            for j in range(n + 1, i + 1):
-                                # For each object which was declared under this slider, we will offset it to appear *below* the slider end (rather than above).
-                                object_j = hit_objects[j]
-                                if distance(object_n.curve(1), object_j.position) < stack_distance:
-                                    object_j.stack_height -= offset
-
-                            # We have hit a slider.  We should restart calculation using this as the new base.
-                            # Breaking here will mean that the slider still has StackCount of 0, so will be handled in the i-outer-loop.
-                            break
-
-                        if distance(object_n.position, object_i.position) < stack_distance:
-                            # Keep processing as if there are no sliders.  If we come across a slider, this gets cancelled out.
-                            # NOTE: Sliders with start positions stacking are a special case that is also handled here.
-                            object_n.stack_height = object_i.stack_height + 1
-                            object_i = object_n
-
-                elif isinstance(object_i, Slider):
-                    # We have hit the first slider in a possible stack.
-                    # From this point on, we ALWAYS stack positive regardless.
-                    for n in reversed(range(i)):
-                        object_n = hit_objects[n]
-
-                        if isinstance(object_n, Spinner):
-                            continue
-
-                        if object_i.time - object_n.time > stack_threshold:
-                            # We are no longer within stacking range of the previous object.
-                            break
-
-                        if isinstance(object_n, Slider):
-                            object_n_end_position = object_n.curve(1)
-                        else:
-                            object_n_end_position = object_n.position
-
-                        if distance(object_n_end_position, object_i.position) < stack_distance:
-                            object_n.StackHeight = object_i.stack_height + 1
-                            object_i = object_n
-
-            # apply stacking
+            ar = self.ar(easy=easy, hard_rock=hard_rock,
+                         half_time=half_time, double_time=double_time)
             cs = self.cs(easy=easy, hard_rock=hard_rock)
-            radius = circle_radius(cs)
-            stack_offset = radius / 10
-
-            for hit_object in hit_objects:
-                offset = stack_offset * hit_object.stack_height
-                p = hit_object.position
-                p_new = Position(p.x - offset, p.y - offset)
-                hit_object.position = p_new
+            hit_objects = self._resolve_stacking(hit_objects, ar, cs)
 
         if not spinners:
-            hit_objects = tuple(e for e in hit_objects if not isinstance(e, Spinner))
+            hit_objects = tuple(
+                ob for ob in hit_objects if not isinstance(ob, Spinner))
 
         if not circles:
-            hit_objects = tuple(e for e in hit_objects if not isinstance(e, Circle))
+            hit_objects = tuple(
+                ob for ob in hit_objects if not isinstance(ob, Circle))
 
         if not sliders:
-            hit_objects = tuple(e for e in hit_objects if not isinstance(e, Slider))
+            hit_objects = tuple(
+                ob for ob in hit_objects if not isinstance(ob, Slider))
+
+        return hit_objects
+
+    def _resolve_stacking(self, hit_objects, ar, cs):
+        stack_threshold = ar_to_ms(ar) * (self.stack_leniency * 10)
+        stack_threshold = timedelta(milliseconds=stack_threshold)
+        stack_dist = 3
+        stack_height = {ob: 0 for ob in hit_objects}
+
+        for i, ob_i in enumerate(reversed(hit_objects)):
+            if stack_height[ob_i] != 0 or isinstance(ob_i, Spinner):
+                continue
+
+            if isinstance(ob_i, Circle):
+                for n, ob_n in enumerate(reversed(hit_objects), start=i):
+
+                    if isinstance(ob_n, Spinner):
+                        continue
+
+                    if hasattr(ob_n, "end_time"):
+                        end_time = ob_n.end_time
+                    else:
+                        end_time = ob_n.time
+
+                    if (ob_i.time - end_time) > stack_threshold:
+                        break
+
+                    if (isinstance(ob_n, Slider) and
+                            distance(ob_n.curve(1),
+                                     ob_i.position) < stack_dist):
+                        offset = stack_height[ob_i] - stack_height[ob_n] + 1
+
+                        for j, hj in enumerate(reversed(hit_objects), start=n):
+                            # For each object which was declared under this
+                            # slider, we will offset it to appear *below*
+                            # the slider end (rather than above).
+                            dist = distance(ob_n.curve(1), hj.position)
+                            if dist < stack_dist:
+                                stack_height[hj] -= offset
+
+                        # We have hit a slider.  We should restart calculation
+                        # using this as the new base.
+                        # Breaking here will mean that the slider still has
+                        # stack_height of 0, so it will be handled
+                        # in the i-outer-loop.
+                        break
+
+                    if distance(ob_n.position, ob_i.position) < stack_dist:
+                        # Keep processing as if there are no sliders.
+                        # If we come across a slider, this gets cancelled out.
+                        # NOTE: Sliders with start positions stacking
+                        # are a special case that is also handled here.
+                        stack_height[ob_n] = stack_height[ob_i] + 1
+                        ob_i = ob_n
+
+            elif isinstance(ob_i, Slider):
+                # We have hit the first slider in a possible stack.
+                # From this point on, we ALWAYS stack positive regardless.
+                for n, ob_n in enumerate(reversed(hit_objects), start=i):
+
+                    if isinstance(ob_n, Spinner):
+                        continue
+
+                    if ob_i.time - ob_n.time > stack_threshold:
+                        break
+
+                    if isinstance(ob_n, Slider):
+                        ob_n_end_position = ob_n.curve(1)
+                    else:
+                        ob_n_end_position = ob_n.position
+
+                    if distance(ob_n_end_position, ob_i.position) < stack_dist:
+                        stack_height[ob_n] = stack_height[ob_i] + 1
+                        ob_i = ob_n
+
+        # apply stacking
+        radius = circle_radius(cs)
+        stack_offset = radius / 10
+
+        for hit_object in hit_objects:
+            offset = stack_offset * stack_height[hit_object]
+            p = hit_object.position
+            p_new = Position(p.x - offset, p.y - offset)
+            hit_object.position = p_new
 
         return hit_objects
 
