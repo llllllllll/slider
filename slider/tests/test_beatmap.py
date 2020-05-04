@@ -1,6 +1,3 @@
-from datetime import timedelta
-from math import isclose
-
 import pytest
 
 import slider.example_data.beatmaps
