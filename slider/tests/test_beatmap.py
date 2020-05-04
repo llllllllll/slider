@@ -134,17 +134,18 @@ def test_parse_section_hit_objects(beatmap):
 def test_hit_objects_stacking(beatmap):
     hit_objects_stacked = beatmap.hit_objects(stacking=True)
     assert len(hit_objects_stacked) == len(beatmap.hit_objects(stacking=False))
-    assert np.array_equal(np.nonzero([h.stack_height for h in hit_objects_stacked]),
-                          [[7, 8, 10, 11, 16, 28, 29, 31, 35, 36, 38, 46, 50, 51,
-                            52, 54, 56, 58, 59, 60, 61, 62, 64, 67, 70, 71, 98,
-                            102, 106, 111, 114, 116, 122, 124, 125, 126, 128, 129,
-                            134, 135, 137, 138, 140, 141, 142, 144, 145, 147, 150,
-                            156, 162, 177, 180, 183, 191, 193, 194, 195, 196, 197,
-                            198, 199, 201, 203, 207, 208, 209, 210, 211, 213, 214,
-                            228, 240, 241, 242, 245, 246, 249, 251, 252, 253, 256,
-                            257, 258, 260, 261, 262, 263, 266, 283, 284, 288, 289,
-                            290, 291, 294, 295, 297, 301, 302, 303, 304, 305, 307,
-                            308, 309, 310, 313, 316, 320, 321, 322, 324, 325, 329]])
+    assert np.array_equal(
+        np.nonzero([h.stack_height for h in hit_objects_stacked]),
+        [[7, 8, 10, 11, 16, 28, 29, 31, 35, 36, 38, 46, 50, 51,
+         52, 54, 56, 58, 59, 60, 61, 62, 64, 67, 70, 71, 98,
+         102, 106, 111, 114, 116, 122, 124, 125, 126, 128, 129,
+         134, 135, 137, 138, 140, 141, 142, 144, 145, 147, 150,
+         156, 162, 177, 180, 183, 191, 193, 194, 195, 196, 197,
+         198, 199, 201, 203, 207, 208, 209, 210, 211, 213, 214,
+         228, 240, 241, 242, 245, 246, 249, 251, 252, 253, 256,
+         257, 258, 260, 261, 262, 263, 266, 283, 284, 288, 289,
+         290, 291, 294, 295, 297, 301, 302, 303, 304, 305, 307,
+         308, 309, 310, 313, 316, 320, 321, 322, 324, 325, 329]])
     assert hit_objects_stacked[7].stack_height == 1
     assert hit_objects_stacked[7].position == Position(x=281.352, y=223.352)
     assert hit_objects_stacked[31].stack_height == -1
@@ -153,10 +154,11 @@ def test_hit_objects_stacking(beatmap):
 
 def test_hit_objects_hard_rock(beatmap):
     # Only hit object 0 tested for now
-    hit_objects_hard_rock_0 = beatmap.hit_objects(hard_rock=True, stacking=False)[0]
+    hit_objects_hard_rock_0 = beatmap.hit_objects(hard_rock=True,
+                                                  stacking=False)[0]
     assert hit_objects_hard_rock_0.position == Position(x=243, y=220)
     assert hit_objects_hard_rock_0.curve.points == [Position(x=243, y=220),
-                                          Position(x=301, y=209)]
+                                                    Position(x=301, y=209)]
 
 
 def test_ar(beatmap):
