@@ -6,7 +6,6 @@ import slider.curve
 from slider.position import Position
 from datetime import timedelta
 from math import isclose
-import numpy as np
 
 
 @pytest.fixture
@@ -131,25 +130,51 @@ def test_parse_section_hit_objects(beatmap):
     assert hit_objects_0.addition == "0:0:0:0:"
 
 
-def test_hit_objects_stacking(beatmap):
-    hit_objects_stacked = beatmap.hit_objects(stacking=True)
-    assert len(hit_objects_stacked) == len(beatmap.hit_objects(stacking=False))
-    assert np.array_equal(
-        np.nonzero([h.stack_height for h in hit_objects_stacked]),
-        [[7, 8, 10, 11, 16, 28, 29, 31, 35, 36, 38, 46, 50, 51,
-         52, 54, 56, 58, 59, 60, 61, 62, 64, 67, 70, 71, 98,
-         102, 106, 111, 114, 116, 122, 124, 125, 126, 128, 129,
-         134, 135, 137, 138, 140, 141, 142, 144, 145, 147, 150,
-         156, 162, 177, 180, 183, 191, 193, 194, 195, 196, 197,
-         198, 199, 201, 203, 207, 208, 209, 210, 211, 213, 214,
-         228, 240, 241, 242, 245, 246, 249, 251, 252, 253, 256,
-         257, 258, 260, 261, 262, 263, 266, 283, 284, 288, 289,
-         290, 291, 294, 295, 297, 301, 302, 303, 304, 305, 307,
-         308, 309, 310, 313, 316, 320, 321, 322, 324, 325, 329]])
-    assert hit_objects_stacked[7].stack_height == 1
-    assert hit_objects_stacked[7].position == Position(x=281.352, y=223.352)
-    assert hit_objects_stacked[31].stack_height == -1
-    assert hit_objects_stacked[31].position == Position(x=286.648, y=230.648)
+def test_hit_objects_stacking():
+    hit_objects = [slider.beatmap.Circle(Position(128, 128),
+                                         timedelta(milliseconds=x*10),
+                                         hitsound=1) for x in range(10)]
+
+    beatmap = slider.Beatmap(
+        format_version="1.0",
+        audio_filename="audio.mp3",
+        audio_lead_in=timedelta(),
+        preview_time=timedelta(),
+        countdown=False,
+        sample_set="soft",
+        stack_leniency=1,
+        mode=0,
+        letterbox_in_breaks=False,
+        widescreen_storyboard=False,
+        bookmarks=[0],
+        distance_spacing=1,
+        beat_divisor=1,
+        grid_size=1,
+        timeline_zoom=1,
+        title="title",
+        title_unicode="title",
+        artist="artist",
+        artist_unicode="artist",
+        creator="creator",
+        version="1.0",
+        source="source",
+        tags=["tags"],
+        beatmap_id=0,
+        beatmap_set_id=0,
+        hp_drain_rate=5,
+        circle_size=5,
+        overall_difficulty=5,
+        approach_rate=5,
+        slider_multiplier=1,
+        slider_tick_rate=1,
+        timing_points=[],
+        hit_objects=hit_objects
+    )
+    radius = slider.beatmap.circle_radius(5)
+    stack_offset = radius / 10
+
+    for i, ob in enumerate(reversed(beatmap.hit_objects(stacking=True))):
+        assert ob.position.y == 128-((i+1)*stack_offset)
 
 
 def test_hit_objects_hard_rock(beatmap):
