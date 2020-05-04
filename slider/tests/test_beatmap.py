@@ -106,6 +106,7 @@ def test_parse_section_timing_points(beatmap):
     # inherited is not in class parameter
     assert timing_points_0.kiai_mode == 0
 
+
 def test_parse_section_hit_objects(beatmap):
     # Only hit object 0 tested for now
     hit_objects_0 = beatmap.hit_objects(stacking=False)[0]
@@ -148,6 +149,7 @@ def test_hit_objects_stacking(beatmap):
     assert hit_objects_stacked[7].position == Position(x=281.352, y=223.352)
     assert hit_objects_stacked[31].stack_height == -1
     assert hit_objects_stacked[31].position == Position(x=286.648, y=230.648)
+
 
 def test_hit_objects_hard_rock(beatmap):
     # Only hit object 0 tested for now
