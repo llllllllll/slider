@@ -1,5 +1,5 @@
 from datetime import timedelta
-from enum import unique, IntEnum
+from enum import unique, IntEnum, Enum
 from functools import partial
 import inspect
 from itertools import chain, islice, cycle
@@ -29,6 +29,132 @@ def _get(cs, ix, default=no_default):
         if default is no_default:
             raise
         return default
+
+class Event:
+
+    EventType = Enum('EventType', {'Background': 0, 'Video': 1, 'Break': 2, 'Sprite': 3, 'Animation': 4})
+
+    @property
+    def start_time(self):
+        return self.start_time if self.start_time != 0 else None
+
+    @classmethod
+    def parse(cls, data):
+        event_type, start_time, *event_params = data.split(',')
+        try:
+            start_time = int(start_time)
+            start_time = timedelta(milliseconds = start_time)
+        except ValueError:
+            return Storyboard.parse()
+        try:
+            event_type = cls.EventType(int(event_type))
+        except ValueError:
+            try:
+                event_type = cls.EventType[event_type]
+            except KeyError:
+                raise ValueError(f'Invalid event type, got {event_type}')
+        if event_type == cls.EventType.Background:
+            pass
+        elif event_type == cls.EventType.Video:
+            pass
+        elif event_type == cls.EventType.Break:
+            return Break.parse(start_time, event_params)
+        else:
+            raise ValueError(f'Unimplemented event type: {event_type}, this state should not be reachable')
+
+class Background(Event):
+
+    @property
+    def start_time(self):
+        return self.start_time
+
+    @property
+    def event_type(self):
+        return self.EventType.Background
+
+    @classmethod
+    def parse(cls, start_time, event_params):
+        try:
+            filename, x_offset, y_offset = event_params
+        except ValueError:
+            raise ValueError(f'Missing one or more of filename, x_offset, y_offset, received {event_params}')
+        try:
+            x_offset = int(x_offset)
+        except ValueError:
+            raise ValueError(f'x_offset is invalid, got {x_offset}')
+        try:
+            y_offset = int(y_offset)
+        except ValueError:
+            raise ValueError(f'y_offset is invalid, got {y_offset}')
+
+    def __init__(self, filename, x_offset, y_offset):
+        self.start_time = timedelta(milliseconds=0)
+        self.filename = filename
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+
+class Break(Event):
+
+    @property
+    def event_type(self):
+        return self.EventType.Break
+
+    @classmethod
+    def parse(cls, start_time, event_params):
+        try:
+            end_time = event_params[0]
+            end_time = timedelta(milliseconds=int(end_time))
+        except IndexError:
+            raise ValueError(f'Beatmap is invalid, no end_time received')
+        except ValueError:
+            raise ValueError(f'Invalid end_time provided, got {end_time}')
+        return cls(start_time, end_time)
+    
+    def __init__(self, start_time, end_time):
+        self.start_time = start_time
+        self.end_time = end_time
+
+
+class Video(Event):
+    @property
+    def event_type(self):
+        return self.EventType.Video
+
+    @classmethod
+    def parse(cls, start_time, event_params):
+        try:
+            filename, x_offset, y_offset = event_params
+        except ValueError:
+            raise ValueError(f'Missing one or more of filename, x_offset, y_offset, received {event_params}')
+        try:
+            x_offset = int(x_offset)
+        except ValueError:
+            raise ValueError(f'x_offset is invalid, got {x_offset}')
+        try:
+            y_offset = int(y_offset)
+        except ValueError:
+            raise ValueError(f'y_offset is invalid, got {y_offset}')
+        return cls(start_time, filename, x_offset, y_offset)
+
+    def __init__(self, start_time, filename, x_offset, y_offset):
+        self.start_time = start_time
+        self.filename = filename
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+
+class Storyboard(Event):
+
+    @property
+    def start_time(self):
+        raise ValueError('Currently unimplemented')
+
+    @property
+    def event_type(self):
+        return self.EventType.Storyboard
+
+    @classmethod
+    def parse(cls):
+        return cls()
 
 
 class TimingPoint:
@@ -1660,6 +1786,11 @@ class Beatmap:
                 # timing points
                 parent = timing_point
             timing_points.append(timing_point)
+
+        events = []
+        for raw_event in groups['Events']:
+            event = Event.parse(raw_event)
+            events.append(event)
 
         slider_multiplier = _get_as_float(
             groups,
