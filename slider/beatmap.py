@@ -1283,6 +1283,8 @@ class Beatmap:
         The timing points the the map.
     hit_objects : list[HitObject]
         The hit objects in the map.
+    events : list[Event]
+        The events in the map.
 
     Notes
     -----
@@ -1323,7 +1325,8 @@ class Beatmap:
                  slider_multiplier,
                  slider_tick_rate,
                  timing_points,
-                 hit_objects):
+                 hit_objects,
+                 events):
         self.format_version = format_version
         self.audio_filename = audio_filename
         self.audio_lead_in = audio_lead_in
@@ -1357,6 +1360,7 @@ class Beatmap:
         self.slider_tick_rate = slider_tick_rate
         self.timing_points = timing_points
         self.hit_objects = hit_objects
+        self.events = events
 
         # cache the stars with different mod combinations
         self._stars_cache = {}
@@ -1539,6 +1543,24 @@ class Beatmap:
             ar = ms_to_ar(4 * ar_to_ms(ar) / 3)
 
         return ar
+
+    @lazyval
+    def breaks(self):
+        """The breaks with all other events filtered out.
+        """
+        return tuple(e for e in self.events if not isinstance(e, Break))
+
+    @lazyval
+    def background(self):
+        """The background, if it exists, otherwise returns None.
+        """
+        return next((e for e in self.events if not isinstance(e, Background)), None)
+
+    @lazyval
+    def videos(self):
+        """The videos with all other events filtered out.
+        """
+        return tuple(e for e in self.events if not isinstance(e, Break))
 
     @lazyval
     def hit_objects_no_spinners(self):
@@ -1904,7 +1926,7 @@ class Beatmap:
                 ),
                 groups['HitObjects'],
             )),
-
+            events=events,
         )
 
     def timing_point_at(self, time):
