@@ -30,9 +30,15 @@ def _get(cs, ix, default=no_default):
             raise
         return default
 
+
 class Event:
 
-    EventType = Enum('EventType', {'Background': 0, 'Video': 1, 'Break': 2, 'Sprite': 3, 'Animation': 4})
+    EventType = Enum('EventType',
+                     {'Background': 0,
+                      'Video': 1,
+                      'Break': 2,
+                      'Sprite': 3,
+                      'Animation': 4})
 
     @property
     def start_time(self):
@@ -43,7 +49,7 @@ class Event:
         event_type, start_time, *event_params = data.split(',')
         try:
             start_time = int(start_time)
-            start_time = timedelta(milliseconds = start_time)
+            start_time = timedelta(milliseconds=start_time)
         except ValueError:
             return Storyboard.parse()
         try:
@@ -59,8 +65,11 @@ class Event:
             pass
         elif event_type == cls.EventType.Break:
             return Break.parse(start_time, event_params)
+        # should be unreachable, added to enforce explicit handling of enums.
         else:
-            raise ValueError(f'Unimplemented event type: {event_type}, this state should not be reachable')
+            raise ValueError(
+                f'Unimplemented event type: {event_type}')
+
 
 class Background(Event):
 
@@ -77,7 +86,8 @@ class Background(Event):
         try:
             filename, x_offset, y_offset = event_params
         except ValueError:
-            raise ValueError(f'Missing one or more of filename, x_offset, y_offset, received {event_params}')
+            raise ValueError(
+                f'Missing param for Background, received {event_params}')
         try:
             x_offset = int(x_offset)
         except ValueError:
@@ -92,6 +102,7 @@ class Background(Event):
         self.filename = filename
         self.x_offset = x_offset
         self.y_offset = y_offset
+
 
 class Break(Event):
 
@@ -109,7 +120,7 @@ class Break(Event):
         except ValueError:
             raise ValueError(f'Invalid end_time provided, got {end_time}')
         return cls(start_time, end_time)
-    
+
     def __init__(self, start_time, end_time):
         self.start_time = start_time
         self.end_time = end_time
@@ -125,7 +136,8 @@ class Video(Event):
         try:
             filename, x_offset, y_offset = event_params
         except ValueError:
-            raise ValueError(f'Missing one or more of filename, x_offset, y_offset, received {event_params}')
+            raise ValueError(
+                f'Missing param for video, received {event_params}')
         try:
             x_offset = int(x_offset)
         except ValueError:
@@ -141,6 +153,7 @@ class Video(Event):
         self.filename = filename
         self.x_offset = x_offset
         self.y_offset = y_offset
+
 
 class Storyboard(Event):
 
@@ -185,6 +198,7 @@ class TimingPoint:
     kiai_mode : bool
         Wheter or not kiai time effects are active.
     """
+
     def __init__(self,
                  offset,
                  ms_per_beat,
@@ -1554,7 +1568,8 @@ class Beatmap:
     def background(self):
         """The background, if it exists, otherwise returns None.
         """
-        return next((e for e in self.events if not isinstance(e, Background)), None)
+        return next(
+            (e for e in self.events if not isinstance(e, Background)), None)
 
     @lazyval
     def videos(self):
