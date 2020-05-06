@@ -31,39 +31,45 @@ def _get(cs, ix, default=no_default):
         return default
 
 
-class Event:
+EventType = Enum('EventType',
+                    {'Background': 0,
+                    'Video': 1,
+                    'Break': 2,
+                    'Sprite': 3,
+                    'Animation': 4})
 
-    EventType = Enum('EventType',
-                     {'Background': 0,
-                      'Video': 1,
-                      'Break': 2,
-                      'Sprite': 3,
-                      'Animation': 4})
+class Event:
 
     @property
     def start_time(self):
-        return self.start_time if self.start_time != 0 else None
+        return self._start_time if self._start_time != 0 else None
 
     @classmethod
     def parse(cls, data):
-        event_type, start_time, *event_params = data.split(',')
+        event_type, start_time_or_layer, *event_params = data.split(',')
         try:
-            start_time = int(start_time)
-            start_time = timedelta(milliseconds=start_time)
-        except ValueError:
-            return Storyboard.parse()
-        try:
-            event_type = cls.EventType(int(event_type))
+            event_type = EventType(int(event_type))
         except ValueError:
             try:
-                event_type = cls.EventType[event_type]
+                event_type = EventType[event_type]
             except KeyError:
                 raise ValueError(f'Invalid event type, got {event_type}')
-        if event_type == cls.EventType.Background:
-            pass
-        elif event_type == cls.EventType.Video:
-            pass
-        elif event_type == cls.EventType.Break:
+        if event_type == EventType.Sprite:
+            layer = start_time_or_layer 
+            return Sprite.parse(layer, event_params)
+        elif event_type == EventType.Animation:
+            layer = start_time_or_layer
+            return Animation.parse(layer, event_params)        
+        try:
+            start_time = int(start_time_or_layer)
+            start_time = timedelta(milliseconds=start_time)
+        except ValueError:
+            raise ValueError(f'Invalid start_time provided, got {start_time}')
+        if event_type == EventType.Background:
+            return Background.parse(start_time, event_params)
+        elif event_type == EventType.Video:
+            return Video.parse(start_time, event_params)
+        elif event_type == EventType.Break:
             return Break.parse(start_time, event_params)
         # should be unreachable, added to enforce explicit handling of enums.
         else:
@@ -75,11 +81,11 @@ class Background(Event):
 
     @property
     def start_time(self):
-        return self.start_time
+        return self._start_time
 
     @property
     def event_type(self):
-        return self.EventType.Background
+        return EventType.Background
 
     @classmethod
     def parse(cls, start_time, event_params):
@@ -96,9 +102,10 @@ class Background(Event):
             y_offset = int(y_offset)
         except ValueError:
             raise ValueError(f'y_offset is invalid, got {y_offset}')
+        return cls(filename, x_offset, y_offset)
 
     def __init__(self, filename, x_offset, y_offset):
-        self.start_time = timedelta(milliseconds=0)
+        self._start_time = None
         self.filename = filename
         self.x_offset = x_offset
         self.y_offset = y_offset
@@ -108,7 +115,7 @@ class Break(Event):
 
     @property
     def event_type(self):
-        return self.EventType.Break
+        return EventType.Break
 
     @classmethod
     def parse(cls, start_time, event_params):
@@ -122,14 +129,14 @@ class Break(Event):
         return cls(start_time, end_time)
 
     def __init__(self, start_time, end_time):
-        self.start_time = start_time
+        self._start_time = start_time
         self.end_time = end_time
 
 
 class Video(Event):
     @property
     def event_type(self):
-        return self.EventType.Video
+        return EventType.Video
 
     @classmethod
     def parse(cls, start_time, event_params):
@@ -149,13 +156,12 @@ class Video(Event):
         return cls(start_time, filename, x_offset, y_offset)
 
     def __init__(self, start_time, filename, x_offset, y_offset):
-        self.start_time = start_time
+        self._start_time = start_time
         self.filename = filename
         self.x_offset = x_offset
         self.y_offset = y_offset
 
-
-class Storyboard(Event):
+class Sprite(Event):
 
     @property
     def start_time(self):
@@ -163,10 +169,24 @@ class Storyboard(Event):
 
     @property
     def event_type(self):
-        return self.EventType.Storyboard
+        return EventType.Sprite
 
     @classmethod
-    def parse(cls):
+    def parse(cls, layer, params):
+        return cls()
+
+class Animation(Event):
+
+    @property
+    def start_time(self):
+        raise ValueError('Currently unimplemented')
+
+    @property
+    def event_type(self):
+        return EventType.Animation
+
+    @classmethod
+    def parse(cls, layer, params):
         return cls()
 
 
@@ -1562,20 +1582,20 @@ class Beatmap:
     def breaks(self):
         """The breaks with all other events filtered out.
         """
-        return tuple(e for e in self.events if not isinstance(e, Break))
+        return tuple(e for e in self.events if isinstance(e, Break))
 
     @lazyval
     def background(self):
         """The background, if it exists, otherwise returns None.
         """
         return next(
-            (e for e in self.events if not isinstance(e, Background)), None)
+            (e for e in self.events if isinstance(e, Background)), None)
 
     @lazyval
     def videos(self):
         """The videos with all other events filtered out.
         """
-        return tuple(e for e in self.events if not isinstance(e, Break))
+        return tuple(e for e in self.events if isinstance(e, Break))
 
     @lazyval
     def hit_objects_no_spinners(self):
@@ -1769,7 +1789,9 @@ class Beatmap:
                 commit_group()
                 current_group = line[1:-1]
             else:
-                group_buffer.append(line)
+                is_storyboard_param = line[0] == '_' or line[0] == ' '
+                if not is_storyboard_param:
+                    group_buffer.append(line)
 
         # commit the final group
         commit_group()
