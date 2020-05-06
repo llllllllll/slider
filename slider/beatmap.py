@@ -39,6 +39,7 @@ _event_map = {
                 'Animation': 4
             }
 
+
 class EventType(Enum):
     Background = 0
     Video = 1
@@ -56,6 +57,7 @@ class EventType(Enum):
             except KeyError:
                 raise ValueError(f'Invalid event type, got {event_type}')
         return event_type
+
 
 class Event:
 
