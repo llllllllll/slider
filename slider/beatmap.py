@@ -31,12 +31,16 @@ def _get(cs, ix, default=no_default):
         return default
 
 
-EventType = Enum('EventType',
-                    {'Background': 0,
-                    'Video': 1,
-                    'Break': 2,
-                    'Sprite': 3,
-                    'Animation': 4})
+_event_map = {
+                'Background': 0,
+                'Video': 1,
+                'Break': 2,
+                'Sprite': 3,
+                'Animation': 4
+            }
+
+EventType = Enum('EventType', _event_map)
+
 
 class Event:
 
@@ -55,11 +59,11 @@ class Event:
             except KeyError:
                 raise ValueError(f'Invalid event type, got {event_type}')
         if event_type == EventType.Sprite:
-            layer = start_time_or_layer 
+            layer = start_time_or_layer
             return Sprite.parse(layer, event_params)
         elif event_type == EventType.Animation:
             layer = start_time_or_layer
-            return Animation.parse(layer, event_params)        
+            return Animation.parse(layer, event_params)
         try:
             start_time = int(start_time_or_layer)
             start_time = timedelta(milliseconds=start_time)
@@ -161,6 +165,7 @@ class Video(Event):
         self.x_offset = x_offset
         self.y_offset = y_offset
 
+
 class Sprite(Event):
 
     @property
@@ -174,6 +179,7 @@ class Sprite(Event):
     @classmethod
     def parse(cls, layer, params):
         return cls()
+
 
 class Animation(Event):
 
