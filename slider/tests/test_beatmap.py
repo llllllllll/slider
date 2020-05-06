@@ -153,3 +153,11 @@ def test_hp(beatmap):
 
 def test_od(beatmap):
     assert beatmap.od() == 9
+
+
+def test_background(beatmap):
+    background = beatmap.background
+    assert background.filename == 'miiro_no_scenario.png'
+    assert background.x_offset == 0
+    assert background.y_offset == 0
+    assert background.start_time == timedelta(milliseconds=0)

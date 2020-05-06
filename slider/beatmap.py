@@ -49,6 +49,10 @@ class Event:
         return self._start_time if self._start_time != 0 else None
 
     @classmethod
+    def strip_quotes_from_filename(cls, filename):
+        return filename[1:-1]
+
+    @classmethod
     def parse(cls, data):
         event_type, start_time_or_layer, *event_params = data.split(',')
         try:
@@ -95,6 +99,7 @@ class Background(Event):
     def parse(cls, start_time, event_params):
         try:
             filename, x_offset, y_offset = event_params
+            filename = cls.strip_quotes_from_filename(filename)
         except ValueError:
             raise ValueError(
                 f'Missing param for Background, received {event_params}')
@@ -109,7 +114,7 @@ class Background(Event):
         return cls(filename, x_offset, y_offset)
 
     def __init__(self, filename, x_offset, y_offset):
-        self._start_time = None
+        self._start_time = timedelta(milliseconds=0)
         self.filename = filename
         self.x_offset = x_offset
         self.y_offset = y_offset
@@ -146,6 +151,7 @@ class Video(Event):
     def parse(cls, start_time, event_params):
         try:
             filename, x_offset, y_offset = event_params
+            filename = cls.strip_quotes_from_filename(filename)
         except ValueError:
             raise ValueError(
                 f'Missing param for video, received {event_params}')
