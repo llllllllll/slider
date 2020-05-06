@@ -39,8 +39,23 @@ _event_map = {
                 'Animation': 4
             }
 
-EventType = Enum('EventType', _event_map)
+class EventType(Enum):
+    Background = 0
+    Video = 1
+    Break = 2
+    Sprite = 3
+    Animation = 4
 
+    @staticmethod
+    def parse(event_type):
+        try:
+            event_type = EventType(int(event_type))
+        except ValueError:
+            try:
+                event_type = EventType[event_type]
+            except KeyError:
+                raise ValueError(f'Invalid event type, got {event_type}')
+        return event_type
 
 class Event:
 
@@ -51,13 +66,7 @@ class Event:
     @classmethod
     def parse(cls, data):
         event_type, start_time_or_layer, *event_params = data.split(',')
-        try:
-            event_type = EventType(int(event_type))
-        except ValueError:
-            try:
-                event_type = EventType[event_type]
-            except KeyError:
-                raise ValueError(f'Invalid event type, got {event_type}')
+        event_type = EventType.parse(event_type)
         if event_type == EventType.Sprite:
             layer = start_time_or_layer
             return Sprite.parse(layer, event_params)
