@@ -1486,17 +1486,20 @@ class Beatmap:
         return hit_objects
 
     def _resolve_stacking(self, hit_objects, ar, cs):
-        stack_threshold = ar_to_ms(ar) * (self.stack_leniency * 10)
+        stack_threshold = ar_to_ms(ar) * self.stack_leniency
         stack_threshold = timedelta(milliseconds=stack_threshold)
         stack_dist = 3
         stack_height = {ob: 0 for ob in hit_objects}
+        # reverse list so it's easier to process
+        hit_objects = list(reversed(hit_objects))
 
-        for i, ob_i in enumerate(reversed(hit_objects)):
+        for i, ob_i in enumerate(hit_objects):
+
             if stack_height[ob_i] != 0 or isinstance(ob_i, Spinner):
                 continue
 
             if isinstance(ob_i, Circle):
-                for n, ob_n in enumerate(reversed(hit_objects), start=i):
+                for n, ob_n in enumerate(hit_objects[i:], start=i):
 
                     if isinstance(ob_n, Spinner):
                         continue
@@ -1514,7 +1517,7 @@ class Beatmap:
                                      ob_i.position) < stack_dist):
                         offset = stack_height[ob_i] - stack_height[ob_n] + 1
 
-                        for j, hj in enumerate(reversed(hit_objects), start=n):
+                        for j, hj in enumerate(hit_objects[n:], start=n):
                             # For each object which was declared under this
                             # slider, we will offset it to appear *below*
                             # the slider end (rather than above).
@@ -1540,7 +1543,7 @@ class Beatmap:
             elif isinstance(ob_i, Slider):
                 # We have hit the first slider in a possible stack.
                 # From this point on, we ALWAYS stack positive regardless.
-                for n, ob_n in enumerate(reversed(hit_objects), start=i):
+                for n, ob_n in enumerate(hit_objects[i:], start=i):
 
                     if isinstance(ob_n, Spinner):
                         continue
@@ -1556,6 +1559,9 @@ class Beatmap:
                     if distance(ob_n_end_position, ob_i.position) < stack_dist:
                         stack_height[ob_n] = stack_height[ob_i] + 1
                         ob_i = ob_n
+
+        # reverse list again so it's normal
+        hit_objects = list(reversed(hit_objects))
 
         # apply stacking
         radius = circle_radius(cs)
