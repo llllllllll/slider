@@ -1569,6 +1569,59 @@ class Beatmap:
 
         return hit_objects
 
+    def _resolve_stacking_old(self, hit_objects, ar, cs):
+        stack_threshold = ar_to_ms(ar) * self.stack_leniency
+        stack_threshold = timedelta(milliseconds=stack_threshold)
+        stack_dist = 3
+        stack_height = {ob: 0 for ob in hit_objects}
+        for i, ob_i in enumerate(hit_objects):
+
+            if stack_height[ob_i] != 0 and not isinstance(ob_i, Slider):
+                continue
+
+            if hasattr(ob_i, "end_time"):
+                start_time = ob_i.end_time
+            else:
+                start_time = ob_i.time
+            slider_stack = 0
+
+            for j, ob_j in enumerate(hit_objects[i:], start=i):
+
+                if ob_j.time - stack_threshold > start_time:
+                    break
+
+                if distance(ob_j.position, ob_i.position) < stack_dist:
+                    stack_height[ob_i] += 1
+
+                    if hasattr(ob_j, "end_time"):
+                        start_time = ob_j.end_time
+                    else:
+                        start_time = ob_j.time
+
+                elif (isinstance(ob_i, Slider) and
+                      distance(ob_j.position, ob_i.curve(1)) < stack_dist):
+                    # Case for sliders - bump notes down and right,
+                    # rather than up and left.
+                    slider_stack += 1
+                    stack_height[ob_j] -= slider_stack
+
+                    if hasattr(ob_j, "end_time"):
+                        start_time = ob_j.end_time
+                    else:
+                        start_time = ob_j.time
+
+        # apply stacking
+        radius = circle_radius(cs)
+        stack_offset = radius / 10
+
+        for hit_object in hit_objects:
+            offset = stack_offset * stack_height[hit_object]
+            p = hit_object.position
+            p_new = Position(p.x - offset, p.y - offset)
+            hit_object.position = p_new
+
+        return hit_objects
+
     @lazyval
     def max_combo(self):
         """The highest combo that can be achieved on this beatmap.
