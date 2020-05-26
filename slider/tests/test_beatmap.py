@@ -136,7 +136,7 @@ def test_hit_objects_stacking():
                                          hitsound=1) for x in range(10)]
 
     beatmap = slider.Beatmap(
-        format_version="1.0",
+        format_version=14,
         audio_filename="audio.mp3",
         audio_lead_in=timedelta(),
         preview_time=timedelta(),

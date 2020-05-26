@@ -1460,16 +1460,20 @@ class Beatmap:
 
         if hard_rock:
             hit_objects = [ob.hard_rock for ob in hit_objects]
+
+        if stacking:
+            ar = self.ar(easy=easy, hard_rock=hard_rock)
+            cs = self.cs(easy=easy, hard_rock=hard_rock)
+            print(self.format_version)
+            if self.format_version >= 6:
+                hit_objects = self._resolve_stacking(hit_objects, ar, cs)
+            else:
+                hit_objects = self._resolve_stacking_old(hit_objects, ar, cs)
+
         if double_time:
             hit_objects = [ob.double_time for ob in hit_objects]
         elif half_time:
             hit_objects = [ob.half_time for ob in hit_objects]
-
-        if stacking:
-            ar = self.ar(easy=easy, hard_rock=hard_rock,
-                         half_time=half_time, double_time=double_time)
-            cs = self.cs(easy=easy, hard_rock=hard_rock)
-            hit_objects = self._resolve_stacking(hit_objects, ar, cs)
 
         if not spinners:
             hit_objects = tuple(
