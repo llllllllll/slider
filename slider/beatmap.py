@@ -671,9 +671,9 @@ class Slider(HitObject):
 
         pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
         num_beats = (
-            np.round(((pixel_length * repeat) / pixels_per_beat) * 16) / 16
+            (pixel_length * repeat) / pixels_per_beat
         )
-        duration = timedelta(milliseconds=np.ceil(num_beats * ms_per_beat))
+        duration = timedelta(milliseconds=int(num_beats * ms_per_beat))
 
         ticks = int(
             (
@@ -1503,7 +1503,7 @@ class Beatmap:
                 continue
 
             if isinstance(ob_i, Circle):
-                for n, ob_n in enumerate(hit_objects[i:], start=i):
+                for n, ob_n in enumerate(hit_objects[i+1:], start=i+1):
 
                     if isinstance(ob_n, Spinner):
                         continue
@@ -1521,7 +1521,7 @@ class Beatmap:
                                      ob_i.position) < stack_dist):
                         offset = stack_height[ob_i] - stack_height[ob_n] + 1
 
-                        for j, hj in enumerate(hit_objects[n:], start=n):
+                        for hj in hit_objects[i:n]:
                             # For each object which was declared under this
                             # slider, we will offset it to appear *below*
                             # the slider end (rather than above).
@@ -1547,7 +1547,7 @@ class Beatmap:
             elif isinstance(ob_i, Slider):
                 # We have hit the first slider in a possible stack.
                 # From this point on, we ALWAYS stack positive regardless.
-                for n, ob_n in enumerate(hit_objects[i:], start=i):
+                for n, ob_n in enumerate(hit_objects[i+1:], start=i+1):
 
                     if isinstance(ob_n, Spinner):
                         continue
@@ -1595,7 +1595,7 @@ class Beatmap:
                 start_time = ob_i.time
             slider_stack = 0
 
-            for j, ob_j in enumerate(hit_objects[i:], start=i):
+            for j, ob_j in enumerate(hit_objects[i+1:], start=i+1):
 
                 if ob_j.time - stack_threshold > start_time:
                     break
