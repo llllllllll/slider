@@ -114,7 +114,7 @@ def test_parse_section_hit_objects(beatmap):
     # Hit object note `type` is done by subclassing HitObject
     assert isinstance(hit_objects_0, slider.beatmap.Slider)
     # Slider specific parameters
-    assert hit_objects_0.end_time == timedelta(milliseconds=1173)
+    assert hit_objects_0.end_time == timedelta(milliseconds=1178)
     assert hit_objects_0.hitsound == 0
     assert isinstance(hit_objects_0.curve, slider.curve.Linear)
     assert hit_objects_0.curve.points == [Position(x=243, y=164),
@@ -174,7 +174,7 @@ def test_hit_objects_stacking():
     stack_offset = radius / 10
 
     for i, ob in enumerate(reversed(beatmap.hit_objects(stacking=True))):
-        assert ob.position.y == 128-((i+1)*stack_offset)
+        assert ob.position.y == 128-(i*stack_offset)
 
 
 def test_hit_objects_hard_rock(beatmap):
