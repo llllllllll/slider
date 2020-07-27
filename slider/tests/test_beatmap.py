@@ -122,7 +122,7 @@ def test_parse_section_hit_objects(beatmap):
     assert round(hit_objects_0.curve.req_length) == 45
     assert isclose(hit_objects_0.length, 45.0000017166138)
     assert hit_objects_0.ticks == 2
-    assert hit_objects_0.num_beats == 0.3125
+    assert isclose(hit_objects_0.num_beats, 0.3333333460489903)
     assert hit_objects_0.tick_rate == 1.0
     assert isclose(hit_objects_0.ms_per_beat, 307.692307692308)
     assert hit_objects_0.edge_sounds == [2, 0]
