@@ -1464,7 +1464,6 @@ class Beatmap:
         if stacking:
             ar = self.ar(easy=easy, hard_rock=hard_rock)
             cs = self.cs(easy=easy, hard_rock=hard_rock)
-            print(self.format_version)
             if self.format_version >= 6:
                 hit_objects = self._resolve_stacking(hit_objects, ar, cs)
             else:
