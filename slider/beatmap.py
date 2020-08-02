@@ -1474,19 +1474,16 @@ class Beatmap:
         elif half_time:
             hit_objects = [ob.half_time for ob in hit_objects]
 
-        if not spinners:
-            hit_objects = tuple(
-                ob for ob in hit_objects if not isinstance(ob, Spinner))
+        keep_classes = []
+        if spinners:
+            keep_classes.append(Spinner)
+        if circles:
+            keep_classes.append(Circle)
+        if sliders:
+            keep_classes.append(Slider)
 
-        if not circles:
-            hit_objects = tuple(
-                ob for ob in hit_objects if not isinstance(ob, Circle))
-
-        if not sliders:
-            hit_objects = tuple(
-                ob for ob in hit_objects if not isinstance(ob, Slider))
-
-        return hit_objects
+        return tuple(ob for ob in hit_objects if
+                     isinstance(ob, tuple(keep_classes)))
 
     def _resolve_stacking(self, hit_objects, ar, cs):
         """
