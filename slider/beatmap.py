@@ -1489,6 +1489,25 @@ class Beatmap:
         return hit_objects
 
     def _resolve_stacking(self, hit_objects, ar, cs):
+        """
+        Adjusts the hit objects to account for stacking in beatmap versions 6
+        and up.
+
+        Parameters
+        ----------
+        hit_objects : list[HitObject]
+            The objects to resolve stacking for.
+        ar : float
+            The approach rate to resolve stacking for.
+        cs : float
+            The circle size to resolve stacking for.
+
+        Returns
+        -------
+        hit_objects : list[HitObject]
+            The objects with their new positions, as adjusted by account for
+            stacking.
+        """
         stack_threshold = ar_to_ms(ar) * self.stack_leniency
         stack_threshold = timedelta(milliseconds=stack_threshold)
         stack_dist = 3
@@ -1579,6 +1598,25 @@ class Beatmap:
         return hit_objects
 
     def _resolve_stacking_old(self, hit_objects, ar, cs):
+        """
+        Adjusts the hit objects to account for stacking in beatmap versions 5
+        and below.
+
+        Parameters
+        ----------
+        hit_objects : list[HitObject]
+            The objects to resolve stacking for.
+        ar : float
+            The approach rate to resolve stacking for.
+        cs : float
+            The circle size to resolve stacking for.
+
+        Returns
+        -------
+        hit_objects : list[HitObject]
+            The objects with their new positions, as adjusted by account for
+            stacking.
+        """
         stack_threshold = ar_to_ms(ar) * self.stack_leniency
         stack_threshold = timedelta(milliseconds=stack_threshold)
         stack_dist = 3
