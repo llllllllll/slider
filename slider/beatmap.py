@@ -1455,7 +1455,7 @@ class Beatmap:
         -------
         hit_objects : list[HitObject]
             The objects with their effective positions and timings given the
-             parameter set.
+            parameter set.
         """
 
         hit_objects = self._hit_objects
