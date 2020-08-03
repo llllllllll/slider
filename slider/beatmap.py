@@ -11,7 +11,7 @@ import numpy as np
 
 from .game_mode import GameMode
 from .mod import ar_to_ms, ms_to_ar, circle_radius, od_to_ms_300, ms_300_to_od
-from .position import Position, Point
+from .position import Position, Point, distance
 from .utils import (
     accuracy as calculate_accuracy,
     lazyval,
@@ -671,9 +671,9 @@ class Slider(HitObject):
 
         pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
         num_beats = (
-            np.round(((pixel_length * repeat) / pixels_per_beat) * 16) / 16
+            (pixel_length * repeat) / pixels_per_beat
         )
-        duration = timedelta(milliseconds=np.ceil(num_beats * ms_per_beat))
+        duration = timedelta(milliseconds=int(num_beats * ms_per_beat))
 
         ticks = int(
             (
@@ -1165,6 +1165,7 @@ class Beatmap:
     _version_regex = re.compile(r'^osu file format v(\d+)$')
 
     def __init__(self,
+                 *,
                  format_version,
                  audio_filename,
                  audio_lead_in,
@@ -1230,7 +1231,9 @@ class Beatmap:
         self.slider_multiplier = slider_multiplier
         self.slider_tick_rate = slider_tick_rate
         self.timing_points = timing_points
-        self.hit_objects = hit_objects
+        self._hit_objects = hit_objects
+        # cache hit objects once stacking is calculated
+        self._hit_objects_with_stacking = None
 
         # cache the stars with different mod combinations
         self._stars_cache = {}
@@ -1414,23 +1417,264 @@ class Beatmap:
 
         return ar
 
-    @lazyval
-    def hit_objects_no_spinners(self):
-        """The hit objects with spinners filtered out.
-        """
-        return tuple(e for e in self.hit_objects if not isinstance(e, Spinner))
+    def hit_objects(self,
+                    *,
+                    circles=True,
+                    sliders=True,
+                    spinners=True,
+                    stacking=True,
+                    easy=False,
+                    hard_rock=False,
+                    double_time=False,
+                    half_time=False):
+        """Retrieve hit_objects.
 
-    @lazyval
-    def circles(self):
-        """Just the circles in the beatmap.
-        """
-        return tuple(e for e in self.hit_objects if isinstance(e, Circle))
+        Parameters
+        ----------
+        circles : bool, optional
+            If circles should be included.
+        sliders : bool, optional
+            If sliders should be included.
+        spinners : bool, optional
+            If spinners should be included.
+        stacking : bool, optional
+            If stacking should be calculated.
+        easy : bool, optional
+            Get the effective position of the hit objects with easy enabled.
+        hard_rock : bool, optional
+            Get the effective position of the hit objects with hard rock
+            enabled.
+        half_time : bool, optional
+            Get the effective position of the hit objects with half time
+            enabled.
+        double_time : bool, optional
+            Get the effective position of the hit objects with double time
+            enabled.
 
-    @lazyval
-    def sliders(self):
-        """Just the sliders in the beatmap.
+        Returns
+        -------
+        hit_objects : list[HitObject]
+            The objects with their effective positions and timings given the
+            parameter set.
         """
-        return tuple(e for e in self.hit_objects if isinstance(e, Slider))
+
+        hit_objects = self._hit_objects
+
+        if hard_rock:
+            hit_objects = [ob.hard_rock for ob in hit_objects]
+
+        if stacking:
+            ar = self.ar(easy=easy, hard_rock=hard_rock)
+            cs = self.cs(easy=easy, hard_rock=hard_rock)
+            if self.format_version >= 6:
+                resolve_stacking_method = self._resolve_stacking
+            else:
+                resolve_stacking_method = self._resolve_stacking_old
+
+            # use cache if available
+            if self._hit_objects_with_stacking:
+                hit_objects = self._hit_objects_with_stacking
+            else:
+                hit_objects = resolve_stacking_method(hit_objects, ar, cs)
+                # cache stacking calculation
+                self._hit_objects_with_stacking = hit_objects
+
+        if double_time:
+            hit_objects = [ob.double_time for ob in hit_objects]
+        elif half_time:
+            hit_objects = [ob.half_time for ob in hit_objects]
+
+        keep_classes = []
+        if spinners:
+            keep_classes.append(Spinner)
+        if circles:
+            keep_classes.append(Circle)
+        if sliders:
+            keep_classes.append(Slider)
+
+        return tuple(ob for ob in hit_objects if
+                     isinstance(ob, tuple(keep_classes)))
+
+    def _resolve_stacking(self, hit_objects, ar, cs):
+        """
+        Adjusts the hit objects to account for stacking in beatmap versions 6
+        and up.
+
+        Parameters
+        ----------
+        hit_objects : list[HitObject]
+            The objects to resolve stacking for.
+        ar : float
+            The approach rate to resolve stacking for.
+        cs : float
+            The circle size to resolve stacking for.
+
+        Returns
+        -------
+        hit_objects : list[HitObject]
+            The objects with their new positions, as adjusted by account for
+            stacking.
+        """
+        stack_threshold = ar_to_ms(ar) * self.stack_leniency
+        stack_threshold = timedelta(milliseconds=stack_threshold)
+        stack_dist = 3
+        stack_height = {ob: 0 for ob in hit_objects}
+        # reverse list so it's easier to process
+        hit_objects = list(reversed(hit_objects))
+
+        for i, ob_i in enumerate(hit_objects):
+
+            if stack_height[ob_i] != 0 or isinstance(ob_i, Spinner):
+                continue
+
+            if isinstance(ob_i, Circle):
+                for n, ob_n in enumerate(hit_objects[i+1:], start=i+1):
+
+                    if isinstance(ob_n, Spinner):
+                        continue
+
+                    if hasattr(ob_n, "end_time"):
+                        end_time = ob_n.end_time
+                    else:
+                        end_time = ob_n.time
+
+                    if (ob_i.time - end_time) > stack_threshold:
+                        break
+
+                    if (isinstance(ob_n, Slider) and
+                            distance(ob_n.curve(1),
+                                     ob_i.position) < stack_dist):
+                        offset = stack_height[ob_i] - stack_height[ob_n] + 1
+
+                        for hj in hit_objects[i:n]:
+                            # For each object which was declared under this
+                            # slider, we will offset it to appear *below*
+                            # the slider end (rather than above).
+                            dist = distance(ob_n.curve(1), hj.position)
+                            if dist < stack_dist:
+                                stack_height[hj] -= offset
+
+                        # We have hit a slider.  We should restart calculation
+                        # using this as the new base.
+                        # Breaking here will mean that the slider still has
+                        # stack_height of 0, so it will be handled
+                        # in the i-outer-loop.
+                        break
+
+                    if distance(ob_n.position, ob_i.position) < stack_dist:
+                        # Keep processing as if there are no sliders.
+                        # If we come across a slider, this gets cancelled out.
+                        # NOTE: Sliders with start positions stacking
+                        # are a special case that is also handled here.
+                        stack_height[ob_n] = stack_height[ob_i] + 1
+                        ob_i = ob_n
+
+            elif isinstance(ob_i, Slider):
+                # We have hit the first slider in a possible stack.
+                # From this point on, we ALWAYS stack positive regardless.
+                for n, ob_n in enumerate(hit_objects[i+1:], start=i+1):
+
+                    if isinstance(ob_n, Spinner):
+                        continue
+
+                    if ob_i.time - ob_n.time > stack_threshold:
+                        break
+
+                    if isinstance(ob_n, Slider):
+                        ob_n_end_position = ob_n.curve(1)
+                    else:
+                        ob_n_end_position = ob_n.position
+
+                    if distance(ob_n_end_position, ob_i.position) < stack_dist:
+                        stack_height[ob_n] = stack_height[ob_i] + 1
+                        ob_i = ob_n
+
+        # reverse list again so it's normal
+        hit_objects = list(reversed(hit_objects))
+
+        # apply stacking
+        radius = circle_radius(cs)
+        stack_offset = radius / 10
+
+        for hit_object in hit_objects:
+            offset = stack_offset * stack_height[hit_object]
+            p = hit_object.position
+            p_new = Position(p.x - offset, p.y - offset)
+            hit_object.position = p_new
+
+        return hit_objects
+
+    def _resolve_stacking_old(self, hit_objects, ar, cs):
+        """
+        Adjusts the hit objects to account for stacking in beatmap versions 5
+        and below.
+
+        Parameters
+        ----------
+        hit_objects : list[HitObject]
+            The objects to resolve stacking for.
+        ar : float
+            The approach rate to resolve stacking for.
+        cs : float
+            The circle size to resolve stacking for.
+
+        Returns
+        -------
+        hit_objects : list[HitObject]
+            The objects with their new positions, as adjusted by account for
+            stacking.
+        """
+        stack_threshold = ar_to_ms(ar) * self.stack_leniency
+        stack_threshold = timedelta(milliseconds=stack_threshold)
+        stack_dist = 3
+        stack_height = {ob: 0 for ob in hit_objects}
+        for i, ob_i in enumerate(hit_objects):
+
+            if stack_height[ob_i] != 0 and not isinstance(ob_i, Slider):
+                continue
+
+            if hasattr(ob_i, "end_time"):
+                start_time = ob_i.end_time
+            else:
+                start_time = ob_i.time
+            slider_stack = 0
+
+            for j, ob_j in enumerate(hit_objects[i+1:], start=i+1):
+
+                if ob_j.time - stack_threshold > start_time:
+                    break
+
+                if distance(ob_j.position, ob_i.position) < stack_dist:
+                    stack_height[ob_i] += 1
+
+                    if hasattr(ob_j, "end_time"):
+                        start_time = ob_j.end_time
+                    else:
+                        start_time = ob_j.time
+
+                elif (isinstance(ob_i, Slider) and
+                      distance(ob_j.position, ob_i.curve(1)) < stack_dist):
+                    # Case for sliders - bump notes down and right,
+                    # rather than up and left.
+                    slider_stack += 1
+                    stack_height[ob_j] -= slider_stack
+
+                    if hasattr(ob_j, "end_time"):
+                        start_time = ob_j.end_time
+                    else:
+                        start_time = ob_j.time
+
+        # apply stacking
+        radius = circle_radius(cs)
+        stack_offset = radius / 10
+
+        for hit_object in hit_objects:
+            offset = stack_offset * stack_height[hit_object]
+            p = hit_object.position
+            p_new = Position(p.x - offset, p.y - offset)
+            hit_object.position = p_new
+
+        return hit_objects
 
     @lazyval
     def max_combo(self):
@@ -1438,7 +1682,7 @@ class Beatmap:
         """
         max_combo = 0
 
-        for hit_object in self.hit_objects:
+        for hit_object in self._hit_objects:
             if isinstance(hit_object, Slider):
                 max_combo += hit_object.ticks
             else:
@@ -1928,12 +2172,12 @@ class Beatmap:
                 return e
 
         times = np.empty(
-            (len(self.hit_objects) - 1, 1),
+            (len(self._hit_objects) - 1, 1),
             dtype='timedelta64[ns]',
         )
-        strains = np.empty((len(self.hit_objects) - 1, 2), dtype=np.float64)
+        strains = np.empty((len(self._hit_objects) - 1, 2), dtype=np.float64)
 
-        hit_objects = map(modify, self.hit_objects)
+        hit_objects = map(modify, self._hit_objects)
         previous = _DifficultyHitObject(next(hit_objects), radius)
         for i, hit_object in enumerate(hit_objects):
             new = _DifficultyHitObject(
@@ -2034,7 +2278,7 @@ class Beatmap:
             def modify(e):
                 return e
 
-        hit_objects = map(modify, self.hit_objects)
+        hit_objects = map(modify, self._hit_objects)
         previous = _DifficultyHitObject(next(hit_objects), radius)
         append_difficulty_hit_object(previous)
         for hit_object in hit_objects:
@@ -2253,7 +2497,7 @@ class Beatmap:
         if count_miss is None:
             count_miss = np.full_like(accuracy, 0)
 
-        max_300 = len(self.hit_objects) - count_miss
+        max_300 = len(self._hit_objects) - count_miss
 
         accuracy = np.maximum(
             0.0,
@@ -2266,15 +2510,15 @@ class Beatmap:
         count_50 = np.full_like(accuracy, 0)
         count_100 = np.round(
             -3.0 *
-            ((accuracy * 0.01 - 1.0) * len(self.hit_objects) + count_miss) *
+            ((accuracy * 0.01 - 1.0) * len(self._hit_objects) + count_miss) *
             0.5,
         )
 
-        mask = count_100 > len(self.hit_objects) - count_miss
+        mask = count_100 > len(self._hit_objects) - count_miss
         count_100[mask] = 0
         count_50[mask] = np.round(
                 -6.0 *
-                ((accuracy[mask] * 0.01 - 1.0) * len(self.hit_objects) +
+                ((accuracy[mask] * 0.01 - 1.0) * len(self._hit_objects) +
                  count_miss[mask]) *
                 0.2,
             )
@@ -2283,7 +2527,7 @@ class Beatmap:
         count_100[~mask] = np.minimum(max_300[~mask], count_100[~mask])
 
         count_300 = (
-            len(self.hit_objects) -
+            len(self._hit_objects) -
             count_100 -
             count_50 -
             count_miss
@@ -2418,9 +2662,9 @@ class Beatmap:
                 count_miss,
             )
         elif np.all(count_300 + count_100 + count_50 + count_miss !=
-                    len(self.hit_objects)):
+                    len(self._hit_objects)):
             s = count_300 + count_100 + count_50 + count_miss
-            os = len(self.hit_objects)
+            os = len(self._hit_objects)
             raise ValueError(
                 f"hit counts don't sum to the total for the map, {s} != {os}"
             )
@@ -2447,7 +2691,7 @@ class Beatmap:
         accuracy = accuracy_scaled * 100
         accuracy_bonus = 0.5 + accuracy_scaled / 2
 
-        count_hit_objects = len(self.hit_objects)
+        count_hit_objects = len(self._hit_objects)
         count_hit_objects_over_2000 = count_hit_objects / 2000
         length_bonus = (
             0.95 +
