@@ -279,7 +279,7 @@ class Library:
         """
         return self._read_beatmap(self, beatmap_md5=beatmap_md5)
 
-    def beatmap_from_file(self, path, copy=False):
+    def beatmap_from_path(self, path, copy=False):
         """Returns a beatmap from a file on disk.
 
         Parameters
