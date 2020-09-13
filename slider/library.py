@@ -294,11 +294,12 @@ class Library:
         beatmap : Beatmap
             The beatmap represented by the given file.
         """
-        beatmap = Beatmap.from_path(path)
+        data_bytes = open(path, 'rb').read()
+        data = data_bytes.decode('utf-8-sig')
+        beatmap = Beatmap.parse(data)
 
         if copy:
-            data = open(path, 'rb').read()
-            self.save(data, beatmap=beatmap)
+            self.save(data_bytes, beatmap=beatmap)
 
         return beatmap
 
