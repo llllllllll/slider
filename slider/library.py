@@ -279,6 +279,30 @@ class Library:
         """
         return self._read_beatmap(self, beatmap_md5=beatmap_md5)
 
+    def beatmap_from_path(self, path, copy=False):
+        """Returns a beatmap from a file on disk.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            The path to the file to create the beatmap from.
+        copy : bool
+            Should the file be copied to the library's beatmap directory?
+
+        Returns
+        -------
+        beatmap : Beatmap
+            The beatmap represented by the given file.
+        """
+        data_bytes = open(path, 'rb').read()
+        data = data_bytes.decode('utf-8-sig')
+        beatmap = Beatmap.parse(data)
+
+        if copy:
+            self.save(data_bytes, beatmap=beatmap)
+
+        return beatmap
+
     def save(self, data, *, beatmap=None):
         """Save raw data for a beatmap at a given location.
 
