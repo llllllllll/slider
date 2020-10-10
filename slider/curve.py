@@ -307,8 +307,49 @@ class Catmull(Curve):
     """Catmull curves implement the Catmull-Rom spline algorithm for defining
     the path.
     """
+    def __init__(self, points, req_length):
+        super().__init__(points, req_length)
+        # implementation follows notes at https://cubic.org/docs/hermite.htm
+        self.h = np.array([[ 2, -2,  1,  1],
+                           [-3,  3, -2, -1],
+                           [ 0,  0,  1,  0],
+                           [ 1,  0,  0,  0]])
+
+        # we interpolate twice, first on the x axis then on the y axis
+        p1 = points[0].x
+        p2 = points[1].x
+        t1 = 0.5 * (p1 - p2)
+        t2 = 0.5 * (p2 - p1)
+        self.C1 = np.array([p1, p2, t1, t2])
+        # make it a column vector
+        self.C1 = self.C1[:, np.newaxis]
+
+        p1 = points[0].y
+        p2 = points[1].y
+        t1 = 0.5 * (p1 - p2)
+        t2 = 0.5 * (p2 - p1)
+        self.C2 = np.array([p1, p2, t1, t2])
+        self.C2 = self.C2[:, np.newaxis]
+
     def __call__(self, t):
-        raise NotImplementedError('catmull positions not supported yet')
+        # for consistency with notes linked above
+        s = t
+        S = np.array([s ** 3,
+                      s ** 2,
+                      s,
+                      1])
+        px = (S @ self.h) @ self.C1
+        py = (S @ self.h) @ self.C2
+        # A bit of dimensional analysis:
+        # S = 1x4
+        # C = 4x1
+        # h = 4x4
+        #
+        # P = (S * h) * C = (1x4 * 4x4) * 4x1 = 1x4 * 4x1 = 1x1
+        # Result of multiplication is a 1x1 ndarray so convert to a float.
+        px = float(px)
+        py = float(py)
+        return Position(px, py)
 
 
 def get_center(a, b, c):
