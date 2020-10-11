@@ -309,37 +309,83 @@ class Catmull(Curve):
     """
     def __init__(self, points, req_length):
         super().__init__(points, req_length)
+        points = np.array(points)
+
         # implementation follows notes at https://cubic.org/docs/hermite.htm
         self.h = np.array([[ 2, -2,  1,  1],
                            [-3,  3, -2, -1],
                            [ 0,  0,  1,  0],
                            [ 1,  0,  0,  0]])
 
-        # we interpolate twice, first on the x axis then on the y axis
-        p1 = points[0].x
-        p2 = points[1].x
-        t1 = 0.5 * (p2 - p1)
-        t2 = 0.5 * (p2 - p1)
-        self.Cx = np.array([p1, p2, t1, t2])
-        # make it a column vector
-        self.Cx = self.Cx[:, np.newaxis]
+        tangents_x = []
+        tangents_y = []
+        self.Cxs = []
+        self.Cys = []
+        # The tangent for point i is defined as 0.5 * (P_(i + 1) - P_(i - 1)),
+        # so we need to consider the point behind it and the point in front of
+        # it. We:
+        # * roll points right by one. Then we replace first element with
+        #   the previous first element (which is now second) so the first
+        #   tangent can be calculated properly.
+        # * roll points left by one. Then we replace last element with the
+        #   previous last element (which is now second to last) so the last
+        #   tangent can be calculated properly.
+        # to create the p_aheads and p_behinds lists respectively.
+        # For example, in a list of five points, we have:
+        # * points =    [p1, p2, p3, p4, p5]
+        # * p_aheads =  [p2, p3, p4, p5, p5]
+        # * p_behinds = [p1, p1, p2, p3, p4]
 
-        p1 = points[0].y
-        p2 = points[1].y
-        t1 = 0.5 * (p2 - p1)
-        t2 = 0.5 * (p2 - p1)
-        self.Cy = np.array([p1, p2, t1, t2])
-        self.Cy = self.Cy[:, np.newaxis]
+        p_aheads = np.roll(points, 1)
+        p_aheads[0] = p_aheads[1]
+
+        p_behinds = np.roll(points, -1)
+        p_behinds[-1] = p_behinds[-2]
+
+
+        # we interpolate x and y separately, so track their tangents in two
+        # separate lists.
+        for (p_ahead, p_behind) in zip(p_aheads, p_behinds):
+            tangent = 0.5 * (p_ahead[0] - p_behind[0])
+            tangents_x.append(tangent)
+
+            tangent = 0.5 * (p_ahead[1] - p_behind[1])
+            tangents_y.append(tangent)
+
+
+        # for each curve we consider its start and end point (and start and end
+        # tangent). This means the number of curves will be one less than the
+        # number of points.
+        for ((p1, p2), (t1, t2)) in zip(zip(points, points[1:]),
+                                        zip(tangents_x, tangents_x[1:])):
+            Cx = np.array([p1[0], p2[0], t1, t2])
+            # make it a column vector
+            Cx = Cx[:, np.newaxis]
+            self.Cxs.append(Cx)
+
+        for ((p1, p2), (t1, t2)) in zip(zip(points, points[1:]),
+                                        zip(tangents_y, tangents_y[1:])):
+            Cy = np.array([p1[1], p2[1], t1, t2])
+            # make it a column vector
+            Cy = Cy[:, np.newaxis]
+            self.Cys.append(Cy)
+
 
     def __call__(self, t):
         # for consistency with notes linked above
         s = t
-        S = np.array([s ** 3,
-                      s ** 2,
-                      s,
-                      1])
-        px = (S @ self.h) @ self.Cx
-        py = (S @ self.h) @ self.Cy
+        S = np.array([s ** 3, s ** 2, s, 1])
+        # catmull curves are made up of a number of individual curves. Assuming
+        # osu! weights each curve equally (that is, each curve takes an equal
+        # amount of time to traverse regardless of its size), we can get the
+        # curve that should be used for a certain t by multiplying by the number
+        # of curves and rounding up.
+        curve_index = math.ceil(t * len(self.Cxs)) - 1
+        Cx = self.Cxs[curve_index]
+        Cy = self.Cys[curve_index]
+
+        px = (S @ self.h) @ Cx
+        py = (S @ self.h) @ Cy
         # A bit of dimensional analysis:
         # S = 1x4
         # C = 4x1
