@@ -318,18 +318,18 @@ class Catmull(Curve):
         # we interpolate twice, first on the x axis then on the y axis
         p1 = points[0].x
         p2 = points[1].x
-        t1 = 0.5 * (p1 - p2)
-        t2 = 0.5 * (p2 - p1)
-        self.C1 = np.array([p1, p2, t1, t2])
+        t1 = 0.5 * (p2 - p1)
+        t2 = 0.5 * (p1 - p2)
+        self.Cx = np.array([p1, p2, t1, t2])
         # make it a column vector
-        self.C1 = self.C1[:, np.newaxis]
+        self.Cx = self.Cx[:, np.newaxis]
 
         p1 = points[0].y
         p2 = points[1].y
-        t1 = 0.5 * (p1 - p2)
-        t2 = 0.5 * (p2 - p1)
-        self.C2 = np.array([p1, p2, t1, t2])
-        self.C2 = self.C2[:, np.newaxis]
+        t1 = 0.5 * (p2 - p1)
+        t2 = 0.5 * (p1 - p2)
+        self.Cy = np.array([p1, p2, t1, t2])
+        self.Cy = self.Cy[:, np.newaxis]
 
     def __call__(self, t):
         # for consistency with notes linked above
@@ -338,8 +338,8 @@ class Catmull(Curve):
                       s ** 2,
                       s,
                       1])
-        px = (S @ self.h) @ self.C1
-        py = (S @ self.h) @ self.C2
+        px = (S @ self.h) @ self.Cx
+        py = (S @ self.h) @ self.Cy
         # A bit of dimensional analysis:
         # S = 1x4
         # C = 4x1
