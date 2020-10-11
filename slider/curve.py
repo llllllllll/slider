@@ -319,7 +319,7 @@ class Catmull(Curve):
         p1 = points[0].x
         p2 = points[1].x
         t1 = 0.5 * (p2 - p1)
-        t2 = 0.5 * (p1 - p2)
+        t2 = 0.5 * (p2 - p1)
         self.Cx = np.array([p1, p2, t1, t2])
         # make it a column vector
         self.Cx = self.Cx[:, np.newaxis]
@@ -327,7 +327,7 @@ class Catmull(Curve):
         p1 = points[0].y
         p2 = points[1].y
         t1 = 0.5 * (p2 - p1)
-        t2 = 0.5 * (p1 - p2)
+        t2 = 0.5 * (p2 - p1)
         self.Cy = np.array([p1, p2, t1, t2])
         self.Cy = self.Cy[:, np.newaxis]
 
