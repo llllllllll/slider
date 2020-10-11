@@ -312,10 +312,10 @@ class Catmull(Curve):
         points = np.array(points)
 
         # implementation follows notes at https://cubic.org/docs/hermite.htm
-        self.h = np.array([[ 2, -2,  1,  1],
+        self.h = np.array([[2,  -2,  1,  1],
                            [-3,  3, -2, -1],
-                           [ 0,  0,  1,  0],
-                           [ 1,  0,  0,  0]])
+                           [0,   0,  1,  0],
+                           [1,   0,  0,  0]])
 
         tangents_x = []
         tangents_y = []
@@ -342,7 +342,6 @@ class Catmull(Curve):
         p_behinds = np.roll(points, -1)
         p_behinds[-1] = p_behinds[-2]
 
-
         # we interpolate x and y separately, so track their tangents in two
         # separate lists.
         for (p_ahead, p_behind) in zip(p_aheads, p_behinds):
@@ -351,7 +350,6 @@ class Catmull(Curve):
 
             tangent = 0.5 * (p_ahead[1] - p_behind[1])
             tangents_y.append(tangent)
-
 
         # for each curve we consider its start and end point (and start and end
         # tangent). This means the number of curves will be one less than the
@@ -370,7 +368,6 @@ class Catmull(Curve):
             Cy = Cy[:, np.newaxis]
             self.Cys.append(Cy)
 
-
     def __call__(self, t):
         # for consistency with notes linked above
         s = t
@@ -378,8 +375,8 @@ class Catmull(Curve):
         # catmull curves are made up of a number of individual curves. Assuming
         # osu! weights each curve equally (that is, each curve takes an equal
         # amount of time to traverse regardless of its size), we can get the
-        # curve that should be used for a certain t by multiplying by the number
-        # of curves and rounding up.
+        # curve that should be used for a certain t by multiplying by the
+        # number of curves and rounding up.
         curve_index = math.ceil(t * len(self.Cxs)) - 1
         Cx = self.Cxs[curve_index]
         Cy = self.Cys[curve_index]
