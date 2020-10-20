@@ -1232,8 +1232,8 @@ class Beatmap:
         self.slider_tick_rate = slider_tick_rate
         self.timing_points = timing_points
         self._hit_objects = hit_objects
-        # cache hit objects once stacking is calculated
-        self._hit_objects_with_stacking = None
+        # cache hit object stacking at different ar and cs values
+        self._hit_objects_with_stacking = {}
 
         # cache the stars with different mod combinations
         self._stars_cache = {}
@@ -1466,18 +1466,22 @@ class Beatmap:
         if stacking:
             ar = self.ar(easy=easy, hard_rock=hard_rock)
             cs = self.cs(easy=easy, hard_rock=hard_rock)
+            # stacking changes with ar and cs (or equivalently EZ/HR), so only
+            # cache up to ar and cs
+            stacking_key = (ar, cs)
+
             if self.format_version >= 6:
                 resolve_stacking_method = self._resolve_stacking
             else:
                 resolve_stacking_method = self._resolve_stacking_old
 
             # use cache if available
-            if self._hit_objects_with_stacking:
-                hit_objects = self._hit_objects_with_stacking
+            if stacking_key in self._hit_objects_with_stacking:
+                hit_objects = self._hit_objects_with_stacking[stacking_key]
             else:
                 hit_objects = resolve_stacking_method(hit_objects, ar, cs)
                 # cache stacking calculation
-                self._hit_objects_with_stacking = hit_objects
+                self._hit_objects_with_stacking[stacking_key] = hit_objects
 
         if double_time:
             hit_objects = [ob.double_time for ob in hit_objects]
