@@ -7,7 +7,6 @@ try:  # SciPy >= 0.19
     from scipy.special import comb
 except ImportError:
     from scipy.misc import comb
-from toolz import sliding_window
 
 from .abc import ABCMeta, abstractmethod
 from .position import Position
@@ -221,7 +220,7 @@ class MultiBezier(_MetaCurveMixin, Curve):
             The groups split on duplicates.
         """
         old_ix = 0
-        for n, (a, b) in enumerate(sliding_window(2, input_), 1):
+        for n, (a, b) in enumerate(zip(input_, input_[1:]), 1):
             if a == b:
                 yield input_[old_ix:n]
                 old_ix = n
@@ -245,7 +244,7 @@ class Linear(_MetaCurveMixin, Curve):
         super().__init__(points, req_length)
 
         self._curves = [
-            Bezier(subpoints, None) for subpoints in sliding_window(2, points)
+            Bezier(subpoints, None) for subpoints in zip(points, points[1:])
         ]
 
 

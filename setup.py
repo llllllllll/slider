@@ -33,7 +33,6 @@ setup(
         'pytz',
         'requests',
         'scipy',
-        'toolz',
     ],
     extras_require={
         'dev': [
