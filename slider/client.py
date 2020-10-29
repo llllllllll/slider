@@ -1,7 +1,6 @@
 import datetime
 from enum import IntEnum, unique
 
-import pytz
 import requests
 
 from .game_mode import GameMode
@@ -523,14 +522,8 @@ class Client:
         'passcount': 'pass_count',
     }
 
-    def _parse_date(cs, *, _tz=pytz.FixedOffset(8 * 60)):
-        # _tz is UTC+8
-        if cs is None:
-            return None
-
-        return _tz.localize(
-            datetime.datetime.strptime(cs, '%Y-%m-%f %H:%M:%S'),
-        )
+    def _parse_date(cs):
+        return datetime.datetime.strptime(cs, '%Y-%m-%f %H:%M:%S')
 
     def _parse_timedelta(cs):
         return datetime.timedelta(seconds=int(cs))

@@ -30,7 +30,6 @@ setup(
     install_requires=[
         'click',
         'numpy',
-        'pytz',
         'requests',
         'scipy',
     ],
