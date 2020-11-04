@@ -1849,7 +1849,7 @@ class Beatmap:
             # occurring at specific indices to fail, so we get rid of it.
             line = line.strip()
             if not line or line.startswith('//'):
-                # filter out empty lines and comments.
+                # filter out empty lines and comments
                 continue
 
             if line[0] == '[' and line[-1] == ']':
