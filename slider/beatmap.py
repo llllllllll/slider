@@ -1844,8 +1844,10 @@ class Beatmap:
             group_buffer = []
 
         for line in lines:
-            if not line or line.startswith('//'):
-                # filter out empty lines and comments
+            if not line.strip() or line.startswith('//'):
+                # filter out empty lines and comments. Call `strip` because
+                # some (presmuably manually edited) beatmaps have whitespace on
+                # otherwise empty lines. We want to treat these as empty lines.
                 continue
 
             if line[0] == '[' and line[-1] == ']':
