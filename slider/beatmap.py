@@ -1844,6 +1844,10 @@ class Beatmap:
             group_buffer = []
 
         for line in lines:
+            # some (presmuably manually edited) beatmaps have whitespace at the
+            # beginning or end of lines. This can cause logic relying on tokens
+            # occurring at specific indices to fail, so we get rid of it.
+            line = line.strip()
             if not line or line.startswith('//'):
                 # filter out empty lines and comments
                 continue
