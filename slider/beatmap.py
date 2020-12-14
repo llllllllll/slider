@@ -1232,6 +1232,9 @@ class Beatmap:
         self.slider_tick_rate = slider_tick_rate
         self.timing_points = timing_points
         self._hit_objects = hit_objects
+        # a (sorted) list of hitobject time's, so they can be searched with
+        # ``np.searchsorted``
+        self._hit_object_times = []
         # cache hit object stacking at different ar and cs values
         self._hit_objects_with_stacking = {}
 
@@ -1679,6 +1682,31 @@ class Beatmap:
             hit_object.position = p_new
 
         return hit_objects
+
+    def closest_hitobject(self, t):
+        """The hitobject with a ``time`` closest to ``t`` (in ms).
+        """
+        if not self._hit_object_times:
+            self._hit_object_times = [hitobj.time.total_seconds() * 1000
+                for hitobj in self._hit_objects]
+        i = np.searchsorted(self._hit_object_times, t)
+        # if ``t`` is after the last hitobject, an index of
+        # len(self._hit_objects) will be returned. The last hitobject will
+        # always be the closest hitobject in this case.
+        if i == len(self._hit_objects):
+            return self._hit_objects[-1]
+        # similar logic follows for the first hitobject.
+        if i == 0:
+            return self._hit_objects[0]
+
+        # searchsorted tells us the two closest hitobjects, but not which is
+        # closer. Check both candidates.
+        hitobj1 = self._hit_objects[i - 1]
+        hitobj2 = self._hit_objects[i]
+        if abs(hitobj1.time.total_seconds() * 1000 - t) < \
+            abs(hitobj2.time.total_seconds() * 1000 - t):
+            return hitobj1
+        return hitobj2
 
     @lazyval
     def max_combo(self):
