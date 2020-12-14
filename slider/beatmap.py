@@ -1688,7 +1688,7 @@ class Beatmap:
         """
         if not self._hit_object_times:
             self._hit_object_times = [hitobj.time.total_seconds() * 1000
-                for hitobj in self._hit_objects]
+                                      for hitobj in self._hit_objects]
         i = np.searchsorted(self._hit_object_times, t)
         # if ``t`` is after the last hitobject, an index of
         # len(self._hit_objects) will be returned. The last hitobject will
@@ -1704,7 +1704,7 @@ class Beatmap:
         hitobj1 = self._hit_objects[i - 1]
         hitobj2 = self._hit_objects[i]
         if abs(hitobj1.time.total_seconds() * 1000 - t) < \
-            abs(hitobj2.time.total_seconds() * 1000 - t):
+           abs(hitobj2.time.total_seconds() * 1000 - t):
             return hitobj1
         return hitobj2
 
