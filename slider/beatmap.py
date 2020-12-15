@@ -1705,9 +1705,11 @@ class Beatmap:
         None
             If the beatmap has no hitobjects.
         """
-        # if the beatmap only has one object, return that, else return None
-        if len(self._hit_objects) <= 1:
-            return self._hit_objects[0] if self._hit_objects else None
+        if len(self._hit_objects) == 0:
+            raise ValueError(f"The beatmap {self!r} must have at least one "
+                              "hit object to determine the closest hitobject.")
+        if len(self._hit_objects) == 1:
+            return self._hit_objects[0]
 
         i = np.searchsorted(self._hit_object_times, t)
         # if ``t`` is after the last hitobject, an index of
