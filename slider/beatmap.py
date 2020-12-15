@@ -1687,7 +1687,6 @@ class Beatmap:
         """
         return [hitobj.time for hitobj in self._hit_objects]
 
-
     def closest_hitobject(self, t, side="left"):
         """The hitobject closest in time to ``t``.
 
