@@ -1684,7 +1684,17 @@ class Beatmap:
         return hit_objects
 
     def closest_hitobject(self, t):
-        """The hitobject with a ``time`` closest to ``t`` (in ms).
+        """The hitobject closest in time to ``t``.
+
+        Parameters
+        ----------
+        t : :class:`datetime.timedelta`
+            The time to find the hitobject closes to.
+
+        Returns
+        -------
+        hit_object : :class:`~.HitObject`
+            The closest hitobject in time to ``t``.
         """
         if not self._hit_object_times:
             self._hit_object_times = [hitobj.time.total_seconds() * 1000
