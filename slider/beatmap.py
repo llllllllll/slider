@@ -1681,6 +1681,60 @@ class Beatmap:
         return hit_objects
 
     @lazyval
+    def _hit_object_times(self):
+        """a (sorted) list of hitobject time's, so they can be searched with
+        ``np.searchsorted``
+        """
+        return [hitobj.time for hitobj in self._hit_objects]
+
+    def closest_hitobject(self, t, side="left"):
+        """The hitobject closest in time to ``t``.
+
+        Parameters
+        ----------
+        t : datetime.timedelta
+            The time to find the hitobject closest to.
+        side : {"left", "right"}
+            Whether to prefer the earlier (left) or later (right) hitobject
+            when breaking ties.
+
+        Returns
+        -------
+        hit_object : HitObject
+            The closest hitobject in time to ``t``.
+        None
+            If the beatmap has no hitobjects.
+        """
+        if len(self._hit_objects) == 0:
+            raise ValueError(f"The beatmap {self!r} must have at least one "
+                             "hit object to determine the closest hitobject.")
+        if len(self._hit_objects) == 1:
+            return self._hit_objects[0]
+
+        i = np.searchsorted(self._hit_object_times, t)
+        # if ``t`` is after the last hitobject, an index of
+        # len(self._hit_objects) will be returned. The last hitobject will
+        # always be the closest hitobject in this case.
+        if i == len(self._hit_objects):
+            return self._hit_objects[-1]
+        # similar logic follows for the first hitobject.
+        if i == 0:
+            return self._hit_objects[0]
+
+        # searchsorted tells us the two closest hitobjects, but not which is
+        # closer. Check both candidates.
+        hitobj1 = self._hit_objects[i - 1]
+        hitobj2 = self._hit_objects[i]
+        dist1 = abs(hitobj1.time - t)
+        dist2 = abs(hitobj2.time - t)
+
+        hitobj1_closer = dist1 <= dist2 if side == "left" else dist1 < dist1
+
+        if hitobj1_closer:
+            return hitobj1
+        return hitobj2
+
+    @lazyval
     def max_combo(self):
         """The highest combo that can be achieved on this beatmap.
         """
