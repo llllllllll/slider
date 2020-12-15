@@ -1692,7 +1692,7 @@ class Beatmap:
 
         Parameters
         ----------
-        t : :class:`datetime.timedelta`
+        t : datetime.timedelta
             The time to find the hitobject closest to.
         side : {"left", "right"}
             Whether to prefer the earlier (left) or later (right) hitobject
@@ -1700,7 +1700,7 @@ class Beatmap:
 
         Returns
         -------
-        hit_object : :class:`~.HitObject`
+        hit_object : HitObject
             The closest hitobject in time to ``t``.
         None
             If the beatmap has no hitobjects.
