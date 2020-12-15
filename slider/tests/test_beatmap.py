@@ -186,6 +186,26 @@ def test_hit_objects_hard_rock(beatmap):
                                                     Position(x=301, y=209)]
 
 
+def test_closest_hitobject():
+    beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Beginner')
+    hit_object1 = beatmap.hit_objects()[4]
+    hit_object2 = beatmap.hit_objects()[5]
+    hit_object3 = beatmap.hit_objects()[6]
+
+    middle_t = timedelta(milliseconds=11076 - ((11076 - 9692) / 2))
+
+    assert hit_object1.time == timedelta(milliseconds=8615)
+    assert hit_object2.time == timedelta(milliseconds=9692)
+    assert hit_object3.time == timedelta(milliseconds=11076)
+
+    assert beatmap.closest_hitobject(timedelta(milliseconds=8615)) == \
+        hit_object1
+    assert beatmap.closest_hitobject(timedelta(milliseconds=(8615 - 30))) == \
+        hit_object1
+    assert beatmap.closest_hitobject(middle_t) == hit_object2
+    assert beatmap.closest_hitobject(middle_t, side="right") == hit_object3
+
+
 def test_ar(beatmap):
     assert beatmap.ar() == 9.5
 
