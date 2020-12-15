@@ -1699,6 +1699,10 @@ class Beatmap:
             Whether to prefer the earlier (left) or later (right) hitobject
             when breaking ties.
         """
+        # if the beatmap only has one object, return that, else return None
+        if len(self._hit_objects) <= 1:
+            return self._hit_objects[0] if self._hit_objects else None
+
         if not self._hit_object_times:
             self._hit_object_times = [hitobj.time.total_seconds() * 1000
                                       for hitobj in self._hit_objects]
