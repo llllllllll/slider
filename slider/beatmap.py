@@ -1683,18 +1683,21 @@ class Beatmap:
 
         return hit_objects
 
-    def closest_hitobject(self, t):
+    def closest_hitobject(self, t, side="left"):
         """The hitobject closest in time to ``t``.
 
         Parameters
         ----------
         t : :class:`datetime.timedelta`
-            The time to find the hitobject closes to.
+            The time to find the hitobject closest to.
 
         Returns
         -------
         hit_object : :class:`~.HitObject`
             The closest hitobject in time to ``t``.
+        side : {"left", "right"}
+            Whether to prefer the earlier (left) or later (right) hitobject
+            when breaking ties.
         """
         if not self._hit_object_times:
             self._hit_object_times = [hitobj.time.total_seconds() * 1000
@@ -1713,8 +1716,12 @@ class Beatmap:
         # closer. Check both candidates.
         hitobj1 = self._hit_objects[i - 1]
         hitobj2 = self._hit_objects[i]
-        if abs(hitobj1.time.total_seconds() * 1000 - t) < \
-           abs(hitobj2.time.total_seconds() * 1000 - t):
+        dist1 = abs(hitobj1.time.total_seconds() * 1000 - t)
+        dist2 = abs(hitobj2.time.total_seconds() * 1000 - t)
+
+        hitobj1_closer = dist1 <= dist2 if side == "left" else dist1 < dist1
+
+        if hitobj1_closer:
             return hitobj1
         return hitobj2
 
