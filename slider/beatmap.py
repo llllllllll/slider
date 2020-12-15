@@ -1232,9 +1232,6 @@ class Beatmap:
         self.slider_tick_rate = slider_tick_rate
         self.timing_points = timing_points
         self._hit_objects = hit_objects
-        # a (sorted) list of hitobject time's, so they can be searched with
-        # ``np.searchsorted``
-        self._hit_object_times = []
         # cache hit object stacking at different ar and cs values
         self._hit_objects_with_stacking = {}
 
@@ -1683,6 +1680,14 @@ class Beatmap:
 
         return hit_objects
 
+    @lazyval
+    def _hit_object_times(self):
+        """a (sorted) list of hitobject time's, so they can be searched with
+        ``np.searchsorted``
+        """
+        return [hitobj.time for hitobj in self._hit_objects]
+
+
     def closest_hitobject(self, t, side="left"):
         """The hitobject closest in time to ``t``.
 
@@ -1703,9 +1708,6 @@ class Beatmap:
         if len(self._hit_objects) <= 1:
             return self._hit_objects[0] if self._hit_objects else None
 
-        if not self._hit_object_times:
-            self._hit_object_times = [hitobj.time for hitobj
-                                      in self._hit_objects]
         i = np.searchsorted(self._hit_object_times, t)
         # if ``t`` is after the last hitobject, an index of
         # len(self._hit_objects) will be returned. The last hitobject will
