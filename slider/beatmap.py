@@ -1704,8 +1704,8 @@ class Beatmap:
             return self._hit_objects[0] if self._hit_objects else None
 
         if not self._hit_object_times:
-            self._hit_object_times = [hitobj.time.total_seconds() * 1000
-                                      for hitobj in self._hit_objects]
+            self._hit_object_times = [hitobj.time for hitobj
+                                      in self._hit_objects]
         i = np.searchsorted(self._hit_object_times, t)
         # if ``t`` is after the last hitobject, an index of
         # len(self._hit_objects) will be returned. The last hitobject will
@@ -1720,8 +1720,8 @@ class Beatmap:
         # closer. Check both candidates.
         hitobj1 = self._hit_objects[i - 1]
         hitobj2 = self._hit_objects[i]
-        dist1 = abs(hitobj1.time.total_seconds() * 1000 - t)
-        dist2 = abs(hitobj2.time.total_seconds() * 1000 - t)
+        dist1 = abs(hitobj1.time - t)
+        dist2 = abs(hitobj2.time - t)
 
         hitobj1_closer = dist1 <= dist2 if side == "left" else dist1 < dist1
 
