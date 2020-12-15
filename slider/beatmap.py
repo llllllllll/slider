@@ -1694,14 +1694,16 @@ class Beatmap:
         ----------
         t : :class:`datetime.timedelta`
             The time to find the hitobject closest to.
+        side : {"left", "right"}
+            Whether to prefer the earlier (left) or later (right) hitobject
+            when breaking ties.
 
         Returns
         -------
         hit_object : :class:`~.HitObject`
             The closest hitobject in time to ``t``.
-        side : {"left", "right"}
-            Whether to prefer the earlier (left) or later (right) hitobject
-            when breaking ties.
+        None
+            If the beatmap has no hitobjects.
         """
         # if the beatmap only has one object, return that, else return None
         if len(self._hit_objects) <= 1:
