@@ -1707,7 +1707,7 @@ class Beatmap:
         """
         if len(self._hit_objects) == 0:
             raise ValueError(f"The beatmap {self!r} must have at least one "
-                              "hit object to determine the closest hitobject.")
+                             "hit object to determine the closest hitobject.")
         if len(self._hit_objects) == 1:
             return self._hit_objects[0]
 
