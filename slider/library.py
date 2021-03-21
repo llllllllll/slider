@@ -193,8 +193,7 @@ class Library:
                     if skip_exceptions:
                         logging.exception(f"Failed to parse {path}")
                         continue
-                    else:
-                        raise ValueError(f'failed to parse {path}') from e
+                    raise ValueError(f'failed to parse {path}') from e
 
                 write_to_db(beatmap, data, path)
 
