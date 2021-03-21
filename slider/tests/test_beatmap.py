@@ -12,6 +12,10 @@ from math import isclose
 def beatmap():
     return slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Tatoe')
 
+def test_parse_old_beatmap():
+    # just make sure it doesn't error, see #79 and #87 on github
+    slider.example_data.beatmaps.example_beatmap("Sambomaster - Sekai "
+        "wa Sore wo Ai to Yobunda ze (ZZT the Fifth) [Normal].osu")
 
 def test_version(beatmap):
     assert beatmap.format_version == 14
