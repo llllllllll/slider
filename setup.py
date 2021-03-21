@@ -28,7 +28,6 @@ setup(
     ],
     url='https://github.com/llllllllll/slider',
     install_requires=[
-        'click',
         'numpy',
         'requests',
         'scipy',
@@ -39,6 +38,9 @@ setup(
             'mccabe==0.6.1',
             'pyflakes==2.1.1',
             'pytest==5.4.1',
+        ],
+        'cli': [
+            'click',
         ],
     },
 )

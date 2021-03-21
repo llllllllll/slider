@@ -32,6 +32,12 @@ Slider libraries can be created from the command line like:
 
    $ python -m slider library /path/to/beatmap/root [--recurse/--no-recurse]
 
+.. note::
+
+   To use the CLI, you must install additional dependencies. Use ``pip install
+   slider[cli]`` to do so.
+
+
 This command will search through ``/path/to/beatmap/root`` recursively and store
 metadata to allow slider to quickly find the ``.osu`` files. In the root of the
 directory a ``.slider.db`` file will be added which holds the lookup tables
