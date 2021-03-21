@@ -193,7 +193,10 @@ class Library:
                     if skip_exceptions:
                         logging.exception(f"Failed to parse {path}")
                         continue
-                    raise ValueError(f'failed to parse {path}') from e
+                    raise ValueError(
+                        f'Failed to parse {path}. '
+                        + 'Use --skip-exceptions to skip this file and continue.'
+                    ) from e
 
                 write_to_db(beatmap, data, path)
 

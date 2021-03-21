@@ -27,7 +27,7 @@ def main():
 @click.option(
     '--skip-exceptions/--no-skip-exceptions',
     help='Skip beatmap files that cause exceptions rather than exiting?',
-    default=True,
+    default=False,
 )
 def library(beatmaps, recurse, progress, skip_exceptions):
     """Create a slider database from a directory of beatmaps.
