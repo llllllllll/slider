@@ -191,11 +191,11 @@ class Library:
                     beatmap = Beatmap.parse(data.decode('utf-8-sig'))
                 except Exception as e:
                     if skip_exceptions:
-                        logging.exception(f"Failed to parse {path}")
+                        logging.exception(f'Failed to parse "{path}"')
                         continue
                     raise ValueError(
-                        f'Failed to parse {path}. '
-                        + 'Use --skip-exceptions to skip this file and continue.'
+                        f'Failed to parse "{path}". '
+                        'Use --skip-exceptions to skip this file and continue.'
                     ) from e
 
                 write_to_db(beatmap, data, path)
