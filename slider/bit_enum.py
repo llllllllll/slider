@@ -24,7 +24,7 @@ class BitEnum(enum.IntEnum):
         members = cls.__members__
         try:
             return reduce(
-                op.and_,
+                op.or_,
                 (members[k] * bool(v) for k, v in kwargs.items()),
             )
         except KeyError as e:
