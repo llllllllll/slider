@@ -13,8 +13,9 @@ def beatmap():
     return slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Tatoe')
 
 
-def test_parse_old_beatmap():
-    # just make sure it doesn't error, see #79 and #87 on github
+def test_parse_beatmap_format_v3():
+    # v3 is a very old beatmap version. We just make sure it doesn't error, see
+    # #79 and #87 on github.
     slider.example_data.beatmaps.example_beatmap(
         "Sambomaster - Sekai wa Sore wo Ai to Yobunda ze (ZZT the Fifth) "
         "[Normal].osu"
