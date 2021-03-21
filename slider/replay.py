@@ -70,8 +70,8 @@ class Action:
             actions.append("M1")
         if self.mouse2:
             actions.append("M2")
-        return (f"{int(self.offset.total_seconds() * 1000)}ms, {self.position}"
-            f", {' + '.join(actions) or 'No Keypresses'}")
+        return (f"{self.offset}, {self.position}, "
+                f"{' + '.join(actions) or 'No Keypresses'}")
 
 
 def _consume_life_bar_graph(buffer):
