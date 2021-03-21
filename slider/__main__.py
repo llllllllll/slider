@@ -26,13 +26,18 @@ def main():
 )
 @click.option(
     '--skip-exceptions/--no-skip-exceptions',
-    help='If an error is encountered parsing a beatmap file, skip adding that file rather than exiting?',
+    help='Skip beatmap files that cause exceptions rather than exiting?',
     default=True,
 )
 def library(beatmaps, recurse, progress, skip_exceptions):
     """Create a slider database from a directory of beatmaps.
     """
-    Library.create_db(beatmaps, recurse=recurse, show_progress=progress, skip_exceptions=skip_exceptions)
+    Library.create_db(
+        beatmaps,
+        recurse=recurse,
+        show_progress=progress,
+        skip_exceptions=skip_exceptions
+    )
 
 
 if __name__ == '__main__':
