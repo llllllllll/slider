@@ -1987,10 +1987,10 @@ class Beatmap:
                 milliseconds=_get_as_int(groups, 'General', 'AudioLeadIn', 0),
             ),
             preview_time=timedelta(
-                milliseconds=_get_as_int(groups, 'General', 'PreviewTime'),
+                milliseconds=_get_as_int(groups, 'General', 'PreviewTime', -1),
             ),
             countdown=_get_as_bool(groups, 'General', 'Countdown', False),
-            sample_set=_get_as_str(groups, 'General', 'SampleSet'),
+            sample_set=_get_as_str(groups, 'General', 'SampleSet', 'Normal'),
             stack_leniency=_get_as_float(
                 groups,
                 'General',
