@@ -60,7 +60,7 @@ class Action:
             k2=self.key2,
         )
 
-    def __str__(self):
+    def __repr__(self):
         actions = []
         if self.key1:
             actions.append("K1")
@@ -70,9 +70,8 @@ class Action:
             actions.append("M1")
         if self.mouse2:
             actions.append("M2")
-        return (f"{self.offset}, {self.position}, "
-                f"{' + '.join(actions) or 'No Keypresses'}")
-
+        return (f"<{type(self).__qualname__}: {self.offset}, {self.position}, "
+                f"{' + '.join(actions) or 'No Keypresses'}>")
 
 def _consume_life_bar_graph(buffer):
     life_bar_graph_raw = consume_string(buffer)
