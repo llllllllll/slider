@@ -73,6 +73,7 @@ class Action:
         return (f"<{type(self).__qualname__}: {self.offset}, {self.position}, "
                 f"{' + '.join(actions) or 'No Keypresses'}>")
 
+
 def _consume_life_bar_graph(buffer):
     life_bar_graph_raw = consume_string(buffer)
     return [
