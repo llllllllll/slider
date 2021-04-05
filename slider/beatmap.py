@@ -663,13 +663,19 @@ class Slider(HitObject):
             tp = timing_points[0]
 
         if tp.parent is not None:
-            velocity_multiplier = -100 / tp.ms_per_beat
+            bpm_multiplier = float(min(max(np.float32(-tp.ms_per_beat), 10), 1000) / np.float32(100))
             ms_per_beat = tp.parent.ms_per_beat
         else:
-            velocity_multiplier = 1
+            bpm_multiplier = 1
             ms_per_beat = tp.ms_per_beat
 
-        pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
+        beat_length = bpm_multiplier * ms_per_beat
+        scoring_point_distance = 100 * slider_multiplier / slider_tick_rate
+        # TODO: implement tick distance for beatmap version < 8
+        # tick_distance = scoring_point_distance if version < 8
+        tick_distance = scoring_point_distance / bpm_multiplier
+        velocity = scoring_point_distance * slider_tick_rate * (1000 / beat_length)
+        pixels_per_beat = slider_multiplier * 100 / bpm_multiplier
         num_beats = (
             (pixel_length * repeat) / pixels_per_beat
         )
@@ -677,7 +683,7 @@ class Slider(HitObject):
 
         ticks = int(
             (
-                (np.ceil((num_beats - 0.1) / repeat * slider_tick_rate) - 1)
+                max(int(np.floor((pixel_length - velocity * 0.01) / tick_distance)), 0)
             ) *
             repeat +
             repeat +
