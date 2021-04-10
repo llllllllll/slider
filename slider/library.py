@@ -4,6 +4,7 @@ import os
 import pathlib
 import sqlite3
 import sys
+import logging
 
 import requests
 
@@ -140,7 +141,8 @@ class Library:
                   recurse=True,
                   cache=DEFAULT_CACHE_SIZE,
                   download_url=DEFAULT_DOWNLOAD_URL,
-                  show_progress=False):
+                  show_progress=False,
+                  skip_exceptions=False):
         """Create a Library from a directory of ``.osu`` files.
 
         Parameters
@@ -187,8 +189,14 @@ class Library:
 
                 try:
                     beatmap = Beatmap.parse(data.decode('utf-8-sig'))
-                except ValueError as e:
-                    raise ValueError(f'failed to parse {path}') from e
+                except Exception as e:
+                    if skip_exceptions:
+                        logging.exception(f'Failed to parse "{path}"')
+                        continue
+                    raise ValueError(
+                        f'Failed to parse "{path}". '
+                        'Use --skip-exceptions to skip this file and continue.'
+                    ) from e
 
                 write_to_db(beatmap, data, path)
 
