@@ -713,7 +713,7 @@ class Replay:
         )
         hit_50_threshold = datetime.timedelta(milliseconds=hw.hit_50)
         i = 0
-        for obj in beatmap.hit_objects:
+        for obj in beatmap.hit_objects():
             if self.hard_rock:
                 obj = obj.hard_rock
             if isinstance(obj, Spinner):
