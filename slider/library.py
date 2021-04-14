@@ -206,7 +206,7 @@ class Library:
         """Whether we have the given beatmap cached.
 
         Parameters
-        -----
+        ----------
         beatmap_id : int
             The id of the beatmap to look for.
         beatmap_md5 : str
