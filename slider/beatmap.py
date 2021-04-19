@@ -238,6 +238,9 @@ class HitObject:
         self.time = time
         self.hitsound = hitsound
         self.addition = addition
+        self.ht_enabled = False
+        self.dt_enabled = False
+        self.hr_enabled = False
 
     def __repr__(self):
         return (
@@ -274,20 +277,33 @@ class HitObject:
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.half_time` enabled.
         """
-        return self._time_modify(4 / 3)
+        if self.ht_enabled:
+            return self
+
+        obj = self._time_modify(4 / 3)
+        obj.ht_enabled = True
+        return obj
 
     @lazyval
     def double_time(self):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.double_time` enabled.
         """
-        return self._time_modify(2 / 3)
+        if self.dt_enabled:
+            return self
+
+        obj = self._time_modify(2 / 3)
+        obj.dt_enabled = True
+        return obj
 
     @lazyval
     def hard_rock(self):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.hard_rock` enabled.
         """
+        if self.hr_enabled:
+            return self
+
         kwargs = {}
         for name in inspect.signature(type(self)).parameters:
             value = getattr(self, name)
@@ -295,7 +311,9 @@ class HitObject:
                 value = Position(value.x, 384 - value.y)
             kwargs[name] = value
 
-        return type(self)(**kwargs)
+        obj = type(self)(**kwargs)
+        obj.hr_enabled = True
+        return obj
 
     @classmethod
     def parse(cls, data, timing_points, slider_multiplier, slider_tick_rate):
@@ -550,6 +568,9 @@ class Slider(HitObject):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.hard_rock` enabled.
         """
+        if self.hr_enabled:
+            return self
+
         kwargs = {}
         for name in inspect.signature(type(self)).parameters:
             value = getattr(self, name)
@@ -558,8 +579,9 @@ class Slider(HitObject):
             elif name == 'curve':
                 value = value.hard_rock
             kwargs[name] = value
-
-        return type(self)(**kwargs)
+        obj = type(self)(**kwargs)
+        obj.hr_enabled = True
+        return obj
 
     @classmethod
     def _parse(cls,
