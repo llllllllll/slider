@@ -202,6 +202,36 @@ class Library:
 
         return self
 
+    def beatmap_cached(self, *, beatmap_id=None, beatmap_md5=None):
+        """Whether we have the given beatmap cached.
+
+        Parameters
+        ----------
+        beatmap_id : int
+            The id of the beatmap to look for.
+        beatmap_md5 : str
+            The md5 hash of the beatmap to look for.
+
+        Returns
+        -------
+        bool
+            Whether we have the given beatmap cached.
+        """
+        with self._db:
+            if beatmap_id is not None:
+                path_query = self._db.execute(
+                    'SELECT 1 FROM beatmaps WHERE id = ? LIMIT 1',
+                    (beatmap_id,),
+                )
+            else:
+                path_query = self._db.execute(
+                    'SELECT 1 FROM beatmaps WHERE md5 = ? LIMIT 1',
+                    (beatmap_md5,),
+                )
+
+        path = path_query.fetchone()
+        return bool(path)
+
     @staticmethod
     def _raw_read_beatmap(self, *, beatmap_id=None, beatmap_md5=None):
         """Function for opening beatmaps from disk.
@@ -230,9 +260,8 @@ class Library:
         path = path_query.fetchone()
         if path is None:
             raise KeyError(key)
-        else:
-            path, = path
 
+        path, = path
         # Make path relative to the root path. We save paths relative to
         # ``self.path`` so a library can be relocated without requiring a
         # rebuild
