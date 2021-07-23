@@ -10,6 +10,7 @@ def main():
     """Slider utilities.
     """
 
+
 @main.command()
 @click.argument(
     'beatmaps',
@@ -29,6 +30,7 @@ def library(beatmaps, recurse, progress):
     """Create a slider database from a directory of beatmaps.
     """
     Library.create_db(beatmaps, recurse=recurse, show_progress=progress)
+
 
 if __name__ == '__main__':
     main()
