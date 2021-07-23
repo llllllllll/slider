@@ -5,6 +5,7 @@ try:
 except ImportError as e:
     raise ImportError("click must be installed to use the slider cli") from e
 
+
 @click.group()
 def main():
     """Slider utilities.
