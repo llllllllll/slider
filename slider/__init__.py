@@ -7,7 +7,7 @@ from .replay import Replay
 from .library import Library
 from .collection import CollectionDB
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 
 
 __all__ = [
