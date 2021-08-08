@@ -678,8 +678,8 @@ class Client:
     def _parse_user_events(events, _parse_date=_parse_date):
         out = []
         for event in events:
-            # beatmap id can be null if the event is a support gift
-            if event['beatmap_id']:
+            # beatmap id can be null if the event is a supporter gift
+            if event['beatmap_id'] is not None:
                 event['beatmap_id'] = int(event['beatmap_id'])
             event['date'] = _parse_date(event['date'])
             event['epic_factor'] = event.pop('epicfactor')
