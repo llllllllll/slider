@@ -528,6 +528,13 @@ class Client:
     def _parse_timedelta(cs):
         return datetime.timedelta(seconds=int(cs))
 
+    def _parse_optional(class_):
+        def func(cs):
+            if cs is None:
+                return cs
+            return class_(cs)
+        return func
+
     def _identity(cs):
         return cs
 
@@ -545,7 +552,7 @@ class Client:
         'favourite_count': int,
         'play_count': int,
         'pass_count': int,
-        'max_combo': lambda cs: cs if cs is None else int(cs),
+        'max_combo': _parse_optional(int),
         'title': _identity,
         'version': _identity,
     }
@@ -690,21 +697,23 @@ class Client:
     _user_conversions = {
         'user_id': int,
         'user_name': _identity,
-        'count_300': int,
-        'count_100': int,
-        'count_50': int,
-        'play_count': int,
-        'ranked_score': int,
-        'total_score': int,
-        'pp_rank': int,
-        'level': float,
-        'pp_raw': float,
-        'accuracy': float,
-        'count_ss': int,
-        'count_s': int,
-        'count_a': int,
+        # these attributes can be null for users that have never played before,
+        # see user 17906393 / #97 on github
+        'count_300': _parse_optional(int),
+        'count_100': _parse_optional(int),
+        'count_50': _parse_optional(int),
+        'play_count': _parse_optional(int),
+        'ranked_score': _parse_optional(int),
+        'total_score': _parse_optional(int),
+        'pp_rank': _parse_optional(int),
+        'level': _parse_optional(float),
+        'pp_raw': _parse_optional(float),
+        'accuracy': _parse_optional(float),
+        'count_ss': _parse_optional(int),
+        'count_s': _parse_optional(int),
+        'count_a': _parse_optional(int),
         'country': _identity,
-        'pp_country_rank': int,
+        'pp_country_rank': _parse_optional(int),
         'events': _parse_user_events,
     }
 
