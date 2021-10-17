@@ -1,6 +1,9 @@
-import click
-
 from . import Library
+
+try:
+    import click
+except ImportError as e:
+    raise ImportError("click must be installed to use the slider cli") from e
 
 
 @click.group()
