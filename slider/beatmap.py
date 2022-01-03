@@ -348,12 +348,12 @@ class HitObject:
 
         try:
             # in old beatmaps (and potentially newer ones which were manually
-            # edited?), x and y can be floats (see b/128). Without the secondary
-            # float cast, parsing these maps would fail.
+            # edited?), x and y can be floats (see b/128). Without the
+            # secondary float cast, parsing these maps would fail.
             # Lazer casts these to integers
-            # (https://github.com/ppy/osu/blob/d4ea57c6607a77abb8a5e2fe55b220d8d
-            # feeb456/osu.Game/Rulesets/Objects/Legacy/ConvertHitObjectParser.cs
-            # #L49), so we're still matching in-game positions even though we
+            # (https://github.com/ppy/osu/blob/d4ea57c6607a77abb8a5e2fe55b220d8
+            # dfeeb456/osu.Game/Rulesets/Objects/Legacy/ConvertHitObjectParser.
+            # cs#L49), so we're still matching in-game positions even though we
             # technically lose precision from the .osu file by casting.
             x = int(float(x))
         except ValueError:
