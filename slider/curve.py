@@ -1,6 +1,6 @@
 import bisect
 import math
-from itertools import accumulate
+from itertools import accumulate, chain
 
 import numpy as np
 try:  # SciPy >= 0.19
@@ -69,6 +69,29 @@ class Curve(metaclass=ABCMeta):
             The position of the curve.
         """
         raise NotImplementedError('__call__')
+
+    def pack(self):
+        """The packed string representing this curve in ``.osu`` file, which is a part of
+        the packed string of a ``beatmap.Slider`` hit object.
+
+        Returns
+        -------
+        packed_str : str
+            The packed str of this curve.
+        """
+        if isinstance(self, Catmull):
+            kind = 'C'
+        elif isinstance(self, Linear):
+            kind = 'L'
+        elif isinstance(self, Perfect):
+            kind = 'P'
+        else:
+            # Bezier
+            kind = 'B'
+        # The first point is specified at the beginning of HitObject's packed str
+        # and should not be included here
+        return '|'.join(chain([kind], (str(int(point.x)) + ':' + str(int(point.y))
+                                       for point in self.points[1:])))
 
     @lazyval
     def hard_rock(self):
