@@ -20,6 +20,24 @@ class Position(namedtuple('Position', 'x y')):
     x_max = 512
     y_max = 384
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
+    def int_equal(self, other):
+        """Checks if coordinates of two Positions are the same after being cast to int.
+
+        Parameters
+        ----------
+        other : Position
+            The Position to be compared with.
+
+        Returns
+        -------
+        equal : bool
+            If two Positions are equal.
+        """
+        return int(self.x) == int(other.x) and int(self.y) == int(other.y)
+
 
 class Point(namedtuple('Point', 'x y offset')):
     """A position and time on the osu! screen.
