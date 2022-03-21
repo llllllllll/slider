@@ -6,7 +6,6 @@ import slider.curve
 from slider.position import Position
 from datetime import timedelta
 from math import isclose
-import os
 
 
 @pytest.fixture
@@ -241,42 +240,63 @@ def test_od(beatmap):
 
 
 def test_pack(beatmap):
-    # Pack the beatmap and parse it again to see if there is difference.
+    # Pack the beatmap and parse it again to see
+    # if there is difference.
+    beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Tatoe')
     packed_str = beatmap.pack()
     # with open(r'.\test.osu', 'wt') as f:
     #     f.write(packed_str)
     packed_beatmap = slider.Beatmap.parse(packed_str)
-    # Since sections like Colours and Events are currently omitted by ``Beatmap.parse``,
-    # these sections will be missing in .osu files written back from parsed Beatmaps.
-    # Fortunately, without these sections, rewritten .osu can still be recognized by osu! client.
+    # Since sections like Colours and Events are currently omitted by
+    # ``Beatmap.parse``, these sections will be missing in .osu files
+    # written back from parsed Beatmaps. Fortunately, without these
+    # sections, rewritten .osu can still be recognized by osu! client.
     for field, field_value in beatmap.__dict__.items():
         assert field in packed_beatmap.__dict__
         if field == 'timing_points':
             # Check if all timing points are the same.
-            for timing_point, packed_timing_point in zip(field_value, packed_beatmap.timing_points):
-                for timing_point_field, timing_point_field_value in timing_point.__dict__.items():
+            for timing_point, packed_timing_point in \
+                    zip(field_value, packed_beatmap.timing_points):
+                for timing_point_field, timing_point_field_value in \
+                        timing_point.__dict__.items():
                     # inherited timing point has field parent, skip it
-                    if not isinstance(timing_point_field_value, slider.beatmap.TimingPoint):
-                        assert timing_point_field in packed_timing_point.__dict__
-                        assert timing_point_field_value == packed_timing_point.__dict__[timing_point_field]
+                    if not isinstance(timing_point_field_value,
+                                      slider.beatmap.TimingPoint):
+                        assert timing_point_field in \
+                               packed_timing_point.__dict__
+                        assert timing_point_field_value == \
+                            packed_timing_point.__dict__[timing_point_field]
         elif field == '_hit_objects':
             # Check if all hit objects are the same.
-            for hit_object, packed_hit_object in zip(beatmap.hit_objects(), packed_beatmap.hit_objects()):
-                for hit_object_field, hit_object_field_value in hit_object.__dict__.items():
+            for hit_object, packed_hit_object in \
+                    zip(beatmap.hit_objects(), packed_beatmap.hit_objects()):
+                for hit_object_field, hit_object_field_value in \
+                        hit_object.__dict__.items():
                     if hit_object_field == 'curve':
-                        packed_curve = packed_hit_object.__dict__[hit_object_field]
-                        # Check if Curve is the same for each Slider hit_object.
-                        for curve_field, curve_field_value in hit_object_field_value.__dict__.items():
+                        packed_curve = \
+                            packed_hit_object.__dict__[hit_object_field]
+                        # Check if Curve is the same for
+                        # each Slider hit_object.
+                        for curve_field, curve_field_value in \
+                                hit_object_field_value.__dict__.items():
                             if curve_field != '_curves':
                                 # Skip _curve field of Linear Curve
-                                assert curve_field in packed_curve.__dict__
-                                assert curve_field_value == packed_curve.__dict__[curve_field]
-                    elif isinstance(hit_object_field_value, slider.position.Position):
-                        assert hit_object_field in packed_hit_object.__dict__
-                        assert hit_object_field_value.int_equal(packed_hit_object.__dict__[hit_object_field])
+                                assert curve_field in \
+                                       packed_curve.__dict__
+                                assert curve_field_value == \
+                                    packed_curve.__dict__[curve_field]
+                    elif isinstance(hit_object_field_value,
+                                    slider.position.Position):
+                        assert hit_object_field in \
+                               packed_hit_object.__dict__
+                        assert hit_object_field_value.int_equal(
+                               packed_hit_object.__dict__[hit_object_field])
                     else:
-                        assert hit_object_field in packed_hit_object.__dict__
-                        assert hit_object_field_value == packed_hit_object.__dict__[hit_object_field]
-        elif (not field.endswith('_cache')) and (field != '_hit_objects_with_stacking'):
+                        assert hit_object_field in \
+                               packed_hit_object.__dict__
+                        assert hit_object_field_value == \
+                            packed_hit_object.__dict__[hit_object_field]
+        elif (not field.endswith('_cache')) and \
+                (field != '_hit_objects_with_stacking'):
             # skip caches
             assert field_value == packed_beatmap.__dict__[field]

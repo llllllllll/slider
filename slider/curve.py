@@ -71,8 +71,9 @@ class Curve(metaclass=ABCMeta):
         raise NotImplementedError('__call__')
 
     def pack(self):
-        """The packed string representing this curve in ``.osu`` file, which is a part of
-        the packed string of a ``beatmap.Slider`` hit object.
+        """The packed string representing this curve in ``.osu`` file,
+        which is a part of the packed string of a ``beatmap.Slider``
+        hit object.
 
         Returns
         -------
@@ -88,10 +89,11 @@ class Curve(metaclass=ABCMeta):
         else:
             # Bezier
             kind = 'B'
-        # The first point is specified at the beginning of HitObject's packed str
-        # and should not be included here
-        return '|'.join(chain([kind], (str(int(point.x)) + ':' + str(int(point.y))
-                                       for point in self.points[1:])))
+        # The first point is specified at the beginning of
+        # HitObject's packed str and should not be included here
+        return '|'.join(chain([kind],
+                              (str(int(point.x)) + ':' + str(int(point.y))
+                               for point in self.points[1:])))
 
     @lazyval
     def hard_rock(self):

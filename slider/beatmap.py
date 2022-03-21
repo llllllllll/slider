@@ -218,7 +218,8 @@ class TimingPoint:
         )
 
     def pack(self):
-        """The string representing this timing point used in ``.osu`` file, without trailing ``\\n``.
+        """The string representing this timing point used in ``.osu`` file,
+        without trailing ``\\n``.
 
         Returns
         -------
@@ -228,7 +229,8 @@ class TimingPoint:
         Raises
         ------
         ValueError
-            Raised when essential member values are missing or are of incorrect type.
+            Raised when essential member values are missing
+            or are of incorrect type.
         """
         return ','.join([_pack_timedelta('time', self.offset),
                          _pack_float('beatLength', self.ms_per_beat),
@@ -422,7 +424,8 @@ class HitObject:
 
     @abstractmethod
     def pack(self):
-        """The string representing this hit element used in .osu file, without trailing ``\\n``.
+        """The string representing this hit element used in .osu file,
+        without trailing ``\\n``.
 
         Returns
         -------
@@ -432,7 +435,8 @@ class HitObject:
         Raises
         ------
         ValueError
-            Raised when essential member values are missing or are of incorrect type.
+            Raised when essential member values are missing
+            or are of incorrect type.
         """
         raise NotImplementedError('pack')
 
@@ -457,7 +461,8 @@ class Circle(HitObject):
         return cls(position, time, hitsound, *rest)
 
     def pack(self):
-        """The string representing this circle hit element used in ``.osu`` file, without trailing ``\\n``.
+        """The string representing this circle hit element used in ``.osu`` file,
+        without trailing ``\\n``.
 
         Returns
         -------
@@ -467,7 +472,8 @@ class Circle(HitObject):
         Raises
         ------
         ValueError
-            Raised when essential member values are missing or are of incorrect type.
+            Raised when essential member values are missing
+            or are of incorrect type.
         """
         # Circles do not have objectParams
         return ','.join([_pack_float('x', self.position.x),
@@ -522,7 +528,8 @@ class Spinner(HitObject):
         return cls(position, time, hitsound, end_time, *rest)
 
     def pack(self):
-        """The string representing this spinner hit element used in ``.osu`` file, without trailing ``\\n``.
+        """The string representing this spinner hit element used in ``.osu`` file,
+        without trailing ``\\n``.
 
         Returns
         -------
@@ -532,7 +539,8 @@ class Spinner(HitObject):
         Raises
         ------
         ValueError
-            Raised when essential member values are missing or are of incorrect type.
+            Raised when essential member values are missing
+            or are of incorrect type.
         """
         return ','.join([_pack_float('x', self.position.x),
                          _pack_float('y', self.position.y),
@@ -813,7 +821,8 @@ class Slider(HitObject):
         )
 
     def pack(self):
-        """The string representing this slider hit element used in ``.osu`` file, without trailing ``\\n``.
+        """The string representing this slider hit element used in ``.osu`` file,
+        without trailing ``\\n``.
 
         Returns
         -------
@@ -823,7 +832,8 @@ class Slider(HitObject):
         Raises
         ------
         ValueError
-            Raised when essential member values are missing or are of incorrect type.
+            Raised when essential member values are missing
+            or are of incorrect type.
         """
         return ','.join([_pack_float('x', self.position.x),
                          _pack_float('y', self.position.y),
@@ -833,8 +843,10 @@ class Slider(HitObject):
                          self.curve.pack(),
                          _pack_int('slides', self.repeat),
                          _pack_float('length', self.length),
-                         '|'.join(_pack_int('edgeSound', edge_sound) for edge_sound in self.edge_sounds),
-                         '|'.join(_pack_str('edgeSet', edge_addition) for edge_addition in self.edge_additions),
+                         '|'.join(_pack_int('edgeSound', edge_sound)
+                                  for edge_sound in self.edge_sounds),
+                         '|'.join(_pack_str('edgeSet', edge_addition)
+                                  for edge_addition in self.edge_additions),
                          _pack_str('hitSample', self.addition)])
 
 
@@ -881,7 +893,8 @@ class HoldNote(HitObject):
         return cls(position, time, hitsound, end_time, *rest)
 
     def pack(self):
-        """The string representing this HoldNote hit element used in ``.osu`` file, without trailing ``\\n``.
+        """The string representing this HoldNote hit element used in ``.osu`` file,
+        without trailing ``\\n``.
 
         Returns
         -------
@@ -891,10 +904,11 @@ class HoldNote(HitObject):
         Raises
         ------
         ValueError
-            Raised when essential member values are missing or are of incorrect type.
+            Raised when essential member values are missing
+            or are of incorrect type.
         """
-        # HoldNotes differ with Sliders in that their endTime is joined with hitSample
-        # with ':' rather than with ','
+        # HoldNotes differ with Sliders in that their endTime is
+        # joined with hitSample with ':' rather than with ','
         return ','.join([_pack_int('x', self.position.x),
                          _pack_int('y', self.position.y),
                          _pack_timedelta('time', self.time),
@@ -1077,9 +1091,11 @@ def _get_as_bool(groups, section, field, default=no_default):
         )
 
 
-def _replace_invalid_with_default(field: str, field_value, expected_type, default=no_default):
+def _invalid_to_default(field: str, field_value, expected_type,
+                        default=no_default):
     """
-    Replaces the field_value with default value if it is invalid (missing or of incorrect type).
+    Replaces the field_value with default value if it is invalid
+    (missing or of incorrect type).
 
     Parameters
     ----------
@@ -1100,7 +1116,8 @@ def _replace_invalid_with_default(field: str, field_value, expected_type, defaul
     Raises
     ------
     ValueError
-        Raised when ``field_value`` is missing or is of incorrect type, but no default value is available.
+        Raised when ``field_value`` is missing or is of incorrect type,
+        but no default value is available.
     """
     if isinstance(field_value, expected_type):
         return field_value
@@ -1136,7 +1153,7 @@ def _pack_timedelta(field: str, td: timedelta, default=no_default):
     ValueError
         Raised when ``td`` is not a timedelta and default is not available.
     """
-    td = _replace_invalid_with_default(field, td, timedelta, default)
+    td = _invalid_to_default(field, td, timedelta, default)
     return str(td // timedelta(milliseconds=1))
 
 
@@ -1162,7 +1179,7 @@ def _pack_bool(field: str, bool_in: bool, default=no_default):
     ValueError
         Raised when ``bool_in`` is not a bool and default is not available.
     """
-    bool_in = _replace_invalid_with_default(field, bool_in, bool, default)
+    bool_in = _invalid_to_default(field, bool_in, bool, default)
     return '1' if bool_in else '0'
 
 
@@ -1188,13 +1205,13 @@ def _pack_int(field: str, int_in: int, default=no_default):
     ValueError
         Raised when ``int_in`` is not a int and default is not available.
     """
-    int_in = _replace_invalid_with_default(field, int_in, int, default)
+    int_in = _invalid_to_default(field, int_in, int, default)
     return str(int(int_in))
 
 
 def _pack_float(field: str, float_in: float or int, default=no_default):
-    """Pack float to a string. If the float number can be converted to int without loss,
-    return the packed string of the converted int.
+    """Pack float to a string. If the float number can be converted to
+    int without loss, return the packed string of the converted int.
 
     Parameters
     ----------
@@ -1215,8 +1232,9 @@ def _pack_float(field: str, float_in: float or int, default=no_default):
     ValueError
         Raised when ``float_in`` is not a float and default is not available.
     """
-    float_in = _replace_invalid_with_default(field, float_in, (int, float), default)
-    # try to give out an int-like string when packing float fields, as osu! client does
+    float_in = _invalid_to_default(field, float_in, (int, float), default)
+    # try to give out an int-like string when packing float fields,
+    # as osu! client does
     int_ = int(float_in)
     return str(int_) if int_ == float_in else str(float_in)
 
@@ -1243,7 +1261,7 @@ def _pack_str(field: str, str_in: str, default=no_default):
     ValueError
         Raised when ``str_in`` is not a str and default is not available.
     """
-    str_in = _replace_invalid_with_default(field, str_in, str, default)
+    str_in = _invalid_to_default(field, str_in, str, default)
     return str_in
 
 
@@ -1269,7 +1287,7 @@ def _pack_int_enum(field: str, enum_in: IntEnum, default=no_default):
     ValueError
         Raised when ``enum_in`` is not a IntEnum and default is not available.
     """
-    enum_in = _replace_invalid_with_default(field, enum_in, IntEnum, default)
+    enum_in = _invalid_to_default(field, enum_in, IntEnum, default)
     return str(int(enum_in))
 
 
@@ -1293,9 +1311,10 @@ def _pack_str_list(field: str, list_str: list, default=no_default):
     Raises
     ------
     ValueError
-        Raised when ``list_str`` is not a list of str and default is not available.
+        Raised when ``list_str`` is not a list of str
+        and default is not available.
     """
-    list_str = _replace_invalid_with_default(field, list_str, list, default)
+    list_str = _invalid_to_default(field, list_str, list, default)
     return ' '.join(list_str)
 
 
@@ -1319,9 +1338,10 @@ def _pack_int_list(field: str, list_int: list, default=no_default):
     Raises
     ------
     ValueError
-        Raised when ``list_int`` is not a list of int and default is not available.
+        Raised when ``list_int`` is not a list of int
+        and default is not available.
     """
-    list_int = _replace_invalid_with_default(field, list_int, list, default)
+    list_int = _invalid_to_default(field, list_int, list, default)
     return ' '.join((str(int_) for int_ in list_int))
 
 
@@ -2288,7 +2308,8 @@ class Beatmap:
         Raises
         ------
         ValueError
-            Raised when the ``Beatmap`` object is invalid to be written to a ``.osu`` file.
+            Raised when the ``Beatmap`` object is invalid to be
+            written to a ``.osu`` file.
         """
         with open(path, mode='rt', encoding='utf-8-sig') as file:
             self.write_file(file)
@@ -2304,7 +2325,8 @@ class Beatmap:
         Raises
         ------
         ValueError
-            Raised when the ``Beatmap`` object is invalid to be written to a ``.osu`` file.
+            Raised when the ``Beatmap`` object is invalid to be
+            written to a ``.osu`` file.
         """
         file.write(self.pack())
 
@@ -2541,8 +2563,8 @@ class Beatmap:
 
     def pack(self):
         """The string content in ``.osu`` file of this beatmap.
-        Default values assumed by osu! client Beatmap editor are used to replace member values
-        which are missing or are of incorrect type.
+        Default values assumed by osu! client Beatmap editor are used to
+        replace member values which are missing or are of incorrect type.
 
         Returns
         -------
@@ -2552,61 +2574,103 @@ class Beatmap:
         Raises
         ------
         ValueError
-            Raised when essential member values are missing or are of incorrect type.
+            Raised when essential member values are missing
+            or are of incorrect type.
         """
-        def pack_field(field, field_value, pack_func, default):
-            return field + ':' + pack_func(field, field_value, default) + '\n'
+        def pack_field(field, field_value,
+                       pack_func, default, skip_empty=False):
+            packed_field_str = pack_func(field, field_value, default)
+            # if ``skip_empty`` is True, empty string will be
+            # returned for empty fields
+            if skip_empty and packed_field_str == '':
+                return ''
+            else:
+                return field + ':' + packed_field_str + '\n'
 
         packed_str = 'osu file format v14\n\n'
 
         # pack General section
         packed_str += '[General]\n'
-        packed_str += pack_field('AudioFilename', self.audio_filename, _pack_str, no_default)
-        packed_str += pack_field('AudioLeadIn', self.audio_lead_in, _pack_timedelta, timedelta(milliseconds=0))
-        packed_str += pack_field('PreviewTime', self.preview_time, _pack_timedelta, timedelta(milliseconds=-1))
-        packed_str += pack_field('Countdown', self.countdown, _pack_bool, False)
-        packed_str += pack_field('SampleSet', self.sample_set, _pack_str, 'None')
-        packed_str += pack_field('StackLeniency', self.stack_leniency, _pack_float, 0)
-        packed_str += pack_field('Mode', self.mode, _pack_int_enum, GameMode.standard)
-        packed_str += pack_field('LetterboxInBreaks', self.letterbox_in_breaks, _pack_bool, False)
-        packed_str += pack_field('WidescreenStoryboard', self.widescreen_storyboard, _pack_bool, False)
+        packed_str += pack_field('AudioFilename', self.audio_filename,
+                                 _pack_str, no_default)
+        packed_str += pack_field('AudioLeadIn', self.audio_lead_in,
+                                 _pack_timedelta, timedelta(milliseconds=0))
+        packed_str += pack_field('PreviewTime', self.preview_time,
+                                 _pack_timedelta, timedelta(milliseconds=-1))
+        packed_str += pack_field('Countdown', self.countdown,
+                                 _pack_bool, False)
+        packed_str += pack_field('SampleSet', self.sample_set,
+                                 _pack_str, 'None')
+        packed_str += pack_field('StackLeniency', self.stack_leniency,
+                                 _pack_float, 0)
+        packed_str += pack_field('Mode', self.mode,
+                                 _pack_int_enum, GameMode.standard)
+        packed_str += pack_field('LetterboxInBreaks', self.letterbox_in_breaks,
+                                 _pack_bool, False)
+        packed_str += pack_field('WidescreenStoryboard',
+                                 self.widescreen_storyboard,
+                                 _pack_bool, False)
         packed_str += '\n'
 
         # pack Editor section
         packed_str += '[Editor]\n'
-        # Bookmarks field actually does not even exist in .osu file if there's no bookmark at all.
-        packed_str += pack_field('Bookmarks', self.bookmarks, _pack_int_list, [])
-        packed_str += pack_field('DistanceSpacing', self.distance_spacing, _pack_float, 1.0)
-        packed_str += pack_field('BeatDivisor', self.beat_divisor, _pack_int, 4)
-        packed_str += pack_field('GridSize', self.grid_size, _pack_int, 4)
-        packed_str += pack_field('TimelineZoom', self.timeline_zoom, _pack_float, 1.0)
+        # Bookmarks field actually does not even exist in .osu file
+        # if there's no bookmark at all.
+        packed_str += pack_field('Bookmarks', self.bookmarks,
+                                 _pack_int_list, [], skip_empty=True)
+        packed_str += pack_field('DistanceSpacing', self.distance_spacing,
+                                 _pack_float, 1.0)
+        packed_str += pack_field('BeatDivisor', self.beat_divisor,
+                                 _pack_int, 4)
+        packed_str += pack_field('GridSize', self.grid_size,
+                                 _pack_int, 4)
+        packed_str += pack_field('TimelineZoom', self.timeline_zoom,
+                                 _pack_float, 1.0)
         packed_str += '\n'
 
         # pack Metadata section
         packed_str += '[Metadata]\n'
-        # osu! beatmap editor forces mappers to enter Title, Artist, Creator, Version fields when creating a new
-        # beatmap from an audio file, so these fields are considered indispensable for a valid Beatmap.
-        # When packing a Beatmap, ValueError will be raised if these fields do not have sensible values.
-        packed_str += pack_field('Title', self.title, _pack_str, no_default)
-        packed_str += pack_field('TitleUnicode', self.title_unicode, _pack_str, self.title)
-        packed_str += pack_field('Artist', self.artist, _pack_str, no_default)
-        packed_str += pack_field('ArtistUnicode', self.artist_unicode, _pack_str, self.artist)
-        packed_str += pack_field('Creator', self.creator, _pack_str, no_default)
-        packed_str += pack_field('Version', self.version, _pack_str, no_default)
-        packed_str += pack_field('Source', self.source, _pack_str, '')
-        packed_str += pack_field('Tags', self.tags, _pack_str_list, '')
-        packed_str += pack_field('BeatmapID', self.beatmap_id, _pack_int, 0)
-        packed_str += pack_field('BeatmapSetID', self.beatmap_set_id, _pack_int, -1)
+        # osu! beatmap editor forces mappers to enter Title, Artist,
+        # Creator, Version fields when creating a new beatmap from
+        # an audio file, so these fields are considered indispensable
+        # for a valid Beatmap. When packing a Beatmap, ValueError will
+        # be raised if these fields do not have sensible values.
+        packed_str += pack_field('Title', self.title,
+                                 _pack_str, no_default)
+        packed_str += pack_field('TitleUnicode', self.title_unicode,
+                                 _pack_str, self.title)
+        packed_str += pack_field('Artist', self.artist,
+                                 _pack_str, no_default)
+        packed_str += pack_field('ArtistUnicode', self.artist_unicode,
+                                 _pack_str, self.artist)
+        packed_str += pack_field('Creator', self.creator,
+                                 _pack_str, no_default)
+        packed_str += pack_field('Version', self.version,
+                                 _pack_str, no_default)
+        packed_str += pack_field('Source', self.source,
+                                 _pack_str, '')
+        packed_str += pack_field('Tags', self.tags,
+                                 _pack_str_list, '')
+        packed_str += pack_field('BeatmapID', self.beatmap_id,
+                                 _pack_int, 0)
+        packed_str += pack_field('BeatmapSetID', self.beatmap_set_id,
+                                 _pack_int, -1)
         packed_str += '\n'
 
         # pack Difficulty section
         packed_str += '[Difficulty]\n'
-        packed_str += pack_field('HPDrainRate', self.hp_drain_rate, _pack_float, 5.0)
-        packed_str += pack_field('CircleSize', self.circle_size, _pack_float, 5.0)
-        packed_str += pack_field('OverallDifficulty', self.overall_difficulty, _pack_float, 5.0)
-        packed_str += pack_field('ApproachRate', self.approach_rate, _pack_float, 5.0)
-        packed_str += pack_field('SliderMultiplier', self.slider_multiplier, _pack_float, 1.4)
-        packed_str += pack_field('SliderTickRate', self.slider_tick_rate, _pack_float, 1.0)
+        packed_str += pack_field('HPDrainRate', self.hp_drain_rate,
+                                 _pack_float, 5.0)
+        packed_str += pack_field('CircleSize', self.circle_size,
+                                 _pack_float, 5.0)
+        packed_str += pack_field('OverallDifficulty', self.overall_difficulty,
+                                 _pack_float, 5.0)
+        packed_str += pack_field('ApproachRate', self.approach_rate,
+                                 _pack_float, 5.0)
+        packed_str += pack_field('SliderMultiplier', self.slider_multiplier,
+                                 _pack_float, 1.4)
+        packed_str += pack_field('SliderTickRate', self.slider_tick_rate,
+                                 _pack_float, 1.0)
         packed_str += '\n'
 
         # pack Events section
