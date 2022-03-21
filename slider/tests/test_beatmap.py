@@ -289,8 +289,8 @@ def test_pack(beatmap):
                                     slider.position.Position):
                         assert hit_object_field in \
                                packed_hit_object.__dict__
-                        assert hit_object_field_value.int_equal(
-                               packed_hit_object.__dict__[hit_object_field])
+                        assert hit_object_field_value == \
+                            packed_hit_object.__dict__[hit_object_field]
                     else:
                         assert hit_object_field in \
                                packed_hit_object.__dict__

@@ -2699,7 +2699,7 @@ class Beatmap:
 
         # pack HitObjects section
         packed_str += '[HitObjects]\n'
-        for hit_object in self.hit_objects():
+        for hit_object in self._hit_objects:
             # each hit object occupies a line
             packed_str += hit_object.pack() + '\n'
         packed_str += '\n'
