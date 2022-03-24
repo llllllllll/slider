@@ -2311,7 +2311,7 @@ class Beatmap:
             Raised when the ``Beatmap`` object is invalid to be
             written to a ``.osu`` file.
         """
-        with open(path, mode='rt', encoding='utf-8-sig') as file:
+        with open(path, mode='wt', encoding='utf-8-sig') as file:
             self.write_file(file)
 
     def write_file(self, file):
