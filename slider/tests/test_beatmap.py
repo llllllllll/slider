@@ -242,61 +242,91 @@ def test_od(beatmap):
 def test_pack(beatmap):
     # Pack the beatmap and parse it again to see
     # if there is difference.
-    beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Tatoe')
     packed_str = beatmap.pack()
     # with open(r'.\test.osu', 'wt') as f:
     #     f.write(packed_str)
-    packed_beatmap = slider.Beatmap.parse(packed_str)
+    reread_beatmap = slider.Beatmap.parse(packed_str)
     # Since sections like Colours and Events are currently omitted by
     # ``Beatmap.parse``, these sections will be missing in .osu files
     # written back from parsed Beatmaps. Fortunately, without these
     # sections, rewritten .osu can still be recognized by osu! client.
-    for field, field_value in beatmap.__dict__.items():
-        assert field in packed_beatmap.__dict__
-        if field == 'timing_points':
-            # Check if all timing points are the same.
-            for timing_point, packed_timing_point in \
-                    zip(field_value, packed_beatmap.timing_points):
-                for timing_point_field, timing_point_field_value in \
-                        timing_point.__dict__.items():
-                    # inherited timing point has field parent, skip it
-                    if not isinstance(timing_point_field_value,
-                                      slider.beatmap.TimingPoint):
-                        assert timing_point_field in \
-                               packed_timing_point.__dict__
-                        assert timing_point_field_value == \
-                            packed_timing_point.__dict__[timing_point_field]
-        elif field == '_hit_objects':
-            # Check if all hit objects are the same.
-            for hit_object, packed_hit_object in \
-                    zip(beatmap.hit_objects(), packed_beatmap.hit_objects()):
-                for hit_object_field, hit_object_field_value in \
-                        hit_object.__dict__.items():
-                    if hit_object_field == 'curve':
-                        packed_curve = \
-                            packed_hit_object.__dict__[hit_object_field]
-                        # Check if Curve is the same for
-                        # each Slider hit_object.
-                        for curve_field, curve_field_value in \
-                                hit_object_field_value.__dict__.items():
-                            if curve_field != '_curves':
-                                # Skip _curve field of Linear Curve
-                                assert curve_field in \
-                                       packed_curve.__dict__
-                                assert curve_field_value == \
-                                    packed_curve.__dict__[curve_field]
-                    elif isinstance(hit_object_field_value,
-                                    slider.position.Position):
-                        assert hit_object_field in \
-                               packed_hit_object.__dict__
-                        assert hit_object_field_value == \
-                            packed_hit_object.__dict__[hit_object_field]
-                    else:
-                        assert hit_object_field in \
-                               packed_hit_object.__dict__
-                        assert hit_object_field_value == \
-                            packed_hit_object.__dict__[hit_object_field]
-        elif (not field.endswith('_cache')) and \
-                (field != '_hit_objects_with_stacking'):
-            # skip caches
-            assert field_value == packed_beatmap.__dict__[field]
+    beatmap_attr_names = (
+        # General section fields
+        'audio_filename', 'audio_lead_in',
+        'preview_time', 'countdown',
+        'sample_set', 'stack_leniency', 'mode',
+        'letterbox_in_breaks', 'widescreen_storyboard',
+
+        # Editor section fields
+        'distance_spacing', 'beat_divisor',
+        'grid_size', 'timeline_zoom',
+
+        # Metadata section fields
+        'title', 'title_unicode',
+        'artist', 'artist_unicode',
+        'creator', 'version',
+        'source', 'tags',
+        'beatmap_id', 'beatmap_set_id',
+
+        # Difficulty section fields
+        'hp_drain_rate', 'circle_size',
+        'overall_difficulty', 'approach_rate',
+        'slider_multiplier', 'slider_tick_rate',
+    )
+    # common attributes of HitObjects
+    hit_object_attr_names = (
+        'position', 'time', 'hitsound', 'addition',
+    )
+    # special attributes of Slider hit element
+    slider_attr_names = (
+        'end_time', 'hitsound',
+        'repeat', 'length', 'ticks',
+        'num_beats', 'tick_rate', 'ms_per_beat',
+        'edge_sounds', 'edge_additions', 'addition',
+    )
+    timing_point_attr_names = (
+        'offset', 'ms_per_beat', 'meter',
+        'sample_type', 'sample_set',
+        'volume', 'kiai_mode',
+    )
+
+    def check_attr(object1, object2, attr_list):
+        for attr in attr_list:
+            assert getattr(object1, attr) == getattr(object2, attr)
+
+    def check_curve(curve1, curve2):
+        assert type(curve1) == type(curve2)
+        assert curve1.req_length == curve2.req_length
+        for point1, point2 in zip(curve1.points, curve2.points):
+            assert point1 == point2
+
+    def check_hit_object(hit_object1, hit_object2):
+        assert type(hit_object1) == type(hit_object2)
+        check_attr(hit_object1, hit_object2, hit_object_attr_names)
+        if isinstance(hit_object1, slider.beatmap.Slider):
+            check_attr(hit_object1, hit_object2, slider_attr_names)
+            check_curve(hit_object1.curve, hit_object2.curve)
+        elif isinstance(hit_object1, (slider.beatmap.Spinner,
+                                      slider.beatmap.HoldNote)):
+            # Spinner and HoldNote have additional attribute end_time
+            assert hit_object1.end_time == hit_object2.end_time
+        # Circle does not have extra attribute
+
+    def check_timing_point(timing_point1, timing_point2):
+        check_attr(timing_point1, timing_point2, timing_point_attr_names)
+        # check if two timing points are both inherited or both uninherited
+        if timing_point1.parent is None:
+            assert timing_point2.parent is None
+
+    check_attr(beatmap, reread_beatmap, beatmap_attr_names)
+    assert len(beatmap.hit_objects(stacking=False)) == \
+           len(reread_beatmap.hit_objects(stacking=False))
+    # cast to tuple to force operation
+    tuple(map(check_hit_object,
+              beatmap.hit_objects(stacking=False),
+              reread_beatmap.hit_objects(stacking=False)))
+    assert len(beatmap.timing_points) == \
+           len(reread_beatmap.timing_points)
+    tuple(map(check_timing_point,
+              beatmap.timing_points,
+              reread_beatmap.timing_points))
