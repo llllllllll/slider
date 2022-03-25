@@ -262,11 +262,14 @@ def test_pack(beatmap):
         'slider_multiplier', 'slider_tick_rate',
     ]
     hitobj_attrs = ['position', 'time', 'hitsound', 'addition']
-    slider_attrs = ['end_time', 'hitsound', 'repeat', 'length', 'ticks',
-        'num_beats', 'tick_rate', 'ms_per_beat', 'edge_sounds',
-        'edge_additions', 'addition']
-    timing_point_attrs = ['offset', 'ms_per_beat', 'meter', 'sample_type',
-        'sample_set', 'volume', 'kiai_mode']
+    slider_attrs = [
+        'end_time', 'hitsound', 'repeat', 'length', 'ticks', 'num_beats',
+        'tick_rate', 'ms_per_beat', 'edge_sounds', 'edge_additions', 'addition'
+    ]
+    timing_point_attrs = [
+        'offset', 'ms_per_beat', 'meter', 'sample_type', 'sample_set',
+        'volume', 'kiai_mode'
+    ]
 
     def check_attrs(object1, object2, attr_list):
         for attr in attr_list:
@@ -277,7 +280,6 @@ def test_pack(beatmap):
         assert curve1.req_length == curve2.req_length
         for point1, point2 in zip(curve1.points, curve2.points):
             assert point1 == point2
-
 
     check_attrs(beatmap, packed, beatmap_attrs)
 
@@ -291,7 +293,7 @@ def test_pack(beatmap):
             check_attrs(hitobj1, hitobj2, slider_attrs)
             check_curve(hitobj1.curve, hitobj2.curve)
         elif isinstance(hitobj1, (slider.beatmap.Spinner,
-                                      slider.beatmap.HoldNote)):
+                                  slider.beatmap.HoldNote)):
             # spinners / hold notes have an additional attribute `end_time`
             assert hitobj1.end_time == hitobj2.end_time
         # circles has no additional attributes beyond `hitobj_attrs`
