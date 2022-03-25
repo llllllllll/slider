@@ -268,44 +268,37 @@ def test_pack(beatmap):
     timing_point_attrs = ['offset', 'ms_per_beat', 'meter', 'sample_type',
         'sample_set', 'volume', 'kiai_mode']
 
-    def check_attr(object1, object2, attr_list):
+    def check_attrs(object1, object2, attr_list):
         for attr in attr_list:
             assert getattr(object1, attr) == getattr(object2, attr)
 
     def check_curve(curve1, curve2):
-        assert type(curve1) == type(curve2)
+        assert type(curve1) is type(curve2)
         assert curve1.req_length == curve2.req_length
         for point1, point2 in zip(curve1.points, curve2.points):
             assert point1 == point2
 
-    def check_hit_object(hit_object1, hit_object2):
-        assert type(hit_object1) == type(hit_object2)
-        check_attr(hit_object1, hit_object2, hitobj_attrs)
-        if isinstance(hit_object1, slider.beatmap.Slider):
-            check_attr(hit_object1, hit_object2, slider_attrs)
-            check_curve(hit_object1.curve, hit_object2.curve)
-        elif isinstance(hit_object1, (slider.beatmap.Spinner,
+
+    check_attrs(beatmap, packed, beatmap_attrs)
+
+    # check hit objects
+    assert len(beatmap._hit_objects) == len(packed._hit_objects)
+    for hitobj1, hitobj2 in zip(beatmap._hit_objects, packed._hit_objects):
+        assert type(hitobj1) is type(hitobj2)
+        check_attrs(hitobj1, hitobj2, hitobj_attrs)
+
+        if isinstance(hitobj1, slider.beatmap.Slider):
+            check_attrs(hitobj1, hitobj2, slider_attrs)
+            check_curve(hitobj1.curve, hitobj2.curve)
+        elif isinstance(hitobj1, (slider.beatmap.Spinner,
                                       slider.beatmap.HoldNote)):
-            # Spinner and HoldNote have additional attribute end_time
-            assert hit_object1.end_time == hit_object2.end_time
-        # Circle does not have extra attribute
+            # spinners / hold notes have an additional attribute `end_time`
+            assert hitobj1.end_time == hitobj2.end_time
+        # circles has no additional attributes beyond `hitobj_attrs`
 
-    def check_timing_point(timing_point1, timing_point2):
-        check_attr(timing_point1, timing_point2, timing_point_attrs)
-        # check if two timing points are both inherited or both uninherited
-        if timing_point1.parent is None:
-            assert timing_point2.parent is None
-
-    check_attr(beatmap, packed, beatmap_attrs)
-    assert len(beatmap.hit_objects(stacking=False)) == \
-           len(packed.hit_objects(stacking=False))
-    # cast to tuple to force operation
-    tuple(map(check_hit_object,
-              beatmap.hit_objects(stacking=False),
-              packed.hit_objects(stacking=False)))
-    assert len(beatmap.timing_points) == \
-           len(packed.timing_points)
-
-    tuple(map(check_timing_point,
-              beatmap.timing_points,
-              packed.timing_points))
+    # check timing points
+    assert len(beatmap.timing_points) == len(packed.timing_points)
+    for tp1, tp2 in zip(beatmap.timing_points, packed.timing_points):
+        check_attrs(tp1, tp2, timing_point_attrs)
+        # make sure both timing points are either inherited or uninherited
+        assert (tp1.parent is not None) == (tp2.parent is not None)
