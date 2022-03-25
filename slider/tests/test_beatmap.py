@@ -242,12 +242,12 @@ def test_od(beatmap):
 def test_pack(beatmap):
     # Pack the beatmap and parse it again to see if there is difference.
     packed_str = beatmap.pack()
-    reread_beatmap = slider.Beatmap.parse(packed_str)
+    packed = slider.Beatmap.parse(packed_str)
     # Since sections like Colours and Events are currently omitted by
     # ``Beatmap.parse``, these sections will be missing in .osu files
     # written back from parsed Beatmaps. Fortunately, without these
     # sections, rewritten .osu can still be recognized by osu! client.
-    beatmap_attr_names = [
+    beatmap_attrs = [
         # General section fields
         'audio_filename', 'audio_lead_in', 'preview_time', 'countdown',
         'sample_set', 'stack_leniency', 'mode', 'letterbox_in_breaks',
@@ -261,11 +261,11 @@ def test_pack(beatmap):
         'hp_drain_rate', 'circle_size', 'overall_difficulty', 'approach_rate',
         'slider_multiplier', 'slider_tick_rate',
     ]
-    hit_object_attr_names = ['position', 'time', 'hitsound', 'addition']
-    slider_attr_names = ['end_time', 'hitsound', 'repeat', 'length', 'ticks',
+    hitobj_attrs = ['position', 'time', 'hitsound', 'addition']
+    slider_attrs = ['end_time', 'hitsound', 'repeat', 'length', 'ticks',
         'num_beats', 'tick_rate', 'ms_per_beat', 'edge_sounds',
         'edge_additions', 'addition']
-    timing_point_attr_names = ['offset', 'ms_per_beat', 'meter', 'sample_type',
+    timing_point_attrs = ['offset', 'ms_per_beat', 'meter', 'sample_type',
         'sample_set', 'volume', 'kiai_mode']
 
     def check_attr(object1, object2, attr_list):
@@ -280,9 +280,9 @@ def test_pack(beatmap):
 
     def check_hit_object(hit_object1, hit_object2):
         assert type(hit_object1) == type(hit_object2)
-        check_attr(hit_object1, hit_object2, hit_object_attr_names)
+        check_attr(hit_object1, hit_object2, hitobj_attrs)
         if isinstance(hit_object1, slider.beatmap.Slider):
-            check_attr(hit_object1, hit_object2, slider_attr_names)
+            check_attr(hit_object1, hit_object2, slider_attrs)
             check_curve(hit_object1.curve, hit_object2.curve)
         elif isinstance(hit_object1, (slider.beatmap.Spinner,
                                       slider.beatmap.HoldNote)):
@@ -291,20 +291,21 @@ def test_pack(beatmap):
         # Circle does not have extra attribute
 
     def check_timing_point(timing_point1, timing_point2):
-        check_attr(timing_point1, timing_point2, timing_point_attr_names)
+        check_attr(timing_point1, timing_point2, timing_point_attrs)
         # check if two timing points are both inherited or both uninherited
         if timing_point1.parent is None:
             assert timing_point2.parent is None
 
-    check_attr(beatmap, reread_beatmap, beatmap_attr_names)
+    check_attr(beatmap, packed, beatmap_attrs)
     assert len(beatmap.hit_objects(stacking=False)) == \
-           len(reread_beatmap.hit_objects(stacking=False))
+           len(packed.hit_objects(stacking=False))
     # cast to tuple to force operation
     tuple(map(check_hit_object,
               beatmap.hit_objects(stacking=False),
-              reread_beatmap.hit_objects(stacking=False)))
+              packed.hit_objects(stacking=False)))
     assert len(beatmap.timing_points) == \
-           len(reread_beatmap.timing_points)
+           len(packed.timing_points)
+
     tuple(map(check_timing_point,
               beatmap.timing_points,
-              reread_beatmap.timing_points))
+              packed.timing_points))
