@@ -240,55 +240,33 @@ def test_od(beatmap):
 
 
 def test_pack(beatmap):
-    # Pack the beatmap and parse it again to see
-    # if there is difference.
+    # Pack the beatmap and parse it again to see if there is difference.
     packed_str = beatmap.pack()
-    # with open(r'.\test.osu', 'wt') as f:
-    #     f.write(packed_str)
     reread_beatmap = slider.Beatmap.parse(packed_str)
     # Since sections like Colours and Events are currently omitted by
     # ``Beatmap.parse``, these sections will be missing in .osu files
     # written back from parsed Beatmaps. Fortunately, without these
     # sections, rewritten .osu can still be recognized by osu! client.
-    beatmap_attr_names = (
+    beatmap_attr_names = [
         # General section fields
-        'audio_filename', 'audio_lead_in',
-        'preview_time', 'countdown',
-        'sample_set', 'stack_leniency', 'mode',
-        'letterbox_in_breaks', 'widescreen_storyboard',
-
+        'audio_filename', 'audio_lead_in', 'preview_time', 'countdown',
+        'sample_set', 'stack_leniency', 'mode', 'letterbox_in_breaks',
+        'widescreen_storyboard',
         # Editor section fields
-        'distance_spacing', 'beat_divisor',
-        'grid_size', 'timeline_zoom',
-
+        'distance_spacing', 'beat_divisor', 'grid_size', 'timeline_zoom',
         # Metadata section fields
-        'title', 'title_unicode',
-        'artist', 'artist_unicode',
-        'creator', 'version',
-        'source', 'tags',
-        'beatmap_id', 'beatmap_set_id',
-
+        'title', 'title_unicode', 'artist', 'artist_unicode', 'creator',
+        'version', 'source', 'tags', 'beatmap_id', 'beatmap_set_id',
         # Difficulty section fields
-        'hp_drain_rate', 'circle_size',
-        'overall_difficulty', 'approach_rate',
+        'hp_drain_rate', 'circle_size', 'overall_difficulty', 'approach_rate',
         'slider_multiplier', 'slider_tick_rate',
-    )
-    # common attributes of HitObjects
-    hit_object_attr_names = (
-        'position', 'time', 'hitsound', 'addition',
-    )
-    # special attributes of Slider hit element
-    slider_attr_names = (
-        'end_time', 'hitsound',
-        'repeat', 'length', 'ticks',
-        'num_beats', 'tick_rate', 'ms_per_beat',
-        'edge_sounds', 'edge_additions', 'addition',
-    )
-    timing_point_attr_names = (
-        'offset', 'ms_per_beat', 'meter',
-        'sample_type', 'sample_set',
-        'volume', 'kiai_mode',
-    )
+    ]
+    hit_object_attr_names = ['position', 'time', 'hitsound', 'addition']
+    slider_attr_names = ['end_time', 'hitsound', 'repeat', 'length', 'ticks',
+        'num_beats', 'tick_rate', 'ms_per_beat', 'edge_sounds',
+        'edge_additions', 'addition']
+    timing_point_attr_names = ['offset', 'ms_per_beat', 'meter', 'sample_type',
+        'sample_set', 'volume', 'kiai_mode']
 
     def check_attr(object1, object2, attr_list):
         for attr in attr_list:
