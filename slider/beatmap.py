@@ -1121,14 +1121,14 @@ def _invalid_to_default(field: str, field_value, expected_type,
     """
     if isinstance(field_value, expected_type):
         return field_value
-    else:
-        if default is no_default:
-            raise ValueError(
-                f'field {field!r} should be a {expected_type.__name__!r},'
-                f' got {field_value.__class__.__name__!r}',
-            )
-        else:
-            return default
+
+    if default is no_default:
+        raise ValueError(
+            f'field {field!r} should be a {expected_type.__name__!r},'
+            f' got {field_value.__class__.__name__!r}',
+        )
+
+    return default
 
 
 def _pack_timedelta(field: str, td: timedelta, default=no_default):
