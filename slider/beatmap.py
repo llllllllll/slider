@@ -2616,10 +2616,17 @@ class Beatmap:
 
         # pack Editor section
         packed_str += '[Editor]\n'
+
+        def _pack_bookmarks(_field, bookmarks, _default=no_default):
+            bookmarks = [
+                str(b // timedelta(milliseconds=1)) for b in bookmarks
+            ]
+            return ",".join(bookmarks)
+
         # Bookmarks field actually does not even exist in .osu file
         # if there's no bookmark at all.
         packed_str += pack_field('Bookmarks', self.bookmarks,
-                                 _pack_int_list, [], skip_empty=True)
+                                 _pack_bookmarks, [], skip_empty=True)
         packed_str += pack_field('DistanceSpacing', self.distance_spacing,
                                  _pack_float, 1.0)
         packed_str += pack_field('BeatDivisor', self.beat_divisor,
