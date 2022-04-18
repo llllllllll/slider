@@ -2584,8 +2584,7 @@ class Beatmap:
             # returned for empty fields
             if skip_empty and packed_field_str == '':
                 return ''
-            else:
-                return field + ':' + packed_field_str + '\n'
+            return field + ':' + packed_field_str + '\n'
 
         packed_str = 'osu file format v14\n\n'
 
