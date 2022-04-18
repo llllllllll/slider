@@ -2493,7 +2493,7 @@ class Beatmap:
                 timedelta(milliseconds=ms) for ms in _get_as_int_list(
                     groups,
                     'Editor',
-                    'bookmarks',
+                    'Bookmarks',
                     [],
                 )
             ],
