@@ -254,6 +254,7 @@ def test_pack(beatmap):
         'widescreen_storyboard',
         # Editor section fields
         'distance_spacing', 'beat_divisor', 'grid_size', 'timeline_zoom',
+        'bookmarks',
         # Metadata section fields
         'title', 'title_unicode', 'artist', 'artist_unicode', 'creator',
         'version', 'source', 'tags', 'beatmap_id', 'beatmap_set_id',
