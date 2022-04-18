@@ -2586,6 +2586,9 @@ class Beatmap:
                 return ''
             return field + ':' + packed_field_str + '\n'
 
+        # we'll pin ourselves to file format v14 for packing for now. We'll
+        # need to update this if we ever update the format in which we output
+        # packed beatmaps in.
         packed_str = 'osu file format v14\n\n'
 
         # pack General section
