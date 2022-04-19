@@ -1318,17 +1318,18 @@ def _pack_str_list(field: str, list_str: list, default=no_default):
     return ' '.join(list_str)
 
 
-def _pack_int_list(field: str, list_int: list, default=no_default):
-    """Pack a list of int to a string, with space as separator between elements.
+def _pack_timedelta_list(field: str, list_td: list, default=no_default):
+    """Pack a list of timedelta to a string, with space as separator
+    between elements.
 
     Parameters
     ----------
     field : str
         The name  of the field to be packed.
-    list_int : list
+    list_td : list
         The value to be packed to string.
     default : list, optional
-        A value to return if ``list_int`` is not valid.
+        A value to return if ``list_td`` is not valid.
 
     Returns
     -------
@@ -1338,11 +1339,11 @@ def _pack_int_list(field: str, list_int: list, default=no_default):
     Raises
     ------
     ValueError
-        Raised when ``list_int`` is not a list of int
+        Raised when ``list_td`` is not a list of timedelta
         and default is not available.
     """
-    list_int = _invalid_to_default(field, list_int, list, default)
-    return ' '.join((str(int_) for int_ in list_int))
+    list_td = _invalid_to_default(field, list_td, list, default)
+    return ','.join((str(td // timedelta(milliseconds=1)) for td in list_td))
 
 
 def _moving_average_by_time(times, data, delta, num):
@@ -2616,17 +2617,10 @@ class Beatmap:
 
         # pack Editor section
         packed_str += '[Editor]\n'
-
-        def _pack_bookmarks(_field, bookmarks, _default=no_default):
-            bookmarks = [
-                str(b // timedelta(milliseconds=1)) for b in bookmarks
-            ]
-            return ",".join(bookmarks)
-
         # Bookmarks field actually does not even exist in .osu file
         # if there's no bookmark at all.
         packed_str += pack_field('Bookmarks', self.bookmarks,
-                                 _pack_bookmarks, [], skip_empty=True)
+                                 _pack_timedelta_list, [], skip_empty=True)
         packed_str += pack_field('DistanceSpacing', self.distance_spacing,
                                  _pack_float, 1.0)
         packed_str += pack_field('BeatDivisor', self.beat_divisor,
