@@ -1291,8 +1291,10 @@ def _pack_int_enum(field: str, enum_in: IntEnum, default=no_default):
     return str(int(enum_in))
 
 
-def _pack_str_list(field: str, list_str: list, default=no_default):
-    """Pack a list of string to a string, with space as separator between elements.
+def _pack_str_list(field: str, list_str: list, sep: str = ' ',
+                   default=no_default):
+    """Pack a list of string to a string, with `sep` as separator
+    between elements.
 
     Parameters
     ----------
@@ -1300,6 +1302,8 @@ def _pack_str_list(field: str, list_str: list, default=no_default):
         The name  of the field to be packed.
     list_str : list
         The value to be packed to string.
+    sep : str
+        separator to join packed strings of elements
     default : list, optional
         A value to return if ``list_str`` is not valid.
 
@@ -1315,11 +1319,12 @@ def _pack_str_list(field: str, list_str: list, default=no_default):
         and default is not available.
     """
     list_str = _invalid_to_default(field, list_str, list, default)
-    return ' '.join(list_str)
+    return sep.join(list_str)
 
 
-def _pack_timedelta_list(field: str, list_td: list, default=no_default):
-    """Pack a list of timedelta to a string, with space as separator
+def _pack_timedelta_list(field: str, list_td: list, sep: str = ',',
+                         default=no_default):
+    """Pack a list of timedelta to a string, with `sep` as separator
     between elements.
 
     Parameters
@@ -1328,6 +1333,8 @@ def _pack_timedelta_list(field: str, list_td: list, default=no_default):
         The name  of the field to be packed.
     list_td : list
         The value to be packed to string.
+    sep : str
+        separator to join packed strings of elements
     default : list, optional
         A value to return if ``list_td`` is not valid.
 
@@ -1343,7 +1350,7 @@ def _pack_timedelta_list(field: str, list_td: list, default=no_default):
         and default is not available.
     """
     list_td = _invalid_to_default(field, list_td, list, default)
-    return ','.join((str(td // timedelta(milliseconds=1)) for td in list_td))
+    return sep.join((str(td // timedelta(milliseconds=1)) for td in list_td))
 
 
 def _moving_average_by_time(times, data, delta, num):
@@ -2580,7 +2587,7 @@ class Beatmap:
         """
         def pack_field(field, field_value,
                        pack_func, default, skip_empty=False):
-            packed_field_str = pack_func(field, field_value, default)
+            packed_field_str = pack_func(field, field_value, default=default)
             # if ``skip_empty`` is True, empty string will be
             # returned for empty fields
             if skip_empty and packed_field_str == '':
@@ -2620,7 +2627,8 @@ class Beatmap:
         # Bookmarks field actually does not even exist in .osu file
         # if there's no bookmark at all.
         packed_str += pack_field('Bookmarks', self.bookmarks,
-                                 _pack_timedelta_list, [], skip_empty=True)
+                                 partial(_pack_timedelta_list, sep=','),
+                                 [], skip_empty=True)
         packed_str += pack_field('DistanceSpacing', self.distance_spacing,
                                  _pack_float, 1.0)
         packed_str += pack_field('BeatDivisor', self.beat_divisor,
@@ -2653,7 +2661,8 @@ class Beatmap:
         packed_str += pack_field('Source', self.source,
                                  _pack_str, '')
         packed_str += pack_field('Tags', self.tags,
-                                 _pack_str_list, '')
+                                 partial(_pack_str_list, sep=' '),
+                                 '')
         packed_str += pack_field('BeatmapID', self.beatmap_id,
                                  _pack_int, 0)
         packed_str += pack_field('BeatmapSetID', self.beatmap_set_id,
