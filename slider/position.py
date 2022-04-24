@@ -20,6 +20,9 @@ class Position(namedtuple('Position', 'x y')):
     x_max = 512
     y_max = 384
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
 
 class Point(namedtuple('Point', 'x y offset')):
     """A position and time on the osu! screen.
