@@ -11,7 +11,7 @@ if 'sdist' in sys.argv:
 
 setup(
     name='slider',
-    version='0.2.1',
+    version='0.6.0',
     description='Utilities for working with osu! files and data',
     author='Joe Jevnik',
     author_email='joejev@gmail.com',
@@ -28,12 +28,9 @@ setup(
     ],
     url='https://github.com/llllllllll/slider',
     install_requires=[
-        'click',
         'numpy',
-        'pytz',
         'requests',
         'scipy',
-        'toolz',
     ],
     extras_require={
         'dev': [
@@ -41,6 +38,9 @@ setup(
             'mccabe==0.6.1',
             'pyflakes==2.1.1',
             'pytest==5.4.1',
+        ],
+        'cli': [
+            'click',
         ],
     },
 )

@@ -4,6 +4,7 @@ import os
 import pathlib
 import sqlite3
 import sys
+import logging
 
 import requests
 
@@ -140,7 +141,8 @@ class Library:
                   recurse=True,
                   cache=DEFAULT_CACHE_SIZE,
                   download_url=DEFAULT_DOWNLOAD_URL,
-                  show_progress=False):
+                  show_progress=False,
+                  skip_exceptions=False):
         """Create a Library from a directory of ``.osu`` files.
 
         Parameters
@@ -187,12 +189,48 @@ class Library:
 
                 try:
                     beatmap = Beatmap.parse(data.decode('utf-8-sig'))
-                except ValueError as e:
-                    raise ValueError(f'failed to parse {path}') from e
+                except Exception as e:
+                    if skip_exceptions:
+                        logging.exception(f'Failed to parse "{path}"')
+                        continue
+                    raise ValueError(
+                        f'Failed to parse "{path}". '
+                        'Use --skip-exceptions to skip this file and continue.'
+                    ) from e
 
                 write_to_db(beatmap, data, path)
 
         return self
+
+    def beatmap_cached(self, *, beatmap_id=None, beatmap_md5=None):
+        """Whether we have the given beatmap cached.
+
+        Parameters
+        ----------
+        beatmap_id : int
+            The id of the beatmap to look for.
+        beatmap_md5 : str
+            The md5 hash of the beatmap to look for.
+
+        Returns
+        -------
+        bool
+            Whether we have the given beatmap cached.
+        """
+        with self._db:
+            if beatmap_id is not None:
+                path_query = self._db.execute(
+                    'SELECT 1 FROM beatmaps WHERE id = ? LIMIT 1',
+                    (beatmap_id,),
+                )
+            else:
+                path_query = self._db.execute(
+                    'SELECT 1 FROM beatmaps WHERE md5 = ? LIMIT 1',
+                    (beatmap_md5,),
+                )
+
+        path = path_query.fetchone()
+        return bool(path)
 
     @staticmethod
     def _raw_read_beatmap(self, *, beatmap_id=None, beatmap_md5=None):
@@ -222,9 +260,8 @@ class Library:
         path = path_query.fetchone()
         if path is None:
             raise KeyError(key)
-        else:
-            path, = path
 
+        path, = path
         # Make path relative to the root path. We save paths relative to
         # ``self.path`` so a library can be relocated without requiring a
         # rebuild
@@ -278,6 +315,30 @@ class Library:
             Raised when the given md5 hash is not in the library.
         """
         return self._read_beatmap(self, beatmap_md5=beatmap_md5)
+
+    def beatmap_from_path(self, path, copy=False):
+        """Returns a beatmap from a file on disk.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            The path to the file to create the beatmap from.
+        copy : bool
+            Should the file be copied to the library's beatmap directory?
+
+        Returns
+        -------
+        beatmap : Beatmap
+            The beatmap represented by the given file.
+        """
+        data_bytes = open(path, 'rb').read()
+        data = data_bytes.decode('utf-8-sig')
+        beatmap = Beatmap.parse(data)
+
+        if copy:
+            self.save(data_bytes, beatmap=beatmap)
+
+        return beatmap
 
     def save(self, data, *, beatmap=None):
         """Save raw data for a beatmap at a given location.

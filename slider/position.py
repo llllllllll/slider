@@ -1,4 +1,5 @@
 from collections import namedtuple
+import numpy as np
 
 
 class Position(namedtuple('Position', 'x y')):
@@ -19,6 +20,9 @@ class Position(namedtuple('Position', 'x y')):
     x_max = 512
     y_max = 384
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
 
 class Point(namedtuple('Point', 'x y offset')):
     """A position and time on the osu! screen.
@@ -37,3 +41,7 @@ class Point(namedtuple('Point', 'x y offset')):
     The visible region of the osu! standard playfield is [0, 512] by [0, 384].
     Positions may fall outside of this range for slider curve control points.
     """
+
+
+def distance(start, end):
+    return np.sqrt((start.x - end.x) ** 2 + (start.y - end.y) ** 2)

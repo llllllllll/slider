@@ -9,9 +9,10 @@ from zipfile import ZipFile
 
 import numpy as np
 
+from .abc import abstractmethod
 from .game_mode import GameMode
 from .mod import ar_to_ms, ms_to_ar, circle_radius, od_to_ms_300, ms_300_to_od
-from .position import Position, Point
+from .position import Position, Point, distance
 from .utils import (
     accuracy as calculate_accuracy,
     lazyval,
@@ -395,6 +396,30 @@ class TimingPoint:
             kiai_mode=kiai_mode,
         )
 
+    def pack(self):
+        """The string representing this timing point used in ``.osu`` file,
+        without trailing ``\\n``.
+
+        Returns
+        -------
+        packed_str : str
+            The packed str of this timing point.
+
+        Raises
+        ------
+        ValueError
+            Raised when essential member values are missing
+            or are of incorrect type.
+        """
+        return ','.join([_pack_timedelta('time', self.offset),
+                         _pack_float('beatLength', self.ms_per_beat),
+                         _pack_int('meter', self.meter),
+                         _pack_int('sampleSet', self.sample_type),
+                         _pack_int('sampleIndex', self.sample_set),
+                         _pack_int('volume', int(self.volume)),
+                         '1' if self.parent is None else '0',
+                         _pack_bool('effects', self.kiai_mode)])
+
 
 class HitObject:
     """An abstract hit element for osu! standard.
@@ -412,11 +437,14 @@ class HitObject:
     """
     time_related_attributes = frozenset({'time'})
 
-    def __init__(self, position, time, hitsound, addition='0:0:0:0'):
+    def __init__(self, position, time, hitsound, addition='0:0:0:0:'):
         self.position = position
         self.time = time
         self.hitsound = hitsound
         self.addition = addition
+        self.ht_enabled = False
+        self.dt_enabled = False
+        self.hr_enabled = False
 
     def __repr__(self):
         return (
@@ -453,20 +481,33 @@ class HitObject:
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.half_time` enabled.
         """
-        return self._time_modify(4 / 3)
+        if self.ht_enabled:
+            return self
+
+        obj = self._time_modify(4 / 3)
+        obj.ht_enabled = True
+        return obj
 
     @lazyval
     def double_time(self):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.double_time` enabled.
         """
-        return self._time_modify(2 / 3)
+        if self.dt_enabled:
+            return self
+
+        obj = self._time_modify(2 / 3)
+        obj.dt_enabled = True
+        return obj
 
     @lazyval
     def hard_rock(self):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.hard_rock` enabled.
         """
+        if self.hr_enabled:
+            return self
+
         kwargs = {}
         for name in inspect.signature(type(self)).parameters:
             value = getattr(self, name)
@@ -474,7 +515,9 @@ class HitObject:
                 value = Position(value.x, 384 - value.y)
             kwargs[name] = value
 
-        return type(self)(**kwargs)
+        obj = type(self)(**kwargs)
+        obj.hr_enabled = True
+        return obj
 
     @classmethod
     def parse(cls, data, timing_points, slider_multiplier, slider_tick_rate):
@@ -508,12 +551,20 @@ class HitObject:
             raise ValueError(f'not enough elements in line, got {data!r}')
 
         try:
-            x = int(x)
+            # in old beatmaps (and potentially newer ones which were manually
+            # edited?), x and y can be floats (see b/128). Without the
+            # secondary float cast, parsing these maps would fail.
+            # Lazer casts these to integers
+            # (https://github.com/ppy/osu/blob/d4ea57c6607a77abb8a5e2fe55b220d8
+            # dfeeb456/osu.Game/Rulesets/Objects/Legacy/ConvertHitObjectParser.
+            # cs#L49), so we're still matching in-game positions even though we
+            # technically lose precision from the .osu file by casting.
+            x = int(float(x))
         except ValueError:
             raise ValueError(f'x should be an int, got {x!r}')
 
         try:
-            y = int(y)
+            y = int(float(y))
         except ValueError:
             raise ValueError(f'y should be an int, got {y!r}')
 
@@ -550,6 +601,24 @@ class HitObject:
 
         return parse(Position(x, y), time, hitsound, rest)
 
+    @abstractmethod
+    def pack(self):
+        """The string representing this hit element used in .osu file,
+        without trailing ``\\n``.
+
+        Returns
+        -------
+        packed_str : str
+            The packed str of this hit element.
+
+        Raises
+        ------
+        ValueError
+            Raised when essential member values are missing
+            or are of incorrect type.
+        """
+        raise NotImplementedError('pack')
+
 
 class Circle(HitObject):
     """A circle hit element.
@@ -569,6 +638,29 @@ class Circle(HitObject):
             raise ValueError('extra data: {rest!r}')
 
         return cls(position, time, hitsound, *rest)
+
+    def pack(self):
+        """The string representing this circle hit element used in ``.osu`` file,
+        without trailing ``\\n``.
+
+        Returns
+        -------
+        packed_str : str
+            The packed str of this circle hit element.
+
+        Raises
+        ------
+        ValueError
+            Raised when essential member values are missing
+            or are of incorrect type.
+        """
+        # Circles do not have objectParams
+        return ','.join([_pack_float('x', self.position.x),
+                         _pack_float('y', self.position.y),
+                         _pack_timedelta('time', self.time),
+                         _pack_int('type', Circle.type_code),
+                         _pack_int('hitSound', self.hitsound),
+                         _pack_str('hitSample', self.addition)])
 
 
 class Spinner(HitObject):
@@ -614,6 +706,29 @@ class Spinner(HitObject):
 
         return cls(position, time, hitsound, end_time, *rest)
 
+    def pack(self):
+        """The string representing this spinner hit element used in ``.osu`` file,
+        without trailing ``\\n``.
+
+        Returns
+        -------
+        packed_str : str
+            The packed str of this spinner hit element.
+
+        Raises
+        ------
+        ValueError
+            Raised when essential member values are missing
+            or are of incorrect type.
+        """
+        return ','.join([_pack_float('x', self.position.x),
+                         _pack_float('y', self.position.y),
+                         _pack_timedelta('time', self.time),
+                         _pack_int('type', Spinner.type_code),
+                         _pack_int('hitSound', self.hitsound),
+                         _pack_timedelta('endTime', self.end_time),
+                         _pack_str('hitSample', self.addition)])
+
 
 class Slider(HitObject):
     """A slider hit element.
@@ -630,7 +745,7 @@ class Slider(HitObject):
         The sound played on the ticks of the slider.
     curve : Curve
         The slider's curve function.
-    length : int
+    length : float
         The length of this slider in osu! pixels.
     ticks : int
         The number of slider ticks including the head and tail of the slider.
@@ -665,7 +780,7 @@ class Slider(HitObject):
                  ms_per_beat,
                  edge_sounds,
                  edge_additions,
-                 addition='0:0:0:0'):
+                 addition='0:0:0:0:'):
         super().__init__(position, time, hitsound, addition)
         self.end_time = end_time
         self.curve = curve
@@ -729,6 +844,9 @@ class Slider(HitObject):
         """The ``HitObject`` as it would appear with
         :data:`~slider.mod.Mod.hard_rock` enabled.
         """
+        if self.hr_enabled:
+            return self
+
         kwargs = {}
         for name in inspect.signature(type(self)).parameters:
             value = getattr(self, name)
@@ -737,8 +855,9 @@ class Slider(HitObject):
             elif name == 'curve':
                 value = value.hard_rock
             kwargs[name] = value
-
-        return type(self)(**kwargs)
+        obj = type(self)(**kwargs)
+        obj.hr_enabled = True
+        return obj
 
     @classmethod
     def _parse(cls,
@@ -850,9 +969,9 @@ class Slider(HitObject):
 
         pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
         num_beats = (
-            np.round(((pixel_length * repeat) / pixels_per_beat) * 16) / 16
+            (pixel_length * repeat) / pixels_per_beat
         )
-        duration = timedelta(milliseconds=np.ceil(num_beats * ms_per_beat))
+        duration = timedelta(milliseconds=int(num_beats * ms_per_beat))
 
         ticks = int(
             (
@@ -880,6 +999,35 @@ class Slider(HitObject):
             *rest,
         )
 
+    def pack(self):
+        """The string representing this slider hit element used in ``.osu`` file,
+        without trailing ``\\n``.
+
+        Returns
+        -------
+        packed_str : str
+            The packed str of this slider hit element.
+
+        Raises
+        ------
+        ValueError
+            Raised when essential member values are missing
+            or are of incorrect type.
+        """
+        return ','.join([_pack_float('x', self.position.x),
+                         _pack_float('y', self.position.y),
+                         _pack_timedelta('time', self.time),
+                         _pack_int('type', Slider.type_code),
+                         _pack_int('hitSound', self.hitsound),
+                         self.curve.pack(),
+                         _pack_int('slides', self.repeat),
+                         _pack_float('length', self.length),
+                         '|'.join(_pack_int('edgeSound', edge_sound)
+                                  for edge_sound in self.edge_sounds),
+                         '|'.join(_pack_str('edgeSet', edge_addition)
+                                  for edge_addition in self.edge_additions),
+                         _pack_str('hitSample', self.addition)])
+
 
 class HoldNote(HitObject):
     """A HoldNote hit element.
@@ -896,13 +1044,57 @@ class HoldNote(HitObject):
     A ``HoldNote`` can only appear in an osu!mania map.
     """
     type_code = 128
+    time_related_attributes = frozenset({'time', 'end_time'})
+
+    def __init__(self,
+                 position,
+                 time,
+                 hitsound,
+                 end_time,
+                 addition='0:0:0:0:'):
+        super().__init__(position, time, hitsound, addition)
+        self.end_time = end_time
 
     @classmethod
     def _parse(cls, position, time, hitsound, rest):
+        try:
+            end_time, *rest = rest
+        except ValueError:
+            raise ValueError('missing end_time')
+
+        try:
+            end_time = timedelta(milliseconds=int(end_time))
+        except ValueError:
+            raise ValueError(f'end_time should be an int, got {end_time!r}')
         if len(rest) > 1:
             raise ValueError('extra data: {rest!r}')
 
-        return cls(position, time, hitsound, *rest)
+        return cls(position, time, hitsound, end_time, *rest)
+
+    def pack(self):
+        """The string representing this HoldNote hit element used in ``.osu`` file,
+        without trailing ``\\n``.
+
+        Returns
+        -------
+        packed_str : str
+            The packed str of this HoldNote hit element.
+
+        Raises
+        ------
+        ValueError
+            Raised when essential member values are missing
+            or are of incorrect type.
+        """
+        # HoldNotes differ with Sliders in that their endTime is
+        # joined with hitSample with ':' rather than with ','
+        return ','.join([_pack_int('x', self.position.x),
+                         _pack_int('y', self.position.y),
+                         _pack_timedelta('time', self.time),
+                         _pack_int('type', HoldNote.type_code),
+                         _pack_int('hitSound', self.hitsound),
+                         ':'.join([_pack_timedelta('endTime', self.end_time),
+                                   _pack_str('hitSample', self.addition)])])
 
 
 def _get_as_str(groups, section, field, default=no_default):
@@ -1076,6 +1268,268 @@ def _get_as_bool(groups, section, field, default=no_default):
             f'field {field!r} in section {section!r} should be a bool,'
             f' got {v!r}',
         )
+
+
+def _invalid_to_default(field: str, field_value, expected_type,
+                        default=no_default):
+    """
+    Replaces the field_value with default value if it is invalid
+    (missing or of incorrect type).
+
+    Parameters
+    ----------
+    field : str
+        The name of the field.
+    field_value : Any
+        Field value.
+    expected_type : Any
+        The expected type of ``field_value``.
+    default : float, optional
+        A value to return if ``field`` is invalid.
+
+    Returns
+    -------
+    field_value : Any
+        Valid ``field_value``
+
+    Raises
+    ------
+    ValueError
+        Raised when ``field_value`` is missing or is of incorrect type,
+        but no default value is available.
+    """
+    if isinstance(field_value, expected_type):
+        return field_value
+
+    if default is no_default:
+        raise ValueError(
+            f'field {field!r} should be a {expected_type.__name__!r},'
+            f' got {field_value.__class__.__name__!r}',
+        )
+
+    return default
+
+
+def _pack_timedelta(field: str, td: timedelta, default=no_default):
+    """Pack timedelta to a string.
+
+    Parameters
+    ----------
+    field : str
+        The name  of the field to be packed.
+    td : timedelta
+        The value to be packed to string.
+    default : timedelta, optional
+        A value to return if ``td`` is not valid.
+
+    Returns
+    -------
+    packed_str : str
+        The packed str.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``td`` is not a timedelta and default is not available.
+    """
+    td = _invalid_to_default(field, td, timedelta, default)
+    return str(td // timedelta(milliseconds=1))
+
+
+def _pack_bool(field: str, bool_in: bool, default=no_default):
+    """Pack bool to a string.
+
+    Parameters
+    ----------
+    field : str
+        The name  of the field to be packed.
+    bool_in : bool
+        The value to be packed to string.
+    default : bool, optional
+        A value to return if ``bool_in`` is not valid.
+
+    Returns
+    -------
+    packed_str : str
+        The packed str.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``bool_in`` is not a bool and default is not available.
+    """
+    bool_in = _invalid_to_default(field, bool_in, bool, default)
+    return '1' if bool_in else '0'
+
+
+def _pack_int(field: str, int_in: int, default=no_default):
+    """Pack int to a string.
+
+    Parameters
+    ----------
+    field : str
+        The name  of the field to be packed.
+    int_in : int
+        The value to be packed to string.
+    default : int, optional
+        A value to return if ``int_in`` is not valid.
+
+    Returns
+    -------
+    packed_str : str
+        The packed str.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``int_in`` is not a int and default is not available.
+    """
+    int_in = _invalid_to_default(field, int_in, int, default)
+    return str(int(int_in))
+
+
+def _pack_float(field: str, float_in: float or int, default=no_default):
+    """Pack float to a string. If the float number can be converted to
+    int without loss, return the packed string of the converted int.
+
+    Parameters
+    ----------
+    field : str
+        The name  of the field to be packed.
+    float_in : float
+        The value to be packed to string.
+    default : float, optional
+        A value to return if ``float_in`` is not valid.
+
+    Returns
+    -------
+    packed_str : str
+        The packed str.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``float_in`` is not a float and default is not available.
+    """
+    float_in = _invalid_to_default(field, float_in, (int, float), default)
+    # try to give out an int-like string when packing float fields,
+    # as osu! client does
+    int_ = int(float_in)
+    return str(int_) if int_ == float_in else str(float_in)
+
+
+def _pack_str(field: str, str_in: str, default=no_default):
+    """Pack string to a string, with validity check.
+
+    Parameters
+    ----------
+    field : str
+        The name  of the field to be packed.
+    str_in : str
+        The value to be packed to string.
+    default : str, optional
+        A value to return if ``str_in`` is not valid.
+
+    Returns
+    -------
+    packed_str : str
+        The packed str.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``str_in`` is not a str and default is not available.
+    """
+    str_in = _invalid_to_default(field, str_in, str, default)
+    return str_in
+
+
+def _pack_int_enum(field: str, enum_in: IntEnum, default=no_default):
+    """Pack IntEnum to a string.
+
+    Parameters
+    ----------
+    field : str
+        The name  of the field to be packed.
+    enum_in : IntEnum
+        The value to be packed to string.
+    default : IntEnum, optional
+        A value to return if ``enum_in`` is not valid.
+
+    Returns
+    -------
+    packed_str : str
+        The packed str.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``enum_in`` is not a IntEnum and default is not available.
+    """
+    enum_in = _invalid_to_default(field, enum_in, IntEnum, default)
+    return str(int(enum_in))
+
+
+def _pack_str_list(field: str, list_str: list, sep: str = ' ',
+                   default=no_default):
+    """Pack a list of string to a string, with `sep` as separator
+    between elements.
+
+    Parameters
+    ----------
+    field : str
+        The name  of the field to be packed.
+    list_str : list
+        The value to be packed to string.
+    sep : str
+        separator to join packed strings of elements
+    default : list, optional
+        A value to return if ``list_str`` is not valid.
+
+    Returns
+    -------
+    packed_str : str
+        The packed str.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``list_str`` is not a list of str
+        and default is not available.
+    """
+    list_str = _invalid_to_default(field, list_str, list, default)
+    return sep.join(list_str)
+
+
+def _pack_timedelta_list(field: str, list_td: list, sep: str = ',',
+                         default=no_default):
+    """Pack a list of timedelta to a string, with `sep` as separator
+    between elements.
+
+    Parameters
+    ----------
+    field : str
+        The name  of the field to be packed.
+    list_td : list
+        The value to be packed to string.
+    sep : str
+        separator to join packed strings of elements
+    default : list, optional
+        A value to return if ``list_td`` is not valid.
+
+    Returns
+    -------
+    packed_str : str
+        The packed str.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``list_td`` is not a list of timedelta
+        and default is not available.
+    """
+    list_td = _invalid_to_default(field, list_td, list, default)
+    return sep.join((str(td // timedelta(milliseconds=1)) for td in list_td))
 
 
 def _moving_average_by_time(times, data, delta, num):
@@ -1346,6 +1800,7 @@ class Beatmap:
     _version_regex = re.compile(r'^osu file format v(\d+)$')
 
     def __init__(self,
+                 *,
                  format_version,
                  audio_filename,
                  audio_lead_in,
@@ -1412,8 +1867,10 @@ class Beatmap:
         self.slider_multiplier = slider_multiplier
         self.slider_tick_rate = slider_tick_rate
         self.timing_points = timing_points
-        self.hit_objects = hit_objects
         self.events = events
+        self._hit_objects = hit_objects
+        # cache hit object stacking at different ar and cs values
+        self._hit_objects_with_stacking = {}
 
         # cache the stars with different mod combinations
         self._stars_cache = {}
@@ -1616,23 +2073,322 @@ class Beatmap:
         """
         return tuple(e for e in self.events if isinstance(e, Break))
 
-    @lazyval
-    def hit_objects_no_spinners(self):
-        """The hit objects with spinners filtered out.
+    def hit_objects(self,
+                    *,
+                    circles=True,
+                    sliders=True,
+                    spinners=True,
+                    stacking=True,
+                    easy=False,
+                    hard_rock=False,
+                    double_time=False,
+                    half_time=False):
+        """Retrieve hit_objects.
+
+        Parameters
+        ----------
+        circles : bool, optional
+            If circles should be included.
+        sliders : bool, optional
+            If sliders should be included.
+        spinners : bool, optional
+            If spinners should be included.
+        stacking : bool, optional
+            If stacking should be calculated.
+        easy : bool, optional
+            Get the effective position of the hit objects with easy enabled.
+        hard_rock : bool, optional
+            Get the effective position of the hit objects with hard rock
+            enabled.
+        half_time : bool, optional
+            Get the effective position of the hit objects with half time
+            enabled.
+        double_time : bool, optional
+            Get the effective position of the hit objects with double time
+            enabled.
+
+        Returns
+        -------
+        hit_objects : list[HitObject]
+            The objects with their effective positions and timings given the
+            parameter set.
         """
-        return tuple(e for e in self.hit_objects if not isinstance(e, Spinner))
+
+        hit_objects = self._hit_objects
+
+        if hard_rock:
+            hit_objects = [ob.hard_rock for ob in hit_objects]
+
+        if stacking:
+            ar = self.ar(easy=easy, hard_rock=hard_rock)
+            cs = self.cs(easy=easy, hard_rock=hard_rock)
+            # stacking changes with ar and cs (or equivalently EZ/HR), so only
+            # cache up to ar and cs
+            stacking_key = (ar, cs)
+
+            if self.format_version >= 6:
+                resolve_stacking_method = self._resolve_stacking
+            else:
+                resolve_stacking_method = self._resolve_stacking_old
+
+            # use cache if available
+            if stacking_key in self._hit_objects_with_stacking:
+                hit_objects = self._hit_objects_with_stacking[stacking_key]
+            else:
+                hit_objects = resolve_stacking_method(hit_objects, ar, cs)
+                # cache stacking calculation
+                self._hit_objects_with_stacking[stacking_key] = hit_objects
+
+        if double_time:
+            hit_objects = [ob.double_time for ob in hit_objects]
+        elif half_time:
+            hit_objects = [ob.half_time for ob in hit_objects]
+
+        keep_classes = []
+        if spinners:
+            keep_classes.append(Spinner)
+        if circles:
+            keep_classes.append(Circle)
+        if sliders:
+            keep_classes.append(Slider)
+
+        return tuple(ob for ob in hit_objects if
+                     isinstance(ob, tuple(keep_classes)))
+
+    def _resolve_stacking(self, hit_objects, ar, cs):
+        """
+        Adjusts the hit objects to account for stacking in beatmap versions 6
+        and up.
+
+        Parameters
+        ----------
+        hit_objects : list[HitObject]
+            The objects to resolve stacking for.
+        ar : float
+            The approach rate to resolve stacking for.
+        cs : float
+            The circle size to resolve stacking for.
+
+        Returns
+        -------
+        hit_objects : list[HitObject]
+            The objects with their new positions, as adjusted by account for
+            stacking.
+        """
+        stack_threshold = ar_to_ms(ar) * self.stack_leniency
+        stack_threshold = timedelta(milliseconds=stack_threshold)
+        stack_dist = 3
+        stack_height = {ob: 0 for ob in hit_objects}
+        # reverse list so it's easier to process
+        hit_objects = list(reversed(hit_objects))
+
+        for i, ob_i in enumerate(hit_objects):
+
+            if stack_height[ob_i] != 0 or isinstance(ob_i, Spinner):
+                continue
+
+            if isinstance(ob_i, Circle):
+                for n, ob_n in enumerate(hit_objects[i+1:], start=i+1):
+
+                    if isinstance(ob_n, Spinner):
+                        continue
+
+                    if hasattr(ob_n, "end_time"):
+                        end_time = ob_n.end_time
+                    else:
+                        end_time = ob_n.time
+
+                    if (ob_i.time - end_time) > stack_threshold:
+                        break
+
+                    if (isinstance(ob_n, Slider) and
+                            distance(ob_n.curve(1),
+                                     ob_i.position) < stack_dist):
+                        offset = stack_height[ob_i] - stack_height[ob_n] + 1
+
+                        for hj in hit_objects[i:n]:
+                            # For each object which was declared under this
+                            # slider, we will offset it to appear *below*
+                            # the slider end (rather than above).
+                            dist = distance(ob_n.curve(1), hj.position)
+                            if dist < stack_dist:
+                                stack_height[hj] -= offset
+
+                        # We have hit a slider.  We should restart calculation
+                        # using this as the new base.
+                        # Breaking here will mean that the slider still has
+                        # stack_height of 0, so it will be handled
+                        # in the i-outer-loop.
+                        break
+
+                    if distance(ob_n.position, ob_i.position) < stack_dist:
+                        # Keep processing as if there are no sliders.
+                        # If we come across a slider, this gets cancelled out.
+                        # NOTE: Sliders with start positions stacking
+                        # are a special case that is also handled here.
+                        stack_height[ob_n] = stack_height[ob_i] + 1
+                        ob_i = ob_n
+
+            elif isinstance(ob_i, Slider):
+                # We have hit the first slider in a possible stack.
+                # From this point on, we ALWAYS stack positive regardless.
+                for n, ob_n in enumerate(hit_objects[i+1:], start=i+1):
+
+                    if isinstance(ob_n, Spinner):
+                        continue
+
+                    if ob_i.time - ob_n.time > stack_threshold:
+                        break
+
+                    if isinstance(ob_n, Slider):
+                        ob_n_end_position = ob_n.curve(1)
+                    else:
+                        ob_n_end_position = ob_n.position
+
+                    if distance(ob_n_end_position, ob_i.position) < stack_dist:
+                        stack_height[ob_n] = stack_height[ob_i] + 1
+                        ob_i = ob_n
+
+        # reverse list again so it's normal
+        hit_objects = list(reversed(hit_objects))
+
+        # apply stacking
+        radius = circle_radius(cs)
+        stack_offset = radius / 10
+
+        for hit_object in hit_objects:
+            offset = stack_offset * stack_height[hit_object]
+            p = hit_object.position
+            p_new = Position(p.x - offset, p.y - offset)
+            hit_object.position = p_new
+
+        return hit_objects
+
+    def _resolve_stacking_old(self, hit_objects, ar, cs):
+        """
+        Adjusts the hit objects to account for stacking in beatmap versions 5
+        and below.
+
+        Parameters
+        ----------
+        hit_objects : list[HitObject]
+            The objects to resolve stacking for.
+        ar : float
+            The approach rate to resolve stacking for.
+        cs : float
+            The circle size to resolve stacking for.
+
+        Returns
+        -------
+        hit_objects : list[HitObject]
+            The objects with their new positions, as adjusted by account for
+            stacking.
+        """
+        stack_threshold = ar_to_ms(ar) * self.stack_leniency
+        stack_threshold = timedelta(milliseconds=stack_threshold)
+        stack_dist = 3
+        stack_height = {ob: 0 for ob in hit_objects}
+        for i, ob_i in enumerate(hit_objects):
+
+            if stack_height[ob_i] != 0 and not isinstance(ob_i, Slider):
+                continue
+
+            if hasattr(ob_i, "end_time"):
+                start_time = ob_i.end_time
+            else:
+                start_time = ob_i.time
+            slider_stack = 0
+
+            for j, ob_j in enumerate(hit_objects[i+1:], start=i+1):
+
+                if ob_j.time - stack_threshold > start_time:
+                    break
+
+                if distance(ob_j.position, ob_i.position) < stack_dist:
+                    stack_height[ob_i] += 1
+
+                    if hasattr(ob_j, "end_time"):
+                        start_time = ob_j.end_time
+                    else:
+                        start_time = ob_j.time
+
+                elif (isinstance(ob_i, Slider) and
+                      distance(ob_j.position, ob_i.curve(1)) < stack_dist):
+                    # Case for sliders - bump notes down and right,
+                    # rather than up and left.
+                    slider_stack += 1
+                    stack_height[ob_j] -= slider_stack
+
+                    if hasattr(ob_j, "end_time"):
+                        start_time = ob_j.end_time
+                    else:
+                        start_time = ob_j.time
+
+        # apply stacking
+        radius = circle_radius(cs)
+        stack_offset = radius / 10
+
+        for hit_object in hit_objects:
+            offset = stack_offset * stack_height[hit_object]
+            p = hit_object.position
+            p_new = Position(p.x - offset, p.y - offset)
+            hit_object.position = p_new
+
+        return hit_objects
 
     @lazyval
-    def circles(self):
-        """Just the circles in the beatmap.
+    def _hit_object_times(self):
+        """a (sorted) list of hitobject time's, so they can be searched with
+        ``np.searchsorted``
         """
-        return tuple(e for e in self.hit_objects if isinstance(e, Circle))
+        return [hitobj.time for hitobj in self._hit_objects]
 
-    @lazyval
-    def sliders(self):
-        """Just the sliders in the beatmap.
+    def closest_hitobject(self, t, side="left"):
+        """The hitobject closest in time to ``t``.
+
+        Parameters
+        ----------
+        t : datetime.timedelta
+            The time to find the hitobject closest to.
+        side : {"left", "right"}
+            Whether to prefer the earlier (left) or later (right) hitobject
+            when breaking ties.
+
+        Returns
+        -------
+        hit_object : HitObject
+            The closest hitobject in time to ``t``.
+        None
+            If the beatmap has no hitobjects.
         """
-        return tuple(e for e in self.hit_objects if isinstance(e, Slider))
+        if len(self._hit_objects) == 0:
+            raise ValueError(f"The beatmap {self!r} must have at least one "
+                             "hit object to determine the closest hitobject.")
+        if len(self._hit_objects) == 1:
+            return self._hit_objects[0]
+
+        i = np.searchsorted(self._hit_object_times, t)
+        # if ``t`` is after the last hitobject, an index of
+        # len(self._hit_objects) will be returned. The last hitobject will
+        # always be the closest hitobject in this case.
+        if i == len(self._hit_objects):
+            return self._hit_objects[-1]
+        # similar logic follows for the first hitobject.
+        if i == 0:
+            return self._hit_objects[0]
+
+        # searchsorted tells us the two closest hitobjects, but not which is
+        # closer. Check both candidates.
+        hitobj1 = self._hit_objects[i - 1]
+        hitobj2 = self._hit_objects[i]
+        dist1 = abs(hitobj1.time - t)
+        dist2 = abs(hitobj2.time - t)
+
+        hitobj1_closer = dist1 <= dist2 if side == "left" else dist1 < dist1
+
+        if hitobj1_closer:
+            return hitobj1
+        return hitobj2
 
     @lazyval
     def max_combo(self):
@@ -1640,7 +2396,7 @@ class Beatmap:
         """
         max_combo = 0
 
-        for hit_object in self.hit_objects:
+        for hit_object in self._hit_objects:
             if isinstance(hit_object, Slider):
                 max_combo += hit_object.ticks
             else:
@@ -1751,6 +2507,39 @@ class Beatmap:
         'Difficulty',
     })
 
+    def write_path(self, path):
+        """Write a ``Beatmap`` object to a file on disk.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            The path to the file to write to.
+
+        Raises
+        ------
+        ValueError
+            Raised when the ``Beatmap`` object is invalid to be
+            written to a ``.osu`` file.
+        """
+        with open(path, mode='wt', encoding='utf-8-sig') as file:
+            self.write_file(file)
+
+    def write_file(self, file):
+        """Write a ``Beatmap`` object to an open file object.
+
+        Parameters
+        ----------
+        file : file-like
+            The file object to write to.
+
+        Raises
+        ------
+        ValueError
+            Raised when the ``Beatmap`` object is invalid to be
+            written to a ``.osu`` file.
+        """
+        file.write(self.pack())
+
     @classmethod
     def _find_groups(cls, lines):
         """Split the input data into the named groups.
@@ -1798,6 +2587,10 @@ class Beatmap:
             group_buffer = []
 
         for line in lines:
+            # some (presmuably manually edited) beatmaps have whitespace at the
+            # beginning or end of lines. This can cause logic relying on tokens
+            # occurring at specific indices to fail, so we get rid of it.
+            line = line.strip()
             if not line or line.startswith('//'):
                 # filter out empty lines and comments
                 continue
@@ -1890,10 +2683,10 @@ class Beatmap:
                 milliseconds=_get_as_int(groups, 'General', 'AudioLeadIn', 0),
             ),
             preview_time=timedelta(
-                milliseconds=_get_as_int(groups, 'General', 'PreviewTime'),
+                milliseconds=_get_as_int(groups, 'General', 'PreviewTime', -1),
             ),
             countdown=_get_as_bool(groups, 'General', 'Countdown', False),
-            sample_set=_get_as_str(groups, 'General', 'SampleSet'),
+            sample_set=_get_as_str(groups, 'General', 'SampleSet', 'Normal'),
             stack_leniency=_get_as_float(
                 groups,
                 'General',
@@ -1917,7 +2710,7 @@ class Beatmap:
                 timedelta(milliseconds=ms) for ms in _get_as_int_list(
                     groups,
                     'Editor',
-                    'bookmarks',
+                    'Bookmarks',
                     [],
                 )
             ],
@@ -1984,6 +2777,155 @@ class Beatmap:
             )),
             events=events,
         )
+
+    def pack(self):
+        """The string content in ``.osu`` file of this beatmap.
+        Default values assumed by osu! client Beatmap editor are used to
+        replace member values which are missing or are of incorrect type.
+
+        Returns
+        -------
+        packed_str : str
+            The packed str of this beatmap
+
+        Raises
+        ------
+        ValueError
+            Raised when essential member values are missing
+            or are of incorrect type.
+        """
+        def pack_field(field, field_value,
+                       pack_func, default, skip_empty=False):
+            packed_field_str = pack_func(field, field_value, default=default)
+            # if ``skip_empty`` is True, empty string will be
+            # returned for empty fields
+            if skip_empty and packed_field_str == '':
+                return ''
+            return field + ':' + packed_field_str + '\n'
+
+        # we'll pin ourselves to file format v14 for packing for now. We'll
+        # need to update this if we ever update the format in which we output
+        # packed beatmaps in.
+        packed_str = 'osu file format v14\n\n'
+
+        # pack General section
+        packed_str += '[General]\n'
+        packed_str += pack_field('AudioFilename', self.audio_filename,
+                                 _pack_str, no_default)
+        packed_str += pack_field('AudioLeadIn', self.audio_lead_in,
+                                 _pack_timedelta, timedelta(milliseconds=0))
+        packed_str += pack_field('PreviewTime', self.preview_time,
+                                 _pack_timedelta, timedelta(milliseconds=-1))
+        packed_str += pack_field('Countdown', self.countdown,
+                                 _pack_bool, False)
+        packed_str += pack_field('SampleSet', self.sample_set,
+                                 _pack_str, 'None')
+        packed_str += pack_field('StackLeniency', self.stack_leniency,
+                                 _pack_float, 0)
+        packed_str += pack_field('Mode', self.mode,
+                                 _pack_int_enum, GameMode.standard)
+        packed_str += pack_field('LetterboxInBreaks', self.letterbox_in_breaks,
+                                 _pack_bool, False)
+        packed_str += pack_field('WidescreenStoryboard',
+                                 self.widescreen_storyboard,
+                                 _pack_bool, False)
+        packed_str += '\n'
+
+        # pack Editor section
+        packed_str += '[Editor]\n'
+        # Bookmarks field actually does not even exist in .osu file
+        # if there's no bookmark at all.
+        packed_str += pack_field('Bookmarks', self.bookmarks,
+                                 partial(_pack_timedelta_list, sep=','),
+                                 [], skip_empty=True)
+        packed_str += pack_field('DistanceSpacing', self.distance_spacing,
+                                 _pack_float, 1.0)
+        packed_str += pack_field('BeatDivisor', self.beat_divisor,
+                                 _pack_int, 4)
+        packed_str += pack_field('GridSize', self.grid_size,
+                                 _pack_int, 4)
+        packed_str += pack_field('TimelineZoom', self.timeline_zoom,
+                                 _pack_float, 1.0)
+        packed_str += '\n'
+
+        # pack Metadata section
+        packed_str += '[Metadata]\n'
+        # osu! beatmap editor forces mappers to enter Title, Artist,
+        # Creator, Version fields when creating a new beatmap from
+        # an audio file, so these fields are considered indispensable
+        # for a valid Beatmap. When packing a Beatmap, ValueError will
+        # be raised if these fields do not have sensible values.
+        packed_str += pack_field('Title', self.title,
+                                 _pack_str, no_default)
+        packed_str += pack_field('TitleUnicode', self.title_unicode,
+                                 _pack_str, self.title)
+        packed_str += pack_field('Artist', self.artist,
+                                 _pack_str, no_default)
+        packed_str += pack_field('ArtistUnicode', self.artist_unicode,
+                                 _pack_str, self.artist)
+        packed_str += pack_field('Creator', self.creator,
+                                 _pack_str, no_default)
+        packed_str += pack_field('Version', self.version,
+                                 _pack_str, no_default)
+        packed_str += pack_field('Source', self.source,
+                                 _pack_str, '')
+        packed_str += pack_field('Tags', self.tags,
+                                 partial(_pack_str_list, sep=' '),
+                                 '')
+        packed_str += pack_field('BeatmapID', self.beatmap_id,
+                                 _pack_int, 0)
+        packed_str += pack_field('BeatmapSetID', self.beatmap_set_id,
+                                 _pack_int, -1)
+        packed_str += '\n'
+
+        # pack Difficulty section
+        packed_str += '[Difficulty]\n'
+        packed_str += pack_field('HPDrainRate', self.hp_drain_rate,
+                                 _pack_float, 5.0)
+        packed_str += pack_field('CircleSize', self.circle_size,
+                                 _pack_float, 5.0)
+        packed_str += pack_field('OverallDifficulty', self.overall_difficulty,
+                                 _pack_float, 5.0)
+        packed_str += pack_field('ApproachRate', self.approach_rate,
+                                 _pack_float, 5.0)
+        packed_str += pack_field('SliderMultiplier', self.slider_multiplier,
+                                 _pack_float, 1.4)
+        packed_str += pack_field('SliderTickRate', self.slider_tick_rate,
+                                 _pack_float, 1.0)
+        packed_str += '\n'
+
+        # pack Events section
+        packed_str += '[Events]\n'
+        packed_str += '// Background and Video events\n' \
+                      '// Break Periods\n' \
+                      '// Storyboard Layer 0(Background)\n' \
+                      '// Storyboard Layer 1(Fail)\n' \
+                      '// Storyboard Layer 2(Pass)\n' \
+                      '// Storyboard Layer 3(Foreground)\n' \
+                      '// Storyboard Layer 4(Overlay)\n' \
+                      '// Storyboard Sound Samples\n'
+        packed_str += '\n'
+
+        # pack TimingPoints section
+        packed_str += '[TimingPoints]\n'
+        for timing_point in self.timing_points:
+            # each timing point occupies a line
+            packed_str += timing_point.pack() + '\n'
+        packed_str += '\n'
+
+        # pack Colours section
+        # packed_str += '[Colours]\n'
+        # # TODO
+        # packed_str += '\n'
+
+        # pack HitObjects section
+        packed_str += '[HitObjects]\n'
+        for hit_object in self._hit_objects:
+            # each hit object occupies a line
+            packed_str += hit_object.pack() + '\n'
+        packed_str += '\n'
+
+        return packed_str
 
     def timing_point_at(self, time):
         """Get the :class:`slider.beatmap.TimingPoint` at the given time.
@@ -2137,12 +3079,12 @@ class Beatmap:
                 return e
 
         times = np.empty(
-            (len(self.hit_objects) - 1, 1),
+            (len(self._hit_objects) - 1, 1),
             dtype='timedelta64[ns]',
         )
-        strains = np.empty((len(self.hit_objects) - 1, 2), dtype=np.float64)
+        strains = np.empty((len(self._hit_objects) - 1, 2), dtype=np.float64)
 
-        hit_objects = map(modify, self.hit_objects)
+        hit_objects = map(modify, self._hit_objects)
         previous = _DifficultyHitObject(next(hit_objects), radius)
         for i, hit_object in enumerate(hit_objects):
             new = _DifficultyHitObject(
@@ -2243,7 +3185,7 @@ class Beatmap:
             def modify(e):
                 return e
 
-        hit_objects = map(modify, self.hit_objects)
+        hit_objects = map(modify, self._hit_objects)
         previous = _DifficultyHitObject(next(hit_objects), radius)
         append_difficulty_hit_object(previous)
         for hit_object in hit_objects:
@@ -2462,7 +3404,7 @@ class Beatmap:
         if count_miss is None:
             count_miss = np.full_like(accuracy, 0)
 
-        max_300 = len(self.hit_objects) - count_miss
+        max_300 = len(self._hit_objects) - count_miss
 
         accuracy = np.maximum(
             0.0,
@@ -2475,15 +3417,15 @@ class Beatmap:
         count_50 = np.full_like(accuracy, 0)
         count_100 = np.round(
             -3.0 *
-            ((accuracy * 0.01 - 1.0) * len(self.hit_objects) + count_miss) *
+            ((accuracy * 0.01 - 1.0) * len(self._hit_objects) + count_miss) *
             0.5,
         )
 
-        mask = count_100 > len(self.hit_objects) - count_miss
+        mask = count_100 > len(self._hit_objects) - count_miss
         count_100[mask] = 0
         count_50[mask] = np.round(
                 -6.0 *
-                ((accuracy[mask] * 0.01 - 1.0) * len(self.hit_objects) +
+                ((accuracy[mask] * 0.01 - 1.0) * len(self._hit_objects) +
                  count_miss[mask]) *
                 0.2,
             )
@@ -2492,7 +3434,7 @@ class Beatmap:
         count_100[~mask] = np.minimum(max_300[~mask], count_100[~mask])
 
         count_300 = (
-            len(self.hit_objects) -
+            len(self._hit_objects) -
             count_100 -
             count_50 -
             count_miss
@@ -2627,9 +3569,9 @@ class Beatmap:
                 count_miss,
             )
         elif np.all(count_300 + count_100 + count_50 + count_miss !=
-                    len(self.hit_objects)):
+                    len(self._hit_objects)):
             s = count_300 + count_100 + count_50 + count_miss
-            os = len(self.hit_objects)
+            os = len(self._hit_objects)
             raise ValueError(
                 f"hit counts don't sum to the total for the map, {s} != {os}"
             )
@@ -2656,7 +3598,7 @@ class Beatmap:
         accuracy = accuracy_scaled * 100
         accuracy_bonus = 0.5 + accuracy_scaled / 2
 
-        count_hit_objects = len(self.hit_objects)
+        count_hit_objects = len(self._hit_objects)
         count_hit_objects_over_2000 = count_hit_objects / 2000
         length_bonus = (
             0.95 +

@@ -60,6 +60,19 @@ class Action:
             k2=self.key2,
         )
 
+    def __repr__(self):
+        actions = []
+        if self.key1:
+            actions.append("K1")
+        if self.key2:
+            actions.append("K2")
+        if self.mouse1:
+            actions.append("M1")
+        if self.mouse2:
+            actions.append("M2")
+        return (f"<{type(self).__qualname__}: {self.offset}, {self.position}, "
+                f"{' + '.join(actions) or 'No Keypresses'}>")
+
 
 def _consume_life_bar_graph(buffer):
     life_bar_graph_raw = consume_string(buffer)
@@ -700,7 +713,7 @@ class Replay:
         )
         hit_50_threshold = datetime.timedelta(milliseconds=hw.hit_50)
         i = 0
-        for obj in beatmap.hit_objects:
+        for obj in beatmap.hit_objects():
             if self.hard_rock:
                 obj = obj.hard_rock
             if isinstance(obj, Spinner):

@@ -1,7 +1,5 @@
 from contextlib import contextmanager
 
-import click
-
 
 def maybe_show_progress(it, show_progress, **kwargs):
     """Optionally show a progress bar for the given iterator.
@@ -29,6 +27,12 @@ def maybe_show_progress(it, show_progress, **kwargs):
                 ...
     """
     if show_progress:
+        try:
+            import click
+        except ImportError as e:
+            raise ImportError(
+                "click must be installed to show a progressbar"
+            ) from e
         return click.progressbar(it, **kwargs)
 
     @contextmanager

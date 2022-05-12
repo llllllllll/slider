@@ -1,6 +1,9 @@
-import click
-
 from . import Library
+
+try:
+    import click
+except ImportError as e:
+    raise ImportError("click must be installed to use the slider cli") from e
 
 
 @click.group()
@@ -24,10 +27,20 @@ def main():
     help='Show a progress bar?',
     default=True,
 )
-def library(beatmaps, recurse, progress):
+@click.option(
+    '--skip-exceptions/--no-skip-exceptions',
+    help='Skip beatmap files that cause exceptions rather than exiting?',
+    default=False,
+)
+def library(beatmaps, recurse, progress, skip_exceptions):
     """Create a slider database from a directory of beatmaps.
     """
-    Library.create_db(beatmaps, recurse=recurse, show_progress=progress)
+    Library.create_db(
+        beatmaps,
+        recurse=recurse,
+        show_progress=progress,
+        skip_exceptions=skip_exceptions
+    )
 
 
 if __name__ == '__main__':
