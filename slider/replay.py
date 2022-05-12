@@ -3,7 +3,7 @@ import datetime
 from enum import unique
 import os
 import lzma
-
+from enum import IntEnum
 from .beatmap import Circle, Slider, Spinner
 from .bit_enum import BitEnum
 from .game_mode import GameMode
@@ -21,7 +21,6 @@ class ActionBitMask(BitEnum):
     m2 = 2
     k1 = 5
     k2 = 10
-
 
 class Action:
     """A user action.
@@ -72,6 +71,28 @@ class Action:
             actions.append("M2")
         return (f"<{type(self).__qualname__}: {self.offset}, {self.position}, "
                 f"{' + '.join(actions) or 'No Keypresses'}>")
+
+class HitObjectJudgement:
+    """Result of a hit attempt on an object
+
+    Parameters
+    ----------
+    hit_object : HitObject
+        The hitobject that the action is trying to hit
+    action: Action
+        The action associated with the hit judgement. None implies no hit involved
+    """
+    def __init__(self, hit_object, action):
+        self.hit_object = hit_object
+        self.action = action
+    
+    @lazyval
+    def hit_error(self):
+        if self.action is None:
+            return None
+        if isinstance(self.hit_object, Spinner):
+            return 0
+        return self.action.offset - self.hit_object.time
 
 
 def _consume_life_bar_graph(buffer):
@@ -135,25 +156,27 @@ def _pressed(datum):
 
 def _process_circle(obj, rdatum, hw, scores):
     out_by = abs(rdatum.offset - obj.time)
+    judgement = HitObjectJudgement(obj, rdatum)
     if out_by < datetime.timedelta(milliseconds=hw.hit_300):
-        scores["300s"].append(obj)
+        scores["300s"].append(judgement)
     elif out_by < datetime.timedelta(milliseconds=hw.hit_100):
-        scores["100s"].append(obj)
+        scores["100s"].append(judgement)
     else:
         # must be within the 50 hit window or we wouldn't be here
-        scores["50s"].append(obj)
-
+        scores["50s"].append(judgement)
 
 def _process_slider(obj, rdata, head_hit, rad, scores):
     t_changes = []
     t_changes_append = t_changes.append
     duration = obj.end_time - obj.time
+    judgement = HitObjectJudgement(obj, None)
 
     if head_hit:
+        judgement.action = rdata[0]
         t_changes_append((rdata[0].offset - obj.time) / duration)
         on = True
     else:
-        scores["slider_breaks"].append(obj)
+        scores["slider_breaks"].append(judgement)
         on = False
 
     for datum in rdata:
@@ -185,18 +208,18 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
                     continue
                 # end tick doesn't cause sliderbreak
             elif obj not in scores["slider_breaks"]:
-                scores["slider_breaks"].append(obj)
+                scores["slider_breaks"].append(judgement)
             missed_points += 1
 
     if missed_points == obj.ticks:
         # all ticks and head missed -> miss
-        scores["misses"].append(obj)
+        scores["misses"].append(judgement)
     elif missed_points > obj.ticks / 2:
-        scores["50s"].append(obj)
+        scores["50s"].append(judgement)
     elif missed_points > 0:
-        scores["100s"].append(obj)
+        scores["100s"].append(judgement)
     else:
-        scores["300s"].append(obj)
+        scores["300s"].append(judgement)
 
 
 class Replay:
@@ -718,7 +741,7 @@ class Replay:
                 obj = obj.hard_rock
             if isinstance(obj, Spinner):
                 # spinners are hard
-                scores['300s'].append(obj)
+                scores['300s'].append(HitObjectJudgement(obj, None))
                 continue
             # we can ignore events before the hit window so iterate
             # until we get past the beginning of the hit window

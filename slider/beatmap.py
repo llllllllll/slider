@@ -106,17 +106,21 @@ class Background(Event):
     @classmethod
     def parse(cls, start_time, event_params):
         try:
-            filename, x_offset, y_offset = event_params
+            filename, *offsets = event_params
             filename = filename.strip('"')
         except ValueError:
             raise ValueError(
                 f'Missing param for Background, received {event_params}')
         try:
-            x_offset = int(x_offset)
+            x_offset = int(offsets[0])
+        except IndexError:
+            x_offset = 0
         except ValueError:
             raise ValueError(f'x_offset is invalid, got {x_offset}')
         try:
-            y_offset = int(y_offset)
+            y_offset = int(offsets[1])
+        except IndexError:
+            y_offset = 0
         except ValueError:
             raise ValueError(f'y_offset is invalid, got {y_offset}')
         return cls(filename, x_offset, y_offset)
@@ -2072,6 +2076,18 @@ class Beatmap:
         """The videos with all other events filtered out.
         """
         return tuple(e for e in self.events if isinstance(e, Break))
+
+    @lazyval
+    def hit_objects_no_spinners(self):
+        """The hit objects with spinners filtered out.
+        """
+        return tuple(e for e in self.hit_objects() if not isinstance(e, Spinner))
+
+    @lazyval
+    def circles(self):
+        """Just the circles in the beatmap.
+        """
+        return tuple(e for e in self.hit_objects() if isinstance(e, Circle))
 
     def hit_objects(self,
                     *,
