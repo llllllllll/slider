@@ -56,7 +56,8 @@ class EventType(Enum):
             try:
                 event_type = EventType[event_type]
             except KeyError:
-                raise ValueError(f'Invalid event type, got {event_type}')
+                return None  # There's more unparsable stuff for storyboarding
+                # raise ValueError(f'Invalid event type, got {event_type}')
         return event_type
 
 
@@ -70,6 +71,9 @@ class Event:
     def parse(cls, data):
         event_type, start_time_or_layer, *event_params = data.split(',')
         event_type = EventType.parse(event_type)
+        if event_type is None:
+            return None
+
         if event_type == EventType.Sprite:
             layer = start_time_or_layer
             return Sprite.parse(layer, event_params)
@@ -2678,7 +2682,8 @@ class Beatmap:
         events = []
         for raw_event in groups['Events']:
             event = Event.parse(raw_event)
-            events.append(event)
+            if event is not None:
+                events.append(event)
 
         slider_multiplier = _get_as_float(
             groups,
