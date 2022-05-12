@@ -92,8 +92,6 @@ class HitObjectJudgement:
     def hit_error(self):
         if self.action is None:
             return None
-        if isinstance(self.hit_object, Spinner):
-            return 0
         return self.action.offset - self.hit_object.time
 
 
@@ -779,7 +777,7 @@ class Replay:
                         obj, actions[starti:i + 1], False, rad, scores
                     )
                 else:
-                    scores["misses"].append(obj)
+                    scores["misses"].append(HitObjectJudgement(obj, None))
             i += 1
         return scores
 
