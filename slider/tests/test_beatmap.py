@@ -177,7 +177,8 @@ def test_hit_objects_stacking():
         slider_multiplier=1,
         slider_tick_rate=1,
         timing_points=[],
-        hit_objects=hit_objects
+        hit_objects=hit_objects,
+        events=[]
     )
     radius = slider.beatmap.circle_radius(5)
     stack_offset = radius / 10
