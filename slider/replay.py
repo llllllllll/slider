@@ -3,7 +3,6 @@ import datetime
 from enum import unique
 import os
 import lzma
-from enum import IntEnum
 from .beatmap import Circle, Slider, Spinner
 from .bit_enum import BitEnum
 from .game_mode import GameMode
@@ -21,6 +20,7 @@ class ActionBitMask(BitEnum):
     m2 = 2
     k1 = 5
     k2 = 10
+
 
 class Action:
     """A user action.
@@ -72,6 +72,7 @@ class Action:
         return (f"<{type(self).__qualname__}: {self.offset}, {self.position}, "
                 f"{' + '.join(actions) or 'No Keypresses'}>")
 
+
 class HitObjectJudgement:
     """Result of a hit attempt on an object
 
@@ -80,12 +81,13 @@ class HitObjectJudgement:
     hit_object : HitObject
         The hitobject that the action is trying to hit
     action: Action
-        The action associated with the hit judgement. None implies no hit involved
+        The action associated with the hit judgement.
+        None implies no hit involved
     """
     def __init__(self, hit_object, action):
         self.hit_object = hit_object
         self.action = action
-    
+
     @lazyval
     def hit_error(self):
         if self.action is None:
@@ -164,6 +166,7 @@ def _process_circle(obj, rdatum, hw, scores):
     else:
         # must be within the 50 hit window or we wouldn't be here
         scores["50s"].append(judgement)
+
 
 def _process_slider(obj, rdata, head_hit, rad, scores):
     t_changes = []

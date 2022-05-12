@@ -144,7 +144,7 @@ class Break(Event):
             end_time = event_params[0]
             end_time = timedelta(milliseconds=int(end_time))
         except IndexError:
-            raise ValueError(f'Beatmap is invalid, no end_time received')
+            raise ValueError('Beatmap is invalid, no end_time received')
         except ValueError:
             raise ValueError(f'Invalid end_time provided, got {end_time}')
         return cls(start_time, end_time)
@@ -2081,7 +2081,8 @@ class Beatmap:
     def hit_objects_no_spinners(self):
         """The hit objects with spinners filtered out.
         """
-        return tuple(e for e in self.hit_objects() if not isinstance(e, Spinner))
+        return tuple(e for e in self.hit_objects()
+                     if not isinstance(e, Spinner))
 
     @lazyval
     def circles(self):
