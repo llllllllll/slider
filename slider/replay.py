@@ -97,6 +97,8 @@ class HitObjectJudgement:
 
 def _consume_life_bar_graph(buffer):
     life_bar_graph_raw = consume_string(buffer)
+    if life_bar_graph_raw is None:
+        return []
     return [
         (datetime.timedelta(milliseconds=int(offset)), float(value))
         for offset, value in (
