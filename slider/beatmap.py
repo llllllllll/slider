@@ -2010,17 +2010,6 @@ class Beatmap:
         """
         return tuple(e for e in self.events if isinstance(e, Video))
 
-    def sprites(self):
-        """The sprites of this beatmap.
-        """
-        return tuple(e for e in self.events if isinstance(e, Sprite))
-
-    def animations(self):
-        """The animations of this beatmap.
-        """
-        return tuple(e for e in self.events if isinstance(e, Animation))
-
-
     def hit_objects(self,
                     *,
                     circles=True,
