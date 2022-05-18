@@ -3450,7 +3450,9 @@ class Beatmap:
             count_circles = count_hit_objects
             real_accuracy = accuracy
         else:
-            count_circles = len(self.circles)
+            count_circles = len(
+                self.hit_objects(circles=True, sliders=False, spinners=False)
+            )
             if count_circles:
                 real_accuracy = (
                     (count_300 - (count_hit_objects - count_circles)) * 300.0 +
