@@ -119,7 +119,6 @@ class Break(Event):
         return cls(start_time, end_time)
 
 
-
 class Video(Event):
     def __init__(self, start_time, filename, x_offset, y_offset):
         super().__init__(EventType.Video, start_time)
@@ -147,8 +146,6 @@ class Video(Event):
             raise ValueError(f'y_offset is invalid, got {y_offset}')
 
         return cls(start_time, filename, x_offset, y_offset)
-
-
 
 
 class TimingPoint:
@@ -179,7 +176,6 @@ class TimingPoint:
     kiai_mode : bool
         Wheter or not kiai time effects are active.
     """
-
     def __init__(self,
                  offset,
                  ms_per_beat,
