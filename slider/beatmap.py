@@ -95,8 +95,10 @@ class Background(Event):
         if len(event_params) > 2:
             y_offset = event_params[2]
         if len(event_params) > 3:
-            raise ValueError("expected no more than 3 params for Background, "
-                f"but got params {event_params}")
+            raise ValueError(
+                "expected no more than 3 params for Background, "
+                f"but got params {event_params}"
+            )
 
         try:
             x_offset = int(x_offset)
@@ -157,11 +159,15 @@ class Video(Event):
 
         return cls(start_time, filename, x_offset, y_offset)
 
+
 # TODO implement these events
 class Sprite:
     pass
+
+
 class Animation:
     pass
+
 
 class TimingPoint:
     """A timing point assigns properties to an offset into a beatmap.
