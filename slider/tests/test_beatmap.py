@@ -241,6 +241,7 @@ def test_od(beatmap):
 
 
 def test_background(beatmap):
+    assert len(beatmap.backgrounds) == 1
     background = beatmap.backgrounds[0]
     assert background.filename == 'miiro_no_scenario.png'
     assert background.x_offset == 0
