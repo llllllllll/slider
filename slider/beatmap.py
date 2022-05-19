@@ -2559,9 +2559,7 @@ class Beatmap:
                 commit_group()
                 current_group = line[1:-1]
             else:
-                is_storyboard_param = line[0] == '_' or line[0] == ' '
-                if not is_storyboard_param:
-                    group_buffer.append(line)
+                group_buffer.append(line)
 
         # commit the final group
         commit_group()
