@@ -52,9 +52,9 @@ class Event:
 
         # TODO implement storyboarding events
         if event_type is EventType.Sprite:
-            pass
+            return Sprite()
         if event_type is EventType.Animation:
-            pass
+            return Animation()
 
         try:
             start_time = int(start_time_or_layer)
@@ -157,6 +157,11 @@ class Video(Event):
 
         return cls(start_time, filename, x_offset, y_offset)
 
+# TODO implement these events
+class Sprite:
+    pass
+class Animation:
+    pass
 
 class TimingPoint:
     """A timing point assigns properties to an offset into a beatmap.
