@@ -2643,6 +2643,14 @@ class Beatmap:
 
         events = []
         for raw_event in groups['Events']:
+            # storyboard elements (sprites and animations) are followed by a
+            # list of layers and positions that they appear on. This list is
+            # indented with a space. We'll want to parse these properly
+            # eventually, but they're not Events and we'll error if we try to
+            # parse them as such right now, so just ignore them for now.
+            if raw_event[0] in ["F", "M", "S", "L", "R"] and raw_event[1] == ",":
+                # TODO implement storyboard layers / events
+                continue
             event = Event.parse(raw_event)
             events.append(event)
 
