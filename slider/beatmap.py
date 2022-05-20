@@ -59,9 +59,9 @@ class Event:
     def parse(cls, data):
         event_type, start_time_or_layer, *event_params = data.split(',')
 
-        # event types are allowed to be specified as either integers or strings.
-        # try parsing as an int first, and just leave it alone otherwise (our
-        # enum instantiation will take care of validation).
+        # event types are allowed to be specified as either integers or
+        # strings. try parsing as an int first, and just leave it alone
+        # otherwise (our enum instantiation will take care of validation).
         if event_type.isdigit():
             event_type = int(event_type)
         event_type = EventType(event_type)
@@ -2648,7 +2648,10 @@ class Beatmap:
             # indented with a space. We'll want to parse these properly
             # eventually, but they're not Events and we'll error if we try to
             # parse them as such right now, so just ignore them for now.
-            if raw_event[0] in ["F", "M", "S", "L", "R"] and raw_event[1] == ",":
+            if(
+                raw_event[0] in ["F", "M", "S", "L", "R"] and
+                raw_event[1] == ","
+            ):
                 # TODO implement storyboard layers / events
                 continue
             event = Event.parse(raw_event)
