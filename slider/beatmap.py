@@ -39,6 +39,16 @@ class EventType(IntEnum):
     Sprite = 3
     Animation = 4
 
+    @classmethod
+    def _missing_(cls, value):
+        return {
+            "Background": EventType.Background,
+            "Video": EventType.Video,
+            "Break": EventType.Break,
+            "Sprite": EventType.Sprite,
+            "Animation": EventType.Animation
+        }[value]
+
 
 class Event:
     def __init__(self, event_type, start_time):
@@ -48,7 +58,13 @@ class Event:
     @classmethod
     def parse(cls, data):
         event_type, start_time_or_layer, *event_params = data.split(',')
-        event_type = EventType(int(event_type))
+
+        # event types are allowed to be specified as either integers or strings.
+        # try parsing as an int first, and just leave it alone otherwise (our
+        # enum instantiation will take care of validation).
+        if event_type.isdigit():
+            event_type = int(event_type)
+        event_type = EventType(event_type)
 
         # TODO implement storyboarding events
         if event_type is EventType.Sprite:
