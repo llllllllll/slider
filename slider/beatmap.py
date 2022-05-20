@@ -156,12 +156,23 @@ class Video(Event):
 
     @classmethod
     def parse(cls, start_time, event_params):
-        try:
-            filename, x_offset, y_offset = event_params
-            filename = filename.strip('"')
-        except ValueError:
+        if len(event_params) == 0:
+            raise ValueError('expected filename parameter for Video')
+
+        filename = event_params[0].strip('"')
+        x_offset = 0
+        y_offset = 0
+
+        # x_offset and y_offset are optional, default to 0
+        if len(event_params) > 1:
+            x_offset = event_params[1]
+        if len(event_params) > 2:
+            y_offset = event_params[2]
+        if len(event_params) > 3:
             raise ValueError(
-                f'Missing param for video, received {event_params}')
+                "expected no more than 3 params for Video, "
+                f"but got params {event_params}"
+            )
 
         try:
             x_offset = int(x_offset)
