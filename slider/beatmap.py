@@ -38,6 +38,10 @@ class EventType(IntEnum):
     Break = 2
     Sprite = 3
     Animation = 4
+    # TODO I have absolutely no idea if Sample is really supposed to be 5.
+    # See https://osu.ppy.sh/beatmapsets/14902#osu/54879 for a map with a
+    # sample event
+    Sample = 5
 
     @classmethod
     def _missing_(cls, value):
@@ -46,7 +50,8 @@ class EventType(IntEnum):
             "Video": EventType.Video,
             "Break": EventType.Break,
             "Sprite": EventType.Sprite,
-            "Animation": EventType.Animation
+            "Animation": EventType.Animation,
+            "Sample": EventType.Sample
         }[value]
 
 
@@ -71,6 +76,8 @@ class Event:
             return Sprite()
         if event_type is EventType.Animation:
             return Animation()
+        if event_type is EventType.Sample:
+            return Sample()
 
         try:
             start_time = int(start_time_or_layer)
@@ -193,6 +200,10 @@ class Sprite:
 
 
 class Animation:
+    pass
+
+
+class Sample:
     pass
 
 
