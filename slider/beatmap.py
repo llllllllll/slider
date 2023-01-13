@@ -683,10 +683,7 @@ class Slider(HitObject):
 
             ratio = duration / real_duration
             curve_point = int(self.length * ratio)
-            print(f"Working on slider at {self.time} ({self.position}) with slider length {curve_point} = {self.length}x{duration}/{real_duration} for last point")
-            print(f"Curve Percentage: {curve_point / self.length}")
             pos = curve(curve_point / self.length)
-            print(f"Curve point: {pos}")
             
             if not self.has_updated_end:
                 self.end_time -= timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
