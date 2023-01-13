@@ -6,6 +6,7 @@ from itertools import chain, islice, cycle
 import operator as op
 import re
 from zipfile import ZipFile
+from copy import deepcopy
 
 import numpy as np
 
@@ -21,6 +22,9 @@ from .utils import (
     orange,
 )
 from .curve import Curve
+
+
+LAZY_SLIDER_END_OFFSET = 36
 
 
 def _get(cs, ix, default=no_default):
@@ -613,6 +617,8 @@ class Slider(HitObject):
         self.ms_per_beat = ms_per_beat
         self.edge_sounds = edge_sounds
         self.edge_additions = edge_additions
+        self.lazy_slider_end = False
+        self.has_updated_end = False
 
     @lazyval
     def tick_points(self):
@@ -634,8 +640,10 @@ class Slider(HitObject):
             timediff = timedelta(milliseconds=t * self.ms_per_beat)
             append_tick(Point(pos.x, pos.y, time + timediff))
 
+        
         pos = curve(1)
         timediff = repeat_duration
+
         append_tick(Point(pos.x, pos.y, time + timediff))
 
         repeat_ticks = [
@@ -650,7 +658,8 @@ class Slider(HitObject):
             cycle([pre_repeat_ticks, repeat_ticks]),
             repeat,
         )
-        return list(
+
+        res = list(
             chain.from_iterable(
                 (
                     Point(p.x, p.y, p.offset + n * repeat_duration)
@@ -659,6 +668,31 @@ class Slider(HitObject):
                 for n, tick_sequence in enumerate(tick_sequences)
             ),
         )
+
+        if self.lazy_slider_end:
+            # curve() takes in a percentage of how far along we want the point. 
+            # Take away the offset from the total length of the slider to get
+            # the percentage of the slider we want the point at.
+            true_end_time = self.end_time
+
+            if self.has_updated_end or self.lazy_slider_end:
+                true_end_time -= timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
+
+            duration = true_end_time - self.time
+            real_duration = self.end_time - self.time
+
+            ratio = duration / real_duration
+            curve_point = int(self.length * ratio)
+            print(f"Working on slider at {self.time} with slider length {curve_point} = {self.length}x{duration}/{real_duration} for last point")
+            pos = curve(curve_point)
+            
+            if not self.has_updated_end:
+                self.end_time -= timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
+                self.has_updated_end = True
+
+            res[-1] = Point(pos.x, pos.y, self.end_time)
+        
+        return res
 
     @lazyval
     def hard_rock(self):
@@ -1880,7 +1914,8 @@ class Beatmap:
                     easy=False,
                     hard_rock=False,
                     double_time=False,
-                    half_time=False):
+                    half_time=False,
+                    legacy_slider_end=False):
         """Retrieve hit_objects.
 
         Parameters
@@ -1904,6 +1939,7 @@ class Beatmap:
         double_time : bool, optional
             Get the effective position of the hit objects with double time
             enabled.
+        legacy_slider_end : bool, optional
 
         Returns
         -------
@@ -1949,9 +1985,33 @@ class Beatmap:
             keep_classes.append(Circle)
         if sliders:
             keep_classes.append(Slider)
-
-        return tuple(ob for ob in hit_objects if
+        
+        res = tuple(ob for ob in hit_objects if
                      isinstance(ob, tuple(keep_classes)))
+
+        if not legacy_slider_end:
+            return res
+
+        # legacy slider end positions have the following properties:
+        # 1. the last tick of a slider is offset by -36ms from the actual end.
+        # 2. this changed offset also affects the actual end of the slider. This is already handled by the slider object.
+
+        result = deepcopy(hit_objects)
+        for i, ob in enumerate(result):
+            if isinstance(ob, Slider):
+                # 1. offset the last tick (if the slider is long enough)
+                if ob.end_time - ob.time > timedelta(milliseconds=36):
+                    temp = deepcopy(ob)
+                    temp.lazy_slider_end = True
+                    temp.tick_points = temp.tick_points
+                    result[i] = temp
+            else:
+                result[i] = ob
+    
+        return tuple(ob for ob in result if
+                     isinstance(ob, tuple(keep_classes)))
+
+
 
     def _resolve_stacking(self, hit_objects, ar, cs):
         """

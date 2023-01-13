@@ -194,6 +194,24 @@ def test_hit_objects_hard_rock(beatmap):
     assert hit_objects_hard_rock_0.curve.points == [Position(x=243, y=220),
                                                     Position(x=301, y=209)]
 
+def test_legacy_slider_end():
+    beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario()
+
+    # the very first object is a slider, it ends at 1s178ms, so with a -36ms offset for the sliderend,
+    # it should be 1s142ms
+    # Position should be x=271, y=169
+    objects = beatmap.hit_objects(sliders=True, legacy_slider_end=True)
+    firstSlider = objects[0]
+    assert isinstance(firstSlider, slider.beatmap.Slider)
+    assert firstSlider.end_time == timedelta(milliseconds=1142)
+
+    expected_lazy_pos = Position(x=271, y=169)
+    
+    last_point: slider.beatmap.Point = firstSlider.tick_points[-1]
+    assert firstSlider.end_time == timedelta(milliseconds=1142)
+    assert last_point.offset == firstSlider.end_time
+    assert last_point.x == expected_lazy_pos.x
+    assert last_point.y == expected_lazy_pos.y
 
 def test_closest_hitobject():
     beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Beginner')
