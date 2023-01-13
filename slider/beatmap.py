@@ -64,6 +64,7 @@ class TimingPoint:
     kiai_mode : bool
         Wheter or not kiai time effects are active.
     """
+
     def __init__(self,
                  offset,
                  ms_per_beat,
@@ -640,7 +641,6 @@ class Slider(HitObject):
             timediff = timedelta(milliseconds=t * self.ms_per_beat)
             append_tick(Point(pos.x, pos.y, time + timediff))
 
-        
         pos = curve(1)
         timediff = repeat_duration
 
@@ -670,7 +670,7 @@ class Slider(HitObject):
         )
 
         if self.lazy_slider_end:
-            # curve() takes in a percentage of how far along we want the point. 
+            # curve() takes in a percentage of how far along we want the point.
             # Take away the offset from the total length of the slider to get
             # the percentage of the slider we want the point at.
             true_end_time = self.end_time
@@ -684,13 +684,13 @@ class Slider(HitObject):
             ratio = duration / real_duration
             curve_point = int(self.length * ratio)
             pos = curve(curve_point / self.length)
-            
+
             if not self.has_updated_end:
                 self.end_time -= timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
                 self.has_updated_end = True
 
             res[-1] = Point(pos.x, pos.y, self.end_time)
-        
+
         return res
 
     @lazyval
@@ -1984,9 +1984,9 @@ class Beatmap:
             keep_classes.append(Circle)
         if sliders:
             keep_classes.append(Slider)
-        
+
         res = tuple(ob for ob in hit_objects if
-                     isinstance(ob, tuple(keep_classes)))
+                    isinstance(ob, tuple(keep_classes)))
 
         if not legacy_slider_end:
             return res
@@ -2006,11 +2006,9 @@ class Beatmap:
                     result[i] = temp
             else:
                 result[i] = ob
-    
+
         return tuple(ob for ob in result if
                      isinstance(ob, tuple(keep_classes)))
-
-
 
     def _resolve_stacking(self, hit_objects, ar, cs):
         """
@@ -3274,11 +3272,11 @@ class Beatmap:
         mask = count_100 > len(self._hit_objects) - count_miss
         count_100[mask] = 0
         count_50[mask] = np.round(
-                -6.0 *
-                ((accuracy[mask] * 0.01 - 1.0) * len(self._hit_objects) +
-                 count_miss[mask]) *
-                0.2,
-            )
+            -6.0 *
+            ((accuracy[mask] * 0.01 - 1.0) * len(self._hit_objects) +
+             count_miss[mask]) *
+            0.2,
+        )
         count_50[mask] = np.minimum(max_300[mask], count_50[mask])
 
         count_100[~mask] = np.minimum(max_300[~mask], count_100[~mask])
