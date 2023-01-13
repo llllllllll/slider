@@ -210,8 +210,13 @@ def test_legacy_slider_end():
     last_point: slider.beatmap.Point = firstSlider.tick_points[-1]
     assert firstSlider.end_time == timedelta(milliseconds=1142)
     assert last_point.offset == firstSlider.end_time
-    assert last_point.x == expected_lazy_pos.x
-    assert last_point.y == expected_lazy_pos.y
+    # the calculation seems to include some rounding errors, any derivation of +- slider leniency is fine
+    # slider leniency is x1.2 of the circle radius, see https://github.com/ppy/osu/blob/master/osu.Game.Rulesets.Osu.Tests/TestSceneSliderFollowCircleInput.cs#L42
+
+    biggest_allowed_gap = slider.beatmap.circle_radius(beatmap.circle_size) * 1.2
+
+    assert abs(last_point.x - expected_lazy_pos.x) <= biggest_allowed_gap
+    assert abs(last_point.y - expected_lazy_pos.y) <= biggest_allowed_gap
 
 def test_closest_hitobject():
     beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Beginner')
