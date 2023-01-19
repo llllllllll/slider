@@ -6,7 +6,6 @@ from itertools import chain, islice, cycle
 import operator as op
 import re
 from zipfile import ZipFile
-from copy import deepcopy
 
 import numpy as np
 
