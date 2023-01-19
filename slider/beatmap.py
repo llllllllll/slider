@@ -23,9 +23,6 @@ from .utils import (
 from .curve import Curve
 
 
-LAZY_SLIDER_END_OFFSET = 36
-
-
 def _get(cs, ix, default=no_default):
     try:
         return cs[ix]
@@ -590,6 +587,7 @@ class Slider(HitObject):
     """
     type_code = 2
     time_related_attributes = frozenset({'time', 'end_time', 'ms_per_beat'})
+    LEGACY_LAST_TICK_OFFSET = 36
 
     def __init__(self,
                  position,
@@ -672,7 +670,7 @@ class Slider(HitObject):
         # Take away the offset from the total length of the slider to get
         # the percentage of the slider we want the point at.
         true_end_time = (
-            self.end_time - timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
+            self.end_time - timedelta(milliseconds=self.LEGACY_LAST_TICK_OFFSET)
         )
 
         duration = true_end_time - self.time
@@ -682,7 +680,7 @@ class Slider(HitObject):
         curve_point = int(self.length * ratio)
         pos = self.curve(curve_point / self.length)
 
-        self.end_time -= timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
+        self.end_time -= timedelta(milliseconds=self.LEGACY_LAST_TICK_OFFSET)
 
         tick_points[-1] = Point(pos.x, pos.y, self.end_time)
 
