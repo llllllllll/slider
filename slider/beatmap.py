@@ -618,8 +618,6 @@ class Slider(HitObject):
         self.ms_per_beat = ms_per_beat
         self.edge_sounds = edge_sounds
         self.edge_additions = edge_additions
-        self.lazy_slider_end = False
-        self.has_updated_end = False
 
     @lazyval
     def tick_points(self):
@@ -658,7 +656,7 @@ class Slider(HitObject):
             repeat,
         )
 
-        res = list(
+        return list(
             chain.from_iterable(
                 (
                     Point(p.x, p.y, p.offset + n * repeat_duration)
@@ -668,29 +666,28 @@ class Slider(HitObject):
             ),
         )
 
-        if self.lazy_slider_end:
-            # curve() takes in a percentage of how far along we want the point.
-            # Take away the offset from the total length of the slider to get
-            # the percentage of the slider we want the point at.
-            true_end_time = self.end_time
+    @lazyval
+    def true_tick_points(self):
+        tick_points = self.tick_points
+        # curve() takes in a percentage of how far along we want the point.
+        # Take away the offset from the total length of the slider to get
+        # the percentage of the slider we want the point at.
+        true_end_time = (
+            self.end_time - timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
+        )
 
-            if self.has_updated_end or self.lazy_slider_end:
-                true_end_time -= timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
+        duration = true_end_time - self.time
+        real_duration = self.end_time - self.time
 
-            duration = true_end_time - self.time
-            real_duration = self.end_time - self.time
+        ratio = duration / real_duration
+        curve_point = int(self.length * ratio)
+        pos = self.curve(curve_point / self.length)
 
-            ratio = duration / real_duration
-            curve_point = int(self.length * ratio)
-            pos = curve(curve_point / self.length)
+        self.end_time -= timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
 
-            if not self.has_updated_end:
-                self.end_time -= timedelta(milliseconds=LAZY_SLIDER_END_OFFSET)
-                self.has_updated_end = True
+        tick_points[-1] = Point(pos.x, pos.y, self.end_time)
 
-            res[-1] = Point(pos.x, pos.y, self.end_time)
-
-        return res
+        return tick_points
 
     @lazyval
     def hard_rock(self):
@@ -1912,8 +1909,7 @@ class Beatmap:
                     easy=False,
                     hard_rock=False,
                     double_time=False,
-                    half_time=False,
-                    legacy_slider_end=False):
+                    half_time=False):
         """Retrieve hit_objects.
 
         Parameters
@@ -1937,7 +1933,6 @@ class Beatmap:
         double_time : bool, optional
             Get the effective position of the hit objects with double time
             enabled.
-        legacy_slider_end : bool, optional
 
         Returns
         -------
@@ -1984,30 +1979,8 @@ class Beatmap:
         if sliders:
             keep_classes.append(Slider)
 
-        res = tuple(ob for ob in hit_objects if
+        return tuple(ob for ob in hit_objects if
                     isinstance(ob, tuple(keep_classes)))
-
-        if not legacy_slider_end:
-            return res
-
-        # legacy slider end positions have the following properties:
-        # 1. the last tick of a slider is offset by -36ms from the actual end.
-        # 2. this changed offset also affects the actual end of the slider. This is already handled by the slider object.
-
-        result = deepcopy(hit_objects)
-        for i, ob in enumerate(result):
-            if isinstance(ob, Slider):
-                # 1. offset the last tick (if the slider is long enough)
-                if ob.end_time - ob.time > timedelta(milliseconds=36):
-                    temp = deepcopy(ob)
-                    temp.lazy_slider_end = True
-                    temp.tick_points = temp.tick_points
-                    result[i] = temp
-            else:
-                result[i] = ob
-
-        return tuple(ob for ob in result if
-                     isinstance(ob, tuple(keep_classes)))
 
     def _resolve_stacking(self, hit_objects, ar, cs):
         """

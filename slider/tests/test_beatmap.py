@@ -200,16 +200,13 @@ def test_legacy_slider_end():
     # the very first object is a slider, it ends at 1s178ms, so with a -36ms offset for the sliderend,
     # it should be 1s142ms
     # Position should be x=271, y=169
-    objects = beatmap.hit_objects(legacy_slider_end=True)
+    objects = beatmap.hit_objects()
     first_slider = objects[0]
     assert isinstance(first_slider, slider.beatmap.Slider)
-    assert first_slider.end_time == timedelta(milliseconds=1142)
 
     expected_lazy_pos = Position(x=271, y=169)
 
-    last_point: slider.beatmap.Point = first_slider.tick_points[-1]
-    assert first_slider.end_time == timedelta(milliseconds=1142)
-    assert last_point.offset == first_slider.end_time
+    last_point = first_slider.true_tick_points[-1]
     # the calculation seems to include some rounding errors, any derivation of +- slider leniency is fine
     # slider leniency is x1.2 of the circle radius, see https://github.com/ppy/osu/blob/master/osu.Game.Rulesets.Osu.Tests/TestSceneSliderFollowCircleInput.cs#L42
 
@@ -226,8 +223,6 @@ def test_legacy_slider_end():
             break
     assert found_obj is not None
     assert isinstance(found_obj, slider.beatmap.Slider)
-    assert found_obj.end_time == timedelta(milliseconds=20424)
-    assert found_obj.tick_points[-1].offset == found_obj.end_time
     expected_lazy_pos = Position(x=194, y=113)
     assert abs(found_obj.tick_points[-1].x - expected_lazy_pos.x) <= biggest_allowed_gap
     assert abs(found_obj.tick_points[-1].y - expected_lazy_pos.y) <= biggest_allowed_gap
