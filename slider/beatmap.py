@@ -1979,7 +1979,7 @@ class Beatmap:
             keep_classes.append(Slider)
 
         return tuple(ob for ob in hit_objects if
-                    isinstance(ob, tuple(keep_classes)))
+                     isinstance(ob, tuple(keep_classes)))
 
     def _resolve_stacking(self, hit_objects, ar, cs):
         """
