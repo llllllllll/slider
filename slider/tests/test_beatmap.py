@@ -201,15 +201,15 @@ def test_legacy_slider_end():
     # it should be 1s142ms
     # Position should be x=271, y=169
     objects = beatmap.hit_objects(legacy_slider_end=True)
-    firstSlider = objects[0]
-    assert isinstance(firstSlider, slider.beatmap.Slider)
-    assert firstSlider.end_time == timedelta(milliseconds=1142)
+    first_slider = objects[0]
+    assert isinstance(first_slider, slider.beatmap.Slider)
+    assert first_slider.end_time == timedelta(milliseconds=1142)
 
     expected_lazy_pos = Position(x=271, y=169)
-    
-    last_point: slider.beatmap.Point = firstSlider.tick_points[-1]
-    assert firstSlider.end_time == timedelta(milliseconds=1142)
-    assert last_point.offset == firstSlider.end_time
+
+    last_point: slider.beatmap.Point = first_slider.tick_points[-1]
+    assert first_slider.end_time == timedelta(milliseconds=1142)
+    assert last_point.offset == first_slider.end_time
     # the calculation seems to include some rounding errors, any derivation of +- slider leniency is fine
     # slider leniency is x1.2 of the circle radius, see https://github.com/ppy/osu/blob/master/osu.Game.Rulesets.Osu.Tests/TestSceneSliderFollowCircleInput.cs#L42
 
@@ -219,18 +219,18 @@ def test_legacy_slider_end():
     assert abs(last_point.y - expected_lazy_pos.y) <= biggest_allowed_gap
 
     # find the slider at 20s153ms
-    foundObj = None
+    found_obj = None
     for obj in objects:
         if obj.time == timedelta(milliseconds=20153):
-            foundObj = obj
+            found_obj = obj
             break
-    assert foundObj is not None
-    assert isinstance(foundObj, slider.beatmap.Slider)
-    assert foundObj.end_time == timedelta(milliseconds=20424)
-    assert foundObj.tick_points[-1].offset == foundObj.end_time
+    assert found_obj is not None
+    assert isinstance(found_obj, slider.beatmap.Slider)
+    assert found_obj.end_time == timedelta(milliseconds=20424)
+    assert found_obj.tick_points[-1].offset == found_obj.end_time
     expected_lazy_pos = Position(x=194, y=113)
-    assert abs(foundObj.tick_points[-1].x - expected_lazy_pos.x) <= biggest_allowed_gap
-    assert abs(foundObj.tick_points[-1].y - expected_lazy_pos.y) <= biggest_allowed_gap
+    assert abs(found_obj.tick_points[-1].x - expected_lazy_pos.x) <= biggest_allowed_gap
+    assert abs(found_obj.tick_points[-1].y - expected_lazy_pos.y) <= biggest_allowed_gap
 
 def test_closest_hitobject():
     beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Beginner')
