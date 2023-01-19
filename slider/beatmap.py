@@ -643,7 +643,6 @@ class Slider(HitObject):
 
         pos = curve(1)
         timediff = repeat_duration
-
         append_tick(Point(pos.x, pos.y, time + timediff))
 
         repeat_ticks = [
@@ -3272,11 +3271,11 @@ class Beatmap:
         mask = count_100 > len(self._hit_objects) - count_miss
         count_100[mask] = 0
         count_50[mask] = np.round(
-            -6.0 *
-            ((accuracy[mask] * 0.01 - 1.0) * len(self._hit_objects) +
-             count_miss[mask]) *
-            0.2,
-        )
+                -6.0 *
+                ((accuracy[mask] * 0.01 - 1.0) * len(self._hit_objects) +
+                 count_miss[mask]) *
+                0.2,
+            )
         count_50[mask] = np.minimum(max_300[mask], count_50[mask])
 
         count_100[~mask] = np.minimum(max_300[~mask], count_100[~mask])
