@@ -651,7 +651,6 @@ class Slider(HitObject):
             cycle([pre_repeat_ticks, repeat_ticks]),
             repeat,
         )
-
         return list(
             chain.from_iterable(
                 (
