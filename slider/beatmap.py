@@ -60,7 +60,6 @@ class TimingPoint:
     kiai_mode : bool
         Wheter or not kiai time effects are active.
     """
-
     def __init__(self,
                  offset,
                  ms_per_beat,
