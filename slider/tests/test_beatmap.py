@@ -194,6 +194,7 @@ def test_hit_objects_hard_rock(beatmap):
     assert hit_objects_hard_rock_0.curve.points == [Position(x=243, y=220),
                                                     Position(x=301, y=209)]
 
+
 def test_legacy_slider_end():
     beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario()
 
@@ -237,6 +238,7 @@ def test_legacy_slider_end():
         abs(found_obj.tick_points[-1].y - expected_lazy_pos.y)
         <= biggest_allowed_gap
     )
+
 
 def test_closest_hitobject():
     beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Beginner')
