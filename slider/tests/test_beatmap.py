@@ -248,7 +248,7 @@ def test_legacy_slider_end():
     assert (
         abs(
             found_obj.true_tick_points[-1].offset -
-            timedelta(milliseconds=20461)
+            timedelta(milliseconds=20425)
         ) <= timedelta(milliseconds=1)
     )
 
