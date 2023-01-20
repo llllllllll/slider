@@ -214,8 +214,13 @@ def test_legacy_slider_end():
     # https://github.com/ppy/osu/blob/master/osu.Game.Rulesets.Osu.Tests/
     # TestSceneSliderFollowCircleInput.cs#L42
 
+    # This factor is to adjust how much leniency we allow for the test
+    # The sliderball itself is rather big, so scaling this down will increase
+    # the accuracy of the test's claims
+    precision_factor = 16.0
+
     biggest_allowed_gap = (
-        slider.beatmap.circle_radius(beatmap.circle_size) * 1.2 / 2.0
+        slider.beatmap.circle_radius(beatmap.circle_size) * 1.2 / precision_factor
     )
 
     assert abs(last_point.x - expected_lazy_pos.x) <= biggest_allowed_gap
@@ -229,15 +234,45 @@ def test_legacy_slider_end():
             break
     assert found_obj is not None
     assert isinstance(found_obj, slider.beatmap.Slider)
-    expected_lazy_pos = Position(x=194, y=113)
+    expected_lazy_pos = Position(x=196, y=110)
+
     assert (
-        abs(found_obj.tick_points[-1].x - expected_lazy_pos.x)
+        abs(found_obj.true_tick_points[-1].x - expected_lazy_pos.x)
         <= biggest_allowed_gap
     )
     assert (
-        abs(found_obj.tick_points[-1].y - expected_lazy_pos.y)
+        abs(found_obj.true_tick_points[-1].y - expected_lazy_pos.y)
         <= biggest_allowed_gap
     )
+    # make sure the timing is still right
+    assert (
+        abs(
+            found_obj.true_tick_points[-1].offset -
+            timedelta(milliseconds=20461)
+        ) <= timedelta(milliseconds=1)
+    )
+
+    # Make sure the actual sliderends didnt get changed
+    first_slider_real_end = Position(x=287, y=172)
+    found_obj_real_end = Position(x=202, y=95)
+    assert (
+        abs(first_slider.tick_points[-1].x - first_slider_real_end.x)
+        <= biggest_allowed_gap
+    )
+    assert (
+        abs(first_slider.tick_points[-1].y - first_slider_real_end.y)
+        <= biggest_allowed_gap
+    )
+
+    assert (
+        abs(found_obj.tick_points[-1].x - found_obj_real_end.x)
+        <= biggest_allowed_gap
+    )
+    assert (
+        abs(found_obj.tick_points[-1].y - found_obj_real_end.y)
+        <= biggest_allowed_gap
+    )
+        
 
 
 def test_closest_hitobject():
