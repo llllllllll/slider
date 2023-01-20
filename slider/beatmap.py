@@ -678,7 +678,7 @@ class Slider(HitObject):
         curve_point = int(self.length * ratio)
         pos = self.curve(curve_point / self.length)
 
-        tick_points[-1] = Point(pos.x, pos.y, true_end_time)
+        tick_points[-1] = Point(pos.x, pos.y, self.end_time)
 
         return tick_points
 
