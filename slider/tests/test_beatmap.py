@@ -220,7 +220,8 @@ def test_legacy_slider_end():
     precision_factor = 16.0
 
     biggest_allowed_gap = (
-        slider.beatmap.circle_radius(beatmap.circle_size) * 1.2 / precision_factor
+        slider.beatmap.circle_radius(beatmap.circle_size) 
+        * 1.2 / precision_factor
     )
 
     assert abs(last_point.x - expected_lazy_pos.x) <= biggest_allowed_gap
@@ -272,7 +273,6 @@ def test_legacy_slider_end():
         abs(found_obj.tick_points[-1].y - found_obj_real_end.y)
         <= biggest_allowed_gap
     )
-        
 
 
 def test_closest_hitobject():
