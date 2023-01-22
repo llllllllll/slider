@@ -231,35 +231,31 @@ def test_legacy_slider_end():
     assert abs(last_point.x - expected_lazy_pos.x) <= biggest_allowed_gap
     assert abs(last_point.y - expected_lazy_pos.y) <= biggest_allowed_gap
 
-    # find the slider at 20s153ms
-    found_obj = None
-    for obj in objects:
-        if obj.time == timedelta(milliseconds=20153):
-            found_obj = obj
-            break
-    assert found_obj is not None
-    assert isinstance(found_obj, slider.beatmap.Slider)
+    # test another slider just to make sure
+    td = timedelta(milliseconds=20153)
+    slider2 = beatmap.closest_hitobject(td)
+    assert isinstance(slider2, slider.beatmap.Slider)
     expected_lazy_pos = Position(x=196, y=110)
 
     assert (
-        abs(found_obj.true_tick_points[-1].x - expected_lazy_pos.x)
+        abs(slider2.true_tick_points[-1].x - expected_lazy_pos.x)
         <= biggest_allowed_gap
     )
     assert (
-        abs(found_obj.true_tick_points[-1].y - expected_lazy_pos.y)
+        abs(slider2.true_tick_points[-1].y - expected_lazy_pos.y)
         <= biggest_allowed_gap
     )
     # make sure the timing is still right
     assert (
         abs(
-            found_obj.true_tick_points[-1].offset -
+            slider2.true_tick_points[-1].offset -
             timedelta(milliseconds=20425)
         ) <= timedelta(milliseconds=1)
     )
 
     # Make sure the actual sliderends didnt get changed
     first_slider_real_end = Position(x=287, y=172)
-    found_obj_real_end = Position(x=202, y=95)
+    slider2_real_end = Position(x=202, y=95)
     assert (
         abs(first_slider.tick_points[-1].x - first_slider_real_end.x)
         <= biggest_allowed_gap
@@ -270,11 +266,11 @@ def test_legacy_slider_end():
     )
 
     assert (
-        abs(found_obj.tick_points[-1].x - found_obj_real_end.x)
+        abs(slider2.tick_points[-1].x - slider2_real_end.x)
         <= biggest_allowed_gap
     )
     assert (
-        abs(found_obj.tick_points[-1].y - found_obj_real_end.y)
+        abs(slider2.tick_points[-1].y - slider2_real_end.y)
         <= biggest_allowed_gap
     )
 
