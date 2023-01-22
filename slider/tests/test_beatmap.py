@@ -230,6 +230,7 @@ def test_legacy_slider_end():
     # actual ending of this slider
     end_pos1 = Position(x=287, y=172)
 
+    # check another slider in the map as well (the slider at 20153ms).
     td = timedelta(milliseconds=20153)
     slider2 = beatmap.closest_hitobject(td)
     expected_last_tick_pos2 = Position(x=196, y=110)
