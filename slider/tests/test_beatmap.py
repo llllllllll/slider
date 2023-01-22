@@ -215,13 +215,17 @@ def test_legacy_slider_end():
     # TestSceneSliderFollowCircleInput.cs#L42
 
     # This factor is to adjust how much leniency we allow for the test
-    # The sliderball itself is rather big, so scaling this down will increase
-    # the accuracy of the test's claims
+    # This is simply due to the fact that there is no real good way to
+    # find the true tick point of a slider, except going into the
+    # editor, seeking to the endtime of a slider - 36ms, and visually
+    # confirming the sliderball's position. Due to rounding errors,
+    # both in stable's slider calculation and in this calc, we need
+    # to allow some leniency.
     precision_factor = 16.0
 
     biggest_allowed_gap = (
         slider.beatmap.circle_radius(beatmap.circle_size)
-        * 1.2 / precision_factor
+        / precision_factor
     )
 
     assert abs(last_point.x - expected_lazy_pos.x) <= biggest_allowed_gap
