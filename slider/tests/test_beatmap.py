@@ -221,9 +221,6 @@ def test_legacy_slider_end():
         assert abs(last_tick.x - end_pos.x) <= leniency
         assert abs(last_tick.y - end_pos.y) <= leniency
 
-    # the very first object is a slider, it ends at 1s178ms, so with a -36ms
-    # offset for the sliderend, it should be 1s142ms
-    # Position should be x=271, y=169
     objects = beatmap.hit_objects()
 
     slider1 = objects[0]
