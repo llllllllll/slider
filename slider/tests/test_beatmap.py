@@ -227,6 +227,8 @@ def test_legacy_slider_end():
     objects = beatmap.hit_objects()
 
     slider1 = objects[0]
+    # last tick positions from lazer (and then rounding). See
+    # https://github.com/llllllllll/slider/pull/106#issuecomment-1399583672.
     expected_last_tick_pos1 = Position(x=271, y=169)
     # actual ending of this slider
     end_pos1 = Position(x=287, y=172)
