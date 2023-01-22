@@ -671,10 +671,14 @@ class Slider(HitObject):
             self.end_time - self.LEGACY_LAST_TICK_OFFSET
         )
 
-        duration = true_end_time - self.time
+        # keep in mind to check for negative values here, e.g. at least
+        # have the duration be 0
+        legacy_duration = max(
+            true_end_time - self.time, timedelta(milliseconds=0)
+        )
         real_duration = self.end_time - self.time
 
-        ratio = duration / real_duration
+        ratio = legacy_duration / real_duration
         curve_point = int(self.length * ratio)
         pos = self.curve(curve_point / self.length)
 
