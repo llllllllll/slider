@@ -202,7 +202,8 @@ def test_legacy_slider_end():
     # this library. This means we'll have some rounding errors against the
     # expected position of the last tick. `leniency` is the number of pixels of
     # rounding error to allow.
-    # See https://github.com/llllllllll/slider/pull/106#issuecomment-1399583672.
+    # See
+    # https://github.com/llllllllll/slider/pull/106#issuecomment-1399583672.
     def test_slider(slider_, expected_last_tick_pos, end_pos, leniency=2):
         assert isinstance(slider_, slider.beatmap.Slider)
         expected_x = expected_last_tick_pos.x
@@ -219,7 +220,6 @@ def test_legacy_slider_end():
         # Make sure the actual sliderends didnt get changed
         assert abs(last_tick.x - end_pos.x) <= leniency
         assert abs(last_tick.y - end_pos.y) <= leniency
-
 
     # the very first object is a slider, it ends at 1s178ms, so with a -36ms
     # offset for the sliderend, it should be 1s142ms
