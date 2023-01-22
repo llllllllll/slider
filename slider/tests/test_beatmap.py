@@ -198,81 +198,46 @@ def test_hit_objects_hard_rock(beatmap):
 def test_legacy_slider_end():
     beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario()
 
+    # lazer uses float values for the duration of sliders instead of ints as in
+    # this library. This means we'll have some rounding errors against the
+    # expected position of the last tick. `leniency` is the number of pixels of
+    # rounding error to allow.
+    # See https://github.com/llllllllll/slider/pull/106#issuecomment-1399583672.
+    def test_slider(slider_, expected_last_tick_pos, end_pos, leniency=2):
+        assert isinstance(slider_, slider.beatmap.Slider)
+        expected_x = expected_last_tick_pos.x
+        expected_y = expected_last_tick_pos.y
+
+        last_tick_true = slider_.true_tick_points[-1]
+
+        # make sure the last tick is where we expect it to be
+        assert abs(last_tick_true.x - expected_x) <= leniency
+        assert abs(last_tick_true.y - expected_y) <= leniency
+
+        last_tick = slider_.tick_points[-1]
+
+        # Make sure the actual sliderends didnt get changed
+        assert abs(last_tick.x - end_pos.x) <= leniency
+        assert abs(last_tick.y - end_pos.y) <= leniency
+
+
     # the very first object is a slider, it ends at 1s178ms, so with a -36ms
     # offset for the sliderend, it should be 1s142ms
     # Position should be x=271, y=169
     objects = beatmap.hit_objects()
-    first_slider = objects[0]
-    assert isinstance(first_slider, slider.beatmap.Slider)
 
-    expected_lazy_pos = Position(x=271, y=169)
+    slider1 = objects[0]
+    expected_last_tick_pos1 = Position(x=271, y=169)
+    # actual ending of this slider
+    end_pos1 = Position(x=287, y=172)
 
-    last_point = first_slider.true_tick_points[-1]
-    # the calculation seems to include some rounding errors, any derivation of
-    # +- slider leniency is fine
-    # slider leniency is x1.2 of the circle radius, see
-    # https://github.com/ppy/osu/blob/master/osu.Game.Rulesets.Osu.Tests/
-    # TestSceneSliderFollowCircleInput.cs#L42
-
-    # This factor is to adjust how much leniency we allow for the test
-    # This is simply due to the fact that there is no real good way to
-    # find the true tick point of a slider, except going into the
-    # editor, seeking to the endtime of a slider - 36ms, and visually
-    # confirming the sliderball's position. Due to rounding errors,
-    # both in stable's slider calculation and in this calc, we need
-    # to allow some leniency.
-    precision_factor = 16.0
-
-    biggest_allowed_gap = (
-        slider.beatmap.circle_radius(beatmap.circle_size)
-        / precision_factor
-    )
-
-    assert abs(last_point.x - expected_lazy_pos.x) <= biggest_allowed_gap
-    assert abs(last_point.y - expected_lazy_pos.y) <= biggest_allowed_gap
-
-    # test another slider just to make sure
     td = timedelta(milliseconds=20153)
     slider2 = beatmap.closest_hitobject(td)
-    assert isinstance(slider2, slider.beatmap.Slider)
-    expected_lazy_pos = Position(x=196, y=110)
+    expected_last_tick_pos2 = Position(x=196, y=110)
+    end_pos2 = Position(x=202, y=95)
 
-    assert (
-        abs(slider2.true_tick_points[-1].x - expected_lazy_pos.x)
-        <= biggest_allowed_gap
-    )
-    assert (
-        abs(slider2.true_tick_points[-1].y - expected_lazy_pos.y)
-        <= biggest_allowed_gap
-    )
-    # make sure the timing is still right
-    assert (
-        abs(
-            slider2.true_tick_points[-1].offset -
-            timedelta(milliseconds=20425)
-        ) <= timedelta(milliseconds=1)
-    )
-
-    # Make sure the actual sliderends didnt get changed
-    first_slider_real_end = Position(x=287, y=172)
-    slider2_real_end = Position(x=202, y=95)
-    assert (
-        abs(first_slider.tick_points[-1].x - first_slider_real_end.x)
-        <= biggest_allowed_gap
-    )
-    assert (
-        abs(first_slider.tick_points[-1].y - first_slider_real_end.y)
-        <= biggest_allowed_gap
-    )
-
-    assert (
-        abs(slider2.tick_points[-1].x - slider2_real_end.x)
-        <= biggest_allowed_gap
-    )
-    assert (
-        abs(slider2.tick_points[-1].y - slider2_real_end.y)
-        <= biggest_allowed_gap
-    )
+    test_slider(slider1, expected_last_tick_pos1, end_pos1)
+    test_slider(slider2, expected_last_tick_pos2, end_pos2)
 
 
 def test_closest_hitobject():
