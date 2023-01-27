@@ -663,6 +663,7 @@ class Slider(HitObject):
 
     @lazyval
     def true_tick_points(self):
+        """The position and time of each slider tick. This accounts for the legacy last tick offset."""
         tick_points = self.tick_points
         # curve() takes in a percentage of how far along we want the point.
         # Take away the offset from the total length of the slider to get
