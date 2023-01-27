@@ -195,6 +195,51 @@ def test_hit_objects_hard_rock(beatmap):
                                                     Position(x=301, y=209)]
 
 
+def test_legacy_slider_end():
+    beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario()
+
+    # lazer uses float values for the duration of sliders instead of ints as in
+    # this library. This means we'll have some rounding errors against the
+    # expected position of the last tick. `leniency` is the number of pixels of
+    # rounding error to allow.
+    # See
+    # https://github.com/llllllllll/slider/pull/106#issuecomment-1399583672.
+    def test_slider(slider_, expected_last_tick_pos, end_pos, leniency=2):
+        assert isinstance(slider_, slider.beatmap.Slider)
+        expected_x = expected_last_tick_pos.x
+        expected_y = expected_last_tick_pos.y
+
+        last_tick_true = slider_.true_tick_points[-1]
+
+        # make sure the last tick is where we expect it to be
+        assert abs(last_tick_true.x - expected_x) <= leniency
+        assert abs(last_tick_true.y - expected_y) <= leniency
+
+        last_tick = slider_.tick_points[-1]
+
+        # Make sure the actual sliderends didnt get changed
+        assert abs(last_tick.x - end_pos.x) <= leniency
+        assert abs(last_tick.y - end_pos.y) <= leniency
+
+    objects = beatmap.hit_objects()
+
+    slider1 = objects[0]
+    # last tick positions from lazer (and then rounding). See
+    # https://github.com/llllllllll/slider/pull/106#issuecomment-1399583672.
+    expected_last_tick_pos1 = Position(x=271, y=169)
+    # actual ending of this slider
+    end_pos1 = Position(x=287, y=172)
+
+    # check another slider in the map as well (the slider at 20153ms).
+    td = timedelta(milliseconds=20153)
+    slider2 = beatmap.closest_hitobject(td)
+    expected_last_tick_pos2 = Position(x=196, y=110)
+    end_pos2 = Position(x=202, y=95)
+
+    test_slider(slider1, expected_last_tick_pos1, end_pos1)
+    test_slider(slider2, expected_last_tick_pos2, end_pos2)
+
+
 def test_closest_hitobject():
     beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Beginner')
     hit_object1 = beatmap.hit_objects()[4]

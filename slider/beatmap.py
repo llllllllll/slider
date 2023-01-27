@@ -586,6 +586,7 @@ class Slider(HitObject):
     """
     type_code = 2
     time_related_attributes = frozenset({'time', 'end_time', 'ms_per_beat'})
+    LEGACY_LAST_TICK_OFFSET = timedelta(milliseconds=36)
 
     def __init__(self,
                  position,
@@ -659,6 +660,31 @@ class Slider(HitObject):
                 for n, tick_sequence in enumerate(tick_sequences)
             ),
         )
+
+    @lazyval
+    def true_tick_points(self):
+        tick_points = self.tick_points
+        # curve() takes in a percentage of how far along we want the point.
+        # Take away the offset from the total length of the slider to get
+        # the percentage of the slider we want the point at.
+        true_end_time = (
+            self.end_time - self.LEGACY_LAST_TICK_OFFSET
+        )
+
+        # keep in mind to check for negative values here, e.g. at least
+        # have the duration be 0
+        legacy_duration = max(
+            true_end_time - self.time, timedelta(milliseconds=0)
+        )
+        real_duration = self.end_time - self.time
+
+        ratio = legacy_duration / real_duration
+        curve_point = int(self.length * ratio)
+        pos = self.curve(curve_point / self.length)
+
+        tick_points[-1] = Point(pos.x, pos.y, true_end_time)
+
+        return tick_points
 
     @lazyval
     def hard_rock(self):
