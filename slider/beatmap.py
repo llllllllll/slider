@@ -663,6 +663,11 @@ class Slider(HitObject):
 
     @lazyval
     def true_tick_points(self):
+        """The position and time of each slider tick. This accounts for
+        the legacy last tick offset.
+
+        See also https://github.com/ppy/osu/blob/5a1940facf2649bc6b2892965c27b8
+        c62a41988f/osu.Game/Rulesets/Objects/SliderEventGenerator.cs#L71-L93"""
         tick_points = self.tick_points
         # curve() takes in a percentage of how far along we want the point.
         # Take away the offset from the total length of the slider to get
