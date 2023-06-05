@@ -355,8 +355,8 @@ class Catmull(Curve):
         # primarily to avoid raising an index error, not being 100% correct.
         #
         # lazer might do something more intelligent here. Its implementation is
-        # at https://github.com/ppy/osu-framework/blob/4de1bae5d0b0a7fb95009498f
-        # d4a960715be2419/osu.Framework/Utils/PathApproximator.cs#L142 and may
+        # at https://github.com/ppy/osu-framework/blob/4de1bae5d0b0a7fb95009498
+        # fd4a960715be2419/osu.Framework/Utils/PathApproximator.cs#L142 and may
         # be worth checking against in the future.
         # see also https://github.com/llllllllll/slider/issues/108.
         if len(points) == 1:
