@@ -345,6 +345,23 @@ class Catmull(Curve):
         tangents_y = []
         self.Cxs = []
         self.Cys = []
+
+        # A catmull slider with a single control point doesn't make a whole lot
+        # of sense to me.. We'll treat it as a slider with 0 duration and 0
+        # length; ie, its position is always the position of the single control
+        # point.
+        #
+        # This case has only ever come up in aspire maps. The goal here is
+        # primarily to avoid raising an index error, not being 100% correct.
+        #
+        # lazer might do something more intelligent here. Its implementation is
+        # at https://github.com/ppy/osu-framework/blob/4de1bae5d0b0a7fb95009498f
+        # d4a960715be2419/osu.Framework/Utils/PathApproximator.cs#L142 and may
+        # be worth checking against in the future.
+        # see also https://github.com/llllllllll/slider/issues/108.
+        if len(points) == 1:
+            return
+
         # The tangent for point i is defined as 0.5 * (P_(i + 1) - P_(i - 1)),
         # so we need to consider the point behind it and the point in front of
         # it. We:
@@ -393,7 +410,13 @@ class Catmull(Curve):
             self.Cys.append(Cy)
 
     def __call__(self, t):
-        # for consistency with notes linked above
+        # single control point case. Treat as a 0 length, 0 duration slider,
+        # with position equal to its single control point. See comment in
+        # __init__ for details.
+        if len(self.points) == 1:
+            return self.points[0]
+
+        # for consistency with website notes linked above
         s = t
         S = np.array([s ** 3, s ** 2, s, 1])
         # catmull curves are made up of a number of individual curves. Assuming
