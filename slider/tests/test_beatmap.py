@@ -122,6 +122,8 @@ def test_parse_section_hit_objects(beatmap):
     assert hit_objects_0.time == timedelta(milliseconds=1076)
     # Hit object note `type` is done by subclassing HitObject
     assert isinstance(hit_objects_0, slider.beatmap.Slider)
+    assert hit_objects_0.new_combo
+    assert not hit_objects_0.combo_skip
     # Slider specific parameters
     assert hit_objects_0.end_time == timedelta(milliseconds=1178)
     assert hit_objects_0.hitsound == 0
