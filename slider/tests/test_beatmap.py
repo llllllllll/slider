@@ -142,6 +142,8 @@ def test_parse_section_hit_objects(beatmap):
 def test_hit_objects_stacking():
     hit_objects = [slider.beatmap.Circle(Position(128, 128),
                                          timedelta(milliseconds=x*10),
+                                         False,
+                                         0,
                                          hitsound=1) for x in range(10)]
 
     beatmap = slider.Beatmap(
@@ -307,7 +309,7 @@ def test_pack(beatmap):
         'hp_drain_rate', 'circle_size', 'overall_difficulty', 'approach_rate',
         'slider_multiplier', 'slider_tick_rate',
     ]
-    hitobj_attrs = ['position', 'time', 'hitsound', 'addition']
+    hitobj_attrs = ['position', 'time', 'new_combo', 'combo_skip', 'hitsound', 'addition']
     slider_attrs = [
         'end_time', 'hitsound', 'repeat', 'length', 'ticks', 'num_beats',
         'tick_rate', 'ms_per_beat', 'edge_sounds', 'edge_additions', 'addition'
