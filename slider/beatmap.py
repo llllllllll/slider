@@ -317,7 +317,7 @@ class HitObject:
         bits |= (self.combo_skip & 0b10000) >> 1
         # second bit of combo skip (bit 5)
         bits |= (self.combo_skip & 0b1000) << 1
-        # second bit of combo skip (bit 6)
+        # third bit of combo skip (bit 6)
         bits |= (self.combo_skip & 0b100) << 3
         return bits
 
