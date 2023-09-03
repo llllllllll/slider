@@ -258,13 +258,19 @@ class HitObject:
     """
     time_related_attributes = frozenset({'time'})
 
-    def __init__(self, position, time, new_combo, combo_skip, hitsound, addition='0:0:0:0:'):
+    # TODO slider v1.x.x: reconsider argument order and default parameters
+    # (defaults only exist right now for backwards compat). similarly for all
+    # hitobject subclasses.
+    def __init__(self, position, time, hitsound, addition='0:0:0:0:',
+        new_combo=False, combo_skip=0
+    ):
         self.position = position
         self.time = time
-        self.new_combo = bool(new_combo)
-        self.combo_skip = combo_skip
         self.hitsound = hitsound
         self.addition = addition
+        self.new_combo = new_combo
+        self.combo_skip = combo_skip
+
         self.ht_enabled = False
         self.dt_enabled = False
         self.hr_enabled = False
@@ -300,7 +306,19 @@ class HitObject:
         return type(self)(**kwargs)
 
     def _get_combo_bits(self):
-        return (self.new_combo << 2) | (self.combo_skip << 4)
+        # bit numbers below are zero indexed.
+
+        # type code (bits number 0, 1, 3, and 7)
+        bits = self.type_code
+        # new combo (bit 2)
+        bits |= self.new_combo << 2
+        # first (MSB) of combo_skip (bit 4)
+        bits |= (self.combo_skip & 0b10000) >> 1
+        # second bit of combo skip (bit 5)
+        bits |= (self.combo_skip & 0b1000) << 1
+        # second bit of combo skip (bit 6)
+        bits |= (self.combo_skip & 0b100) << 3
+        return bits
 
     @lazyval
     def half_time(self):
@@ -425,7 +443,25 @@ class HitObject:
         else:
             raise ValueError(f'unknown type code {type_!r}')
 
-        return parse(Position(x, y), time, (type_ & 4) >> 2, (type_ & 112) >> 4, hitsound, rest)
+        # new combo info is in second bit (0-indexed)
+        new_combo = bool(type_ & (1 << 2))
+        # abusing the int constructor which takes a string and a base. blame
+        # python for not having sane bitarray handling.
+        bitarray = []
+        # 3 bit int for combo skip is held in 4th, 5th, and 6th bits
+        # respectively (0-indexed)
+        bitarray.append(type_ & (1 << 4))
+        bitarray.append(type_ & (1 << 5))
+        bitarray.append(type_ & (1 << 6))
+        # i love casting!!
+        # bool = check whether that bit is set
+        # int = convert to 0 or 1 for binary
+        # convert to string for "".join
+        bitstring = "".join(str(int(bool(n))) for n in bitarray)
+        combo_skip = int(bitstring, base=2)
+
+        return parse(Position(x, y), time, hitsound, new_combo, combo_skip,
+            rest)
 
     @abstractmethod
     def pack(self):
@@ -459,11 +495,11 @@ class Circle(HitObject):
     type_code = 1
 
     @classmethod
-    def _parse(cls, position, time, new_combo, combo_skip, hitsound, rest):
+    def _parse(cls, position, time, hitsound, new_combo, combo_skip, rest):
         if len(rest) > 1:
             raise ValueError('extra data: {rest!r}')
 
-        return cls(position, time, new_combo, combo_skip, hitsound, *rest)
+        return cls(position, time, hitsound, *rest, new_combo, combo_skip)
 
     def pack(self):
         """The string representing this circle hit element used in ``.osu`` file,
@@ -484,7 +520,7 @@ class Circle(HitObject):
         return ','.join([_pack_float('x', self.position.x),
                          _pack_float('y', self.position.y),
                          _pack_timedelta('time', self.time),
-                         _pack_int('type', Circle.type_code | self._get_combo_bits()),
+                         _pack_int('type', self._get_combo_bits()),
                          _pack_int('hitSound', self.hitsound),
                          _pack_str('hitSample', self.addition)])
 
@@ -509,15 +545,17 @@ class Spinner(HitObject):
     def __init__(self,
                  position,
                  time,
-                 new_combo,
                  hitsound,
                  end_time,
-                 addition='0:0:0:0:'):
-        super().__init__(position, time, new_combo, 0, hitsound, addition)
+                 addition='0:0:0:0:',
+                 new_combo=False,
+                 combo_skip=0):
+        super().__init__(position, time, hitsound, addition, new_combo,
+            combo_skip)
         self.end_time = end_time
 
     @classmethod
-    def _parse(cls, position, time, new_combo, _, hitsound, rest):
+    def _parse(cls, position, time, hitsound, new_combo, combo_skip, rest):
         try:
             end_time, *rest = rest
         except ValueError:
@@ -531,7 +569,8 @@ class Spinner(HitObject):
         if len(rest) > 1:
             raise ValueError(f'extra data: {rest!r}')
 
-        return cls(position, time, new_combo, hitsound, end_time, *rest)
+        return cls(position, time, hitsound, end_time, *rest, new_combo,
+            combo_skip)
 
     def pack(self):
         """The string representing this spinner hit element used in ``.osu`` file,
@@ -551,7 +590,7 @@ class Spinner(HitObject):
         return ','.join([_pack_float('x', self.position.x),
                          _pack_float('y', self.position.y),
                          _pack_timedelta('time', self.time),
-                         _pack_int('type', Spinner.type_code | self._get_combo_bits()),
+                         _pack_int('type', self._get_combo_bits()),
                          _pack_int('hitSound', self.hitsound),
                          _pack_timedelta('endTime', self.end_time),
                          _pack_str('hitSample', self.addition)])
@@ -597,8 +636,6 @@ class Slider(HitObject):
     def __init__(self,
                  position,
                  time,
-                 new_combo,
-                 combo_skip,
                  end_time,
                  hitsound,
                  curve,
@@ -610,8 +647,11 @@ class Slider(HitObject):
                  ms_per_beat,
                  edge_sounds,
                  edge_additions,
-                 addition='0:0:0:0:'):
-        super().__init__(position, time, new_combo, combo_skip, hitsound, addition)
+                 addition='0:0:0:0:',
+                 new_combo=False,
+                 combo_skip=0):
+        super().__init__(position, time, hitsound, addition, new_combo,
+            combo_skip)
         self.end_time = end_time
         self.curve = curve
         self.repeat = repeat
@@ -723,9 +763,9 @@ class Slider(HitObject):
     def _parse(cls,
                position,
                time,
+               hitsound,
                new_combo,
                combo_skip,
-               hitsound,
                rest,
                timing_points,
                slider_multiplier,
@@ -847,8 +887,6 @@ class Slider(HitObject):
         return cls(
             position,
             time,
-            new_combo,
-            combo_skip,
             time + duration,
             hitsound,
             Curve.from_kind_and_points(slider_type, points, pixel_length),
@@ -861,6 +899,8 @@ class Slider(HitObject):
             edge_sounds,
             edge_additions,
             *rest,
+            new_combo=new_combo,
+            combo_skip=combo_skip
         )
 
     def pack(self):
@@ -881,7 +921,7 @@ class Slider(HitObject):
         return ','.join([_pack_float('x', self.position.x),
                          _pack_float('y', self.position.y),
                          _pack_timedelta('time', self.time),
-                         _pack_int('type', Slider.type_code | self._get_combo_bits()),
+                         _pack_int('type', self._get_combo_bits()),
                          _pack_int('hitSound', self.hitsound),
                          self.curve.pack(),
                          _pack_int('slides', self.repeat),
@@ -915,12 +955,15 @@ class HoldNote(HitObject):
                  time,
                  hitsound,
                  end_time,
-                 addition='0:0:0:0:'):
-        super().__init__(position, time, False, 0, hitsound, addition)
+                 addition='0:0:0:0:',
+                 new_combo=False,
+                 combo_skip=0):
+        super().__init__(position, time, hitsound, addition, new_combo,
+            combo_skip)
         self.end_time = end_time
 
     @classmethod
-    def _parse(cls, position, time, new_combo, combo_skip, hitsound, rest):
+    def _parse(cls, position, time, hitsound, new_combo, combo_skip, rest):
         try:
             end_time, *rest = rest
         except ValueError:
@@ -933,7 +976,8 @@ class HoldNote(HitObject):
         if len(rest) > 1:
             raise ValueError('extra data: {rest!r}')
 
-        return cls(position, time, hitsound, end_time, *rest)
+        return cls(position, time, hitsound, end_time, new_combo, combo_skip,
+            *rest)
 
     def pack(self):
         """The string representing this HoldNote hit element used in ``.osu`` file,

@@ -144,8 +144,6 @@ def test_parse_section_hit_objects(beatmap):
 def test_hit_objects_stacking():
     hit_objects = [slider.beatmap.Circle(Position(128, 128),
                                          timedelta(milliseconds=x*10),
-                                         False,
-                                         0,
                                          hitsound=1) for x in range(10)]
 
     beatmap = slider.Beatmap(
