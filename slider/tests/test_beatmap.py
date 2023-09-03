@@ -309,8 +309,8 @@ def test_pack(beatmap):
         'hp_drain_rate', 'circle_size', 'overall_difficulty', 'approach_rate',
         'slider_multiplier', 'slider_tick_rate',
     ]
-    hitobj_attrs = ['position', 'time', 'new_combo', 'combo_skip', 'hitsound',
-        'addition'
+    hitobj_attrs = [
+        'position', 'time', 'new_combo', 'combo_skip', 'hitsound', 'addition'
     ]
     slider_attrs = [
         'end_time', 'hitsound', 'repeat', 'length', 'ticks', 'num_beats',

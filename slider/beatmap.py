@@ -261,8 +261,9 @@ class HitObject:
     # TODO slider v1.x.x: reconsider argument order and default parameters
     # (defaults only exist right now for backwards compat). similarly for all
     # hitobject subclasses.
-    def __init__(self, position, time, hitsound, addition='0:0:0:0:',
-        new_combo=False, combo_skip=0
+    def __init__(
+        self, position, time, hitsound, addition='0:0:0:0:', new_combo=False,
+        combo_skip=0
     ):
         self.position = position
         self.time = time
@@ -461,7 +462,7 @@ class HitObject:
         combo_skip = int(bitstring, base=2)
 
         return parse(Position(x, y), time, hitsound, new_combo, combo_skip,
-            rest)
+                     rest)
 
     @abstractmethod
     def pack(self):
@@ -551,7 +552,7 @@ class Spinner(HitObject):
                  new_combo=False,
                  combo_skip=0):
         super().__init__(position, time, hitsound, addition, new_combo,
-            combo_skip)
+                         combo_skip)
         self.end_time = end_time
 
     @classmethod
@@ -570,7 +571,7 @@ class Spinner(HitObject):
             raise ValueError(f'extra data: {rest!r}')
 
         return cls(position, time, hitsound, end_time, *rest, new_combo,
-            combo_skip)
+                   combo_skip)
 
     def pack(self):
         """The string representing this spinner hit element used in ``.osu`` file,
@@ -651,7 +652,7 @@ class Slider(HitObject):
                  new_combo=False,
                  combo_skip=0):
         super().__init__(position, time, hitsound, addition, new_combo,
-            combo_skip)
+                         combo_skip)
         self.end_time = end_time
         self.curve = curve
         self.repeat = repeat
@@ -959,7 +960,7 @@ class HoldNote(HitObject):
                  new_combo=False,
                  combo_skip=0):
         super().__init__(position, time, hitsound, addition, new_combo,
-            combo_skip)
+                         combo_skip)
         self.end_time = end_time
 
     @classmethod
@@ -977,7 +978,7 @@ class HoldNote(HitObject):
             raise ValueError('extra data: {rest!r}')
 
         return cls(position, time, hitsound, end_time, new_combo, combo_skip,
-            *rest)
+                   *rest)
 
     def pack(self):
         """The string representing this HoldNote hit element used in ``.osu`` file,
