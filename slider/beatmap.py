@@ -306,7 +306,7 @@ class HitObject:
 
         return type(self)(**kwargs)
 
-    def _get_combo_bits(self):
+    def _get_type_bits(self):
         # bit numbers below are zero indexed.
 
         # type code (bits number 0, 1, 3, and 7)
@@ -517,7 +517,7 @@ class Circle(HitObject):
         return ','.join([_pack_float('x', self.position.x),
                          _pack_float('y', self.position.y),
                          _pack_timedelta('time', self.time),
-                         _pack_int('type', self._get_combo_bits()),
+                         _pack_int('type', self._get_type_bits()),
                          _pack_int('hitSound', self.hitsound),
                          _pack_str('hitSample', self.addition)])
 
@@ -587,7 +587,7 @@ class Spinner(HitObject):
         return ','.join([_pack_float('x', self.position.x),
                          _pack_float('y', self.position.y),
                          _pack_timedelta('time', self.time),
-                         _pack_int('type', self._get_combo_bits()),
+                         _pack_int('type', self._get_type_bits()),
                          _pack_int('hitSound', self.hitsound),
                          _pack_timedelta('endTime', self.end_time),
                          _pack_str('hitSample', self.addition)])
@@ -918,7 +918,7 @@ class Slider(HitObject):
         return ','.join([_pack_float('x', self.position.x),
                          _pack_float('y', self.position.y),
                          _pack_timedelta('time', self.time),
-                         _pack_int('type', self._get_combo_bits()),
+                         _pack_int('type', self._get_type_bits()),
                          _pack_int('hitSound', self.hitsound),
                          self.curve.pack(),
                          _pack_int('slides', self.repeat),
