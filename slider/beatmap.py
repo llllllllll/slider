@@ -313,12 +313,8 @@ class HitObject:
         bits = self.type_code
         # new combo (bit 2)
         bits |= self.new_combo << 2
-        # first (MSB) of combo_skip (bit 4)
-        bits |= (self.combo_skip & 0b10000) >> 1
-        # second bit of combo skip (bit 5)
-        bits |= (self.combo_skip & 0b1000) << 1
-        # third bit of combo skip (bit 6)
-        bits |= (self.combo_skip & 0b100) << 3
+        # combo_skip (bits 4, 5, and 6).
+        bits |= self.combo_skip << 4
         return bits
 
     @lazyval
