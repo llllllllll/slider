@@ -310,7 +310,8 @@ def test_pack(beatmap):
         'slider_multiplier', 'slider_tick_rate',
     ]
     hitobj_attrs = ['position', 'time', 'new_combo', 'combo_skip', 'hitsound',
-        'addition']
+        'addition'
+    ]
     slider_attrs = [
         'end_time', 'hitsound', 'repeat', 'length', 'ticks', 'num_beats',
         'tick_rate', 'ms_per_beat', 'edge_sounds', 'edge_additions', 'addition'
