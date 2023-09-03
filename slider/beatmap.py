@@ -442,10 +442,9 @@ class HitObject:
             raise ValueError(f'unknown type code {type_!r}')
 
         # new combo info is in second bit (0-indexed)
-        new_combo = bool(type_ & (1 << 2))
+        new_combo = bool(type_ & 0b00000100)
         # 3 bit int for combo skip is held in 4th, 5th, and 6th bits
-        mask = (1 << 4) | (1 << 5) | (1 << 6)
-        combo_skip = (type_ & mask) >> 4
+        combo_skip = (type_ & 0b01110000) >> 4
         return parse(Position(x, y), time, hitsound, new_combo, combo_skip,
                      rest)
 
