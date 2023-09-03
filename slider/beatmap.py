@@ -984,7 +984,7 @@ class HoldNote(HitObject):
         return ','.join([_pack_int('x', self.position.x),
                          _pack_int('y', self.position.y),
                          _pack_timedelta('time', self.time),
-                         _pack_int('type', HoldNote.type_code),
+                         _pack_int('type', self._get_type_bits()),
                          _pack_int('hitSound', self.hitsound),
                          ':'.join([_pack_timedelta('endTime', self.end_time),
                                    _pack_str('hitSample', self.addition)])])
