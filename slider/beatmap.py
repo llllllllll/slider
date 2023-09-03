@@ -442,21 +442,9 @@ class HitObject:
 
         # new combo info is in second bit (0-indexed)
         new_combo = bool(type_ & (1 << 2))
-        # abusing the int constructor which takes a string and a base. blame
-        # python for not having sane bitarray handling.
-        bitarray = []
         # 3 bit int for combo skip is held in 4th, 5th, and 6th bits
-        # respectively (0-indexed)
-        bitarray.append(type_ & (1 << 4))
-        bitarray.append(type_ & (1 << 5))
-        bitarray.append(type_ & (1 << 6))
-        # i love casting!!
-        # bool = check whether that bit is set
-        # int = convert to 0 or 1 for binary
-        # convert to string for "".join
-        bitstring = "".join(str(int(bool(n))) for n in bitarray)
-        combo_skip = int(bitstring, base=2)
-
+        mask = (1 << 4) | (1 << 5) | (1 << 6)
+        combo_skip = (type_ & mask) >> 4
         return parse(Position(x, y), time, hitsound, new_combo, combo_skip,
                      rest)
 
