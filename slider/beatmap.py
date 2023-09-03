@@ -257,6 +257,7 @@ class HitObject:
         Unknown currently.
     """
     time_related_attributes = frozenset({'time'})
+    type_code = 0
 
     # TODO slider v1.x.x: reconsider argument order and default parameters
     # (defaults only exist right now for backwards compat). similarly for all
