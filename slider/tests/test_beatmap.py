@@ -122,6 +122,8 @@ def test_parse_section_hit_objects(beatmap):
     assert hit_objects_0.time == timedelta(milliseconds=1076)
     # Hit object note `type` is done by subclassing HitObject
     assert isinstance(hit_objects_0, slider.beatmap.Slider)
+    assert hit_objects_0.new_combo
+    assert not hit_objects_0.combo_skip
     # Slider specific parameters
     assert hit_objects_0.end_time == timedelta(milliseconds=1178)
     assert hit_objects_0.hitsound == 0
@@ -307,7 +309,9 @@ def test_pack(beatmap):
         'hp_drain_rate', 'circle_size', 'overall_difficulty', 'approach_rate',
         'slider_multiplier', 'slider_tick_rate',
     ]
-    hitobj_attrs = ['position', 'time', 'hitsound', 'addition']
+    hitobj_attrs = [
+        'position', 'time', 'new_combo', 'combo_skip', 'hitsound', 'addition'
+    ]
     slider_attrs = [
         'end_time', 'hitsound', 'repeat', 'length', 'ticks', 'num_beats',
         'tick_rate', 'ms_per_beat', 'edge_sounds', 'edge_additions', 'addition'
