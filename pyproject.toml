@@ -34,7 +34,3 @@ dev = [
 Homepage = "https://github.com/llllllllll/slider"
 Documentation = "https://llllllllll.github.io/slider/index.html"
 Repository = "https://github.com/llllllllll/slider.git"
-
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
