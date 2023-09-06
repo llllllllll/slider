@@ -1,4 +1,4 @@
-from pathlib import Path
+from pkg_resources import resource_filename
 
 from slider import Beatmap
 
@@ -11,7 +11,12 @@ def example_beatmap(name):
     name : str
         The name of the example file to open.
     """
-    return Beatmap.from_path(Path(__file__).parent / name)
+    return Beatmap.from_path(
+        resource_filename(
+            __name__,
+            name,
+        ),
+    )
 
 
 _sendan_life_versions = frozenset({
