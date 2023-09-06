@@ -1,4 +1,4 @@
-from pkg_resources import resource_filename
+from importlib.resources import files
 
 from slider import CollectionDB
 
@@ -11,12 +11,7 @@ def example_collection(name):
     name : str
         The name of the example file to open.
     """
-    return CollectionDB.from_path(
-        resource_filename(
-            __name__,
-            name,
-        ),
-    )
+    return CollectionDB.from_path(files(__name__) / name)
 
 
 def test_db():
