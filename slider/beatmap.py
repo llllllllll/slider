@@ -255,6 +255,11 @@ class HitObject:
         The hitsound to play when this object is hit.
     addition : str, optional
         Unknown currently.
+    new_combo : bool
+        Whether this element is the start of a new combo.
+    combo_skip : int
+        How many combo colors to skip if this element is the start of a new
+        combo.
     """
     time_related_attributes = frozenset({'time'})
     # must be set by subclasses
@@ -477,6 +482,11 @@ class Circle(HitObject):
         Where this circle appears on the screen.
     time : timedelta
         When this circle appears in the map.
+    new_combo : bool
+        Whether this circle is the start of a new combo.
+    combo_skip : int
+        How many combo colors to skip if this circle is the start of a new
+        combo.
     """
     type_code = 1
 
@@ -524,6 +534,11 @@ class Spinner(HitObject):
         When this spinner ends in the map.
     addition : str
         Hitsound additions.
+    new_combo : bool
+        Whether this spinner is the start of a new combo.
+    combo_skip : int
+        How many combo colors to skip if this spinner is the start of a new
+        combo.
     """
     type_code = 8
     time_related_attributes = frozenset({'time', 'end_time'})
@@ -614,6 +629,11 @@ class Slider(HitObject):
         A list of additions for each edge.
     addition : str
         Hitsound additions.
+    new_combo : bool
+        Whether this slider is the start of a new combo.
+    combo_skip : int
+        How many combo colors to skip if this slider is the start of a new
+        combo.
     """
     type_code = 2
     time_related_attributes = frozenset({'time', 'end_time', 'ms_per_beat'})
@@ -928,6 +948,11 @@ class HoldNote(HitObject):
         Where this HoldNote appears on the screen.
     time : timedelta
         When this HoldNote appears in the map.
+    new_combo : bool
+        Whether this HoldNote is the start of a new combo.
+    combo_skip : int
+        How many combo colors to skip if this HoldNote is the start of a new
+        combo.
 
     Notes
     -----
