@@ -1,0 +1,36 @@
+[project]
+name = "slider"
+version = "0.8.0"
+description = "Utilities for working with osu! files and data."
+authors = [{name="Joe Jevnik", email="joejev@gmail.com"}]
+license = {text="LGPLv3+"}
+readme = "README.rst"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Games/Entertainment",
+]
+requires-python = ">=3.6"
+dependencies = [
+    "numpy",
+    "requests",
+    "scipy",
+]
+scripts = {slider="slider.__main__:main"}
+
+[project.optional-dependencies]
+cli = ["click"]
+dev = [
+    "flake8==3.7.9",
+    "mccabe==0.6.1",
+    "pyflakes==2.1.1",
+    "pytest==5.4.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/llllllllll/slider"
+Documentation = "https://llllllllll.github.io/slider/index.html"
+Repository = "https://github.com/llllllllll/slider.git"
