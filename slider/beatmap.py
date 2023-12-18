@@ -482,6 +482,8 @@ class Circle(HitObject):
         Where this circle appears on the screen.
     time : timedelta
         When this circle appears in the map.
+    hitsound : int
+        The hitsound to play when this object is hit.
     new_combo : bool
         Whether this circle is the start of a new combo.
     combo_skip : int
@@ -530,6 +532,8 @@ class Spinner(HitObject):
         Where this spinner appears on the screen.
     time : timedelta
         When this spinner appears in the map.
+    hitsound : int
+        The hitsound to play when this object is hit.
     end_time : timedelta
         When this spinner ends in the map.
     addition : str
@@ -612,6 +616,8 @@ class Slider(HitObject):
         The sound played on the ticks of the slider.
     curve : Curve
         The slider's curve function.
+    repeat : int
+        The number of times the slider will repeat.
     length : float
         The length of this slider in osu! pixels.
     ticks : int
