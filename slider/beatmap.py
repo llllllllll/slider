@@ -2689,8 +2689,9 @@ class Beatmap:
             Raised when essential member values are missing
             or are of incorrect type.
         """
-        def pack_field(field, field_value,
-                       pack_func, default, skip_empty=False):
+        def pack_field(
+            field, field_value, pack_func, default=no_default, skip_empty=False
+        ):
             packed_field_str = pack_func(field, field_value, default=default)
             # if ``skip_empty`` is True, empty string will be
             # returned for empty fields
@@ -2767,10 +2768,12 @@ class Beatmap:
         packed_str += pack_field('Tags', self.tags,
                                  partial(_pack_str_list, sep=' '),
                                  '')
-        packed_str += pack_field('BeatmapID', self.beatmap_id,
-                                 _pack_int, 0)
-        packed_str += pack_field('BeatmapSetID', self.beatmap_set_id,
-                                 _pack_int, -1)
+        # old beatmaps did not store beatmap_id or beatmap_set_id.
+        if self.beatmap_id is not None:
+            packed_str += pack_field('BeatmapID', self.beatmap_id, _pack_int, )
+
+        if self.beatmap_set_id is not None:
+            packed_str += pack_field('BeatmapSetID', self.beatmap_set_id, _pack_int)
         packed_str += '\n'
 
         # pack Difficulty section
