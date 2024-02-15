@@ -855,7 +855,7 @@ class Slider(HitObject):
             velocity_multiplier = 1
             ms_per_beat = tp.ms_per_beat
 
-        pixels_per_beat = slider_multiplier * 100 * velocity_multiplier
+        pixels_per_beat = slider_multiplier * 100 * np.clip(velocity_multiplier, 0.1, 10)
         num_beats = (
             (pixel_length * repeat) / pixels_per_beat
         )
