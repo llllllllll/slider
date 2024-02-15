@@ -1,4 +1,5 @@
-from .beatmap import Beatmap
+from .beatmap import (Beatmap, Circle, Slider, Spinner, TimingPoint, HitObject,
+                      HoldNote)
 from .client import Client
 from .game_mode import GameMode
 from .mod import Mod
@@ -7,7 +8,7 @@ from .replay import Replay
 from .library import Library
 from .collection import CollectionDB
 
-__version__ = '0.7.0'
+__version__ = '0.8.0'
 
 
 __all__ = [
@@ -19,4 +20,10 @@ __all__ = [
     'Position',
     'Replay',
     'CollectionDB',
+    'Circle',
+    'Slider',
+    'Spinner',
+    'TimingPoint',
+    'HitObject',
+    'HoldNote'
 ]
