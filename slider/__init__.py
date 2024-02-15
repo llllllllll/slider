@@ -8,7 +8,7 @@ from .replay import Replay
 from .library import Library
 from .collection import CollectionDB
 
-__version__ = '0.8.0'
+__version__ = '0.8.1'
 
 
 __all__ = [
