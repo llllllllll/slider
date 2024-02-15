@@ -1,5 +1,6 @@
 etc/unzipped-beatmap
 notebooks/
+.hypothesis
 
 build/
 dist/

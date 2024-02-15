@@ -2307,7 +2307,8 @@ class Beatmap:
         return max_combo
 
     def __repr__(self):
-        return f'<{type(self).__qualname__}: {self.display_name}>'
+        return self.pack()
+        # return f'<{type(self).__qualname__}: {self.display_name}>'
 
     @classmethod
     def from_osz_path(cls, path):
@@ -2707,11 +2708,11 @@ class Beatmap:
         # pack General section
         packed_str += '[General]\n'
         packed_str += pack_field('AudioFilename', self.audio_filename,
-                                 _pack_str, no_default)
+                                 _pack_str)
         packed_str += pack_field('AudioLeadIn', self.audio_lead_in,
-                                 _pack_timedelta, timedelta(milliseconds=0))
+                                 _pack_timedelta)
         packed_str += pack_field('PreviewTime', self.preview_time,
-                                 _pack_timedelta, timedelta(milliseconds=-1))
+                                 _pack_timedelta)
         packed_str += pack_field('Countdown', self.countdown,
                                  _pack_bool, False)
         packed_str += pack_field('SampleSet', self.sample_set,
