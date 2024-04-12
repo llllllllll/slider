@@ -162,7 +162,7 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
             nearest_pos = obj.curve(t)
             if (on and
                 not (_pressed(datum)
-                     and _within(nearest_pos, datum.position, rad * 3))):
+                     and _within(nearest_pos, datum.position, rad * 2.4))):
                 t_changes_append(t)
                 on = False
             elif (not on and
