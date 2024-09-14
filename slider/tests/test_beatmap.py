@@ -291,7 +291,7 @@ def test_background(beatmap):
 
 
 def test_video(beatmap):
-    assert beatmap.video is None
+    assert beatmap.videos == []
 
 
 def test_pack(beatmap):
@@ -317,7 +317,7 @@ def test_pack(beatmap):
         'hp_drain_rate', 'circle_size', 'overall_difficulty', 'approach_rate',
         'slider_multiplier', 'slider_tick_rate',
         # Event section fields
-        'background', 'video',
+        'background', 'videos',
     ]
     hitobj_attrs = [
         'position', 'time', 'new_combo', 'combo_skip', 'hitsound', 'addition'
