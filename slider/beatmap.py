@@ -279,7 +279,7 @@ class HitObject:
         self.new_combo = new_combo
         self.combo_skip = combo_skip
 
-        self.time_scale = 1.0
+        self.speed_scale = 1.0
         self.hr_enabled = False
 
     def __repr__(self):
@@ -290,20 +290,20 @@ class HitObject:
 
     @property
     def ht_enabled(self):
-        return self.time_scale == 4 / 3
+        return self.speed_scale == 3 / 4
 
     @property
     def dt_enabled(self):
-        return self.time_scale == 2 / 3
+        return self.speed_scale == 3 / 2
 
-    def time_modify(self, coefficient):
-        """Modify this ``HitObject`` by multiplying time related attributes
+    def speed_modify(self, coefficient):
+        """Modify this ``HitObject`` by dividing time related attributes
         by the ``coefficient``.
 
         Parameters
         ----------
         coefficient : float
-            The coefficient to multiply the ``time_related`` values by.
+            The coefficient to divide the ``time_related`` values by.
 
         Returns
         -------
@@ -315,11 +315,11 @@ class HitObject:
         for name in inspect.signature(type(self)).parameters:
             value = getattr(self, name)
             if name in time_related_attributes:
-                value *= coefficient
+                value /= coefficient
             kwargs[name] = value
 
         modified = type(self)(**kwargs)
-        modified.time_scale = self.time_scale * coefficient
+        modified.speed_scale = self.speed_scale * coefficient
         return modified
 
     def _get_type_bits(self):
@@ -341,7 +341,7 @@ class HitObject:
         if self.ht_enabled:
             return self
 
-        obj = self.time_modify(4 / 3)
+        obj = self.speed_modify(3 / 4)
         return obj
 
     @lazyval
@@ -352,7 +352,7 @@ class HitObject:
         if self.dt_enabled:
             return self
 
-        obj = self.time_modify(2 / 3)
+        obj = self.speed_modify(3 / 2)
         return obj
 
     @lazyval
@@ -1992,7 +1992,7 @@ class Beatmap:
                     hard_rock=False,
                     double_time=False,
                     half_time=False,
-                    time_scale=1.0):
+                    speed_scale=1.0):
         """Retrieve hit_objects.
 
         Parameters
@@ -2016,9 +2016,9 @@ class Beatmap:
         double_time : bool, optional
             Get the effective position of the hit objects with double time
             enabled.
-        time_scale : float, optional
-            Modify the hit objects by multiplying time related attributes
-            by the ``coefficient``.
+        speed_scale : float, optional
+            Get the effective position of the hit objects with an arbitrary
+            speed modifier.
 
         Returns
         -------
@@ -2053,12 +2053,12 @@ class Beatmap:
                 self._hit_objects_with_stacking[stacking_key] = hit_objects
 
         if double_time:
-            time_scale = 2 / 3
+            speed_scale = 3 / 2
         elif half_time:
-            time_scale = 4 / 3
+            speed_scale = 3 / 4
 
-        if time_scale != 1.0:
-            hit_objects = [ob.time_modify(time_scale) for ob in hit_objects]
+        if speed_scale != 1.0:
+            hit_objects = [ob.speed_modify(speed_scale) for ob in hit_objects]
 
         keep_classes = []
         if spinners:
@@ -3065,7 +3065,7 @@ class Beatmap:
     def _calculate_stars(self,
                          easy,
                          hard_rock,
-                         time_scale):
+                         speed_scale):
         """Compute the stars and star components for this map.
 
         Parameters
@@ -3074,8 +3074,8 @@ class Beatmap:
             Compute stars with easy.
         hard_rock : bool
             Compute stars with hard rock.
-        time_scale : bool
-            Compute stars with a time scaling coefficient.
+        speed_scale : bool
+            Compute stars with a speed scaling coefficient.
         """
         cs = self.cs(easy=easy, hard_rock=hard_rock)
         radius = circle_radius(cs)
@@ -3086,8 +3086,8 @@ class Beatmap:
         intervals = []
         append_interval = intervals.append
 
-        if time_scale != 1:
-            modify = op.methodcaller('time_modify', time_scale)
+        if speed_scale != 1:
+            modify = op.methodcaller('speed_modify', speed_scale)
         else:
             def modify(e):
                 return e
@@ -3144,7 +3144,7 @@ class Beatmap:
             difficulty_hit_objects,
         )
 
-        key = easy, hard_rock, time_scale
+        key = easy, hard_rock, speed_scale
         self._aim_stars_cache[key] = aim = (
             np.sqrt(aim) * self._star_scaling_factor
         )
@@ -3183,16 +3183,16 @@ class Beatmap:
                 hard_rock=False,
                 double_time=False,
                 half_time=False,
-                time_scale=1.0):
+                speed_scale=1.0):
             if double_time:
-                time_scale = 2 / 3
+                speed_scale = 3 / 2
             elif half_time:
-                time_scale = 4 / 3
+                speed_scale = 3 / 4
 
             key = (
                 bool(easy),
                 bool(hard_rock),
-                float(time_scale),
+                float(speed_scale),
             )
             try:
                 return getattr(self, cache_name)[key]
@@ -3219,8 +3219,8 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
-        time_scale : float, optional
-            Stars with an arbitrary time scaling coefficient.
+        speed_scale : float, optional
+            Stars with an arbitrary speed scaling coefficient.
 
         Returns
         -------
@@ -3242,8 +3242,8 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
-        time_scale : float, optional
-            Stars with an arbitrary time scaling coefficient.
+        speed_scale : float, optional
+            Stars with an arbitrary speed scaling coefficient.
 
         Returns
         -------
@@ -3265,8 +3265,8 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
-        time_scale : float, optional
-            Stars with an arbitrary time scaling coefficient.
+        speed_scale : float, optional
+            Stars with an arbitrary speed scaling coefficient.
 
         Returns
         -------
@@ -3288,8 +3288,8 @@ class Beatmap:
             Rhythm awkwardness with the double time mod applied.
         half_time : bool, optional
             Rhythm awkwardness with the half time mod applied.
-        time_scale : float, optional
-            Rhythm awkwardness with an arbitrary time scaling coefficient.
+        speed_scale : float, optional
+            Rhythm awkwardness with an arbitrary speed scaling coefficient.
 
         Returns
         -------
