@@ -32,6 +32,181 @@ def _get(cs, ix, default=no_default):
         return default
 
 
+class EventType(IntEnum):
+    Background = 0
+    Video = 1
+    Break = 2
+    Sprite = 3
+    Animation = 4
+    # TODO I have absolutely no idea if Sample is really supposed to be 5.
+    # See https://osu.ppy.sh/beatmapsets/14902#osu/54879 for a map with a
+    # sample event
+    Sample = 5
+
+    @classmethod
+    def _missing_(cls, value):
+        return {
+            "Background": EventType.Background,
+            "Video": EventType.Video,
+            "Break": EventType.Break,
+            "Sprite": EventType.Sprite,
+            "Animation": EventType.Animation,
+            "Sample": EventType.Sample
+        }[value]
+
+
+class Event:
+    def __init__(self, event_type, start_time):
+        self.event_type = event_type
+        self.start_time = timedelta(milliseconds=start_time)
+
+    @classmethod
+    def parse(cls, data):
+        event_type, start_time_or_layer, *event_params = data.split(',')
+
+        # event types are allowed to be specified as either integers or
+        # strings. try parsing as an int first, and just leave it alone
+        # otherwise (our enum instantiation will take care of validation).
+        if event_type.isdigit():
+            event_type = int(event_type)
+        event_type = EventType(event_type)
+
+        # TODO implement storyboarding events
+        if event_type is EventType.Sprite:
+            return Sprite()
+        if event_type is EventType.Animation:
+            return Animation()
+        if event_type is EventType.Sample:
+            return Sample()
+
+        try:
+            start_time = int(start_time_or_layer)
+        except ValueError:
+            raise ValueError(f'Invalid start_time provided, got {start_time}')
+
+        if event_type is EventType.Background:
+            return Background.parse(event_params)
+        if event_type is EventType.Video:
+            return Video.parse(start_time, event_params)
+        if event_type is EventType.Break:
+            return Break.parse(start_time, event_params)
+
+        # make sure we've handled all event types.
+        raise ValueError(f'Unimplemented event type: {event_type}')
+
+
+class Background(Event):
+
+    def __init__(self, filename, x_offset, y_offset):
+        super().__init__(EventType.Background, 0)
+        self.filename = filename
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+
+    @classmethod
+    def parse(cls, event_params):
+        if len(event_params) == 0:
+            raise ValueError('expected filename parameter for Background')
+
+        filename = event_params[0].strip('"')
+        x_offset = 0
+        y_offset = 0
+
+        # x_offset and y_offset are optional, default to 0
+        if len(event_params) > 1:
+            x_offset = event_params[1]
+        if len(event_params) > 2:
+            y_offset = event_params[2]
+        if len(event_params) > 3:
+            raise ValueError(
+                "expected no more than 3 params for Background, "
+                f"but got params {event_params}"
+            )
+
+        try:
+            x_offset = int(x_offset)
+        except ValueError:
+            raise ValueError(f'x_offset is invalid, got {x_offset}')
+
+        try:
+            y_offset = int(y_offset)
+        except ValueError:
+            raise ValueError(f'y_offset is invalid, got {y_offset}')
+
+        return cls(filename, x_offset, y_offset)
+
+
+class Break(Event):
+    def __init__(self, start_time, end_time):
+        super().__init__(EventType.Break, start_time)
+        self.end_time = timedelta(milliseconds=end_time)
+
+    @classmethod
+    def parse(cls, start_time, event_params):
+        if not event_params:
+            raise ValueError('expected end_time paramter for Break')
+
+        try:
+            end_time = int(event_params[0])
+        except ValueError:
+            raise ValueError(f'Invalid end_time provided, got {end_time}')
+
+        return cls(start_time, end_time)
+
+
+class Video(Event):
+    def __init__(self, start_time, filename, x_offset, y_offset):
+        super().__init__(EventType.Video, start_time)
+        self.filename = filename
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+
+    @classmethod
+    def parse(cls, start_time, event_params):
+        if len(event_params) == 0:
+            raise ValueError('expected filename parameter for Video')
+
+        filename = event_params[0].strip('"')
+        x_offset = 0
+        y_offset = 0
+
+        # x_offset and y_offset are optional, default to 0
+        if len(event_params) > 1:
+            x_offset = event_params[1]
+        if len(event_params) > 2:
+            y_offset = event_params[2]
+        if len(event_params) > 3:
+            raise ValueError(
+                "expected no more than 3 params for Video, "
+                f"but got params {event_params}"
+            )
+
+        try:
+            x_offset = int(x_offset)
+        except ValueError:
+            raise ValueError(f'x_offset is invalid, got {x_offset}')
+
+        try:
+            y_offset = int(y_offset)
+        except ValueError:
+            raise ValueError(f'y_offset is invalid, got {y_offset}')
+
+        return cls(start_time, filename, x_offset, y_offset)
+
+
+# TODO implement these events
+class Sprite:
+    pass
+
+
+class Animation:
+    pass
+
+
+class Sample:
+    pass
+
+
 class TimingPoint:
     """A timing point assigns properties to an offset into a beatmap.
 
@@ -1715,6 +1890,8 @@ class Beatmap:
         The timing points the the map.
     hit_objects : list[HitObject]
         The hit objects in the map.
+    events : list[Event]
+        The events in the map.
 
     Notes
     -----
@@ -1756,7 +1933,8 @@ class Beatmap:
                  slider_multiplier,
                  slider_tick_rate,
                  timing_points,
-                 hit_objects):
+                 hit_objects,
+                 events):
         self.format_version = format_version
         self.audio_filename = audio_filename
         self.audio_lead_in = audio_lead_in
@@ -1789,6 +1967,8 @@ class Beatmap:
         self.slider_multiplier = slider_multiplier
         self.slider_tick_rate = slider_tick_rate
         self.timing_points = timing_points
+        self.events = events
+
         self._hit_objects = hit_objects
         # cache hit object stacking at different ar and cs values
         self._hit_objects_with_stacking = {}
@@ -1974,6 +2154,24 @@ class Beatmap:
             ar = ms_to_ar(4 * ar_to_ms(ar) / 3)
 
         return ar
+
+    @lazyval
+    def breaks(self):
+        """The breaks of this beatmap.
+        """
+        return tuple(e for e in self.events if isinstance(e, Break))
+
+    @lazyval
+    def backgrounds(self):
+        """The backgrounds of this beatmap.
+        """
+        return tuple(e for e in self.events if isinstance(e, Background))
+
+    @lazyval
+    def videos(self):
+        """The videos of this beatmap.
+        """
+        return tuple(e for e in self.events if isinstance(e, Video))
 
     def hit_objects(self,
                     *,
@@ -2558,6 +2756,22 @@ class Beatmap:
                 parent = timing_point
             timing_points.append(timing_point)
 
+        events = []
+        for raw_event in groups['Events']:
+            # storyboard elements (sprites and animations) are followed by a
+            # list of layers and positions that they appear on. This list is
+            # indented with a space. We'll want to parse these properly
+            # eventually, but they're not Events and we'll error if we try to
+            # parse them as such right now, so just ignore them for now.
+            if(
+                raw_event[0] in ["F", "M", "S", "L", "R"] and
+                raw_event[1] == ","
+            ):
+                # TODO implement storyboard layers / events
+                continue
+            event = Event.parse(raw_event)
+            events.append(event)
+
         slider_multiplier = _get_as_float(
             groups,
             'Difficulty',
@@ -2670,7 +2884,7 @@ class Beatmap:
                 ),
                 groups['HitObjects'],
             )),
-
+            events=events,
         )
 
     def pack(self):

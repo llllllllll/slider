@@ -179,7 +179,8 @@ def test_hit_objects_stacking():
         slider_multiplier=1,
         slider_tick_rate=1,
         timing_points=[],
-        hit_objects=hit_objects
+        hit_objects=hit_objects,
+        events=[]
     )
     radius = slider.beatmap.circle_radius(5)
     stack_offset = radius / 10
@@ -284,6 +285,15 @@ def test_hp(beatmap):
 
 def test_od(beatmap):
     assert beatmap.od() == 9
+
+
+def test_background(beatmap):
+    assert len(beatmap.backgrounds) == 1
+    background = beatmap.backgrounds[0]
+    assert background.filename == 'miiro_no_scenario.png'
+    assert background.x_offset == 0
+    assert background.y_offset == 0
+    assert background.start_time == timedelta(milliseconds=0)
 
 
 def test_pack(beatmap):
