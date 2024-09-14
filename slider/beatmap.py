@@ -279,8 +279,7 @@ class HitObject:
         self.new_combo = new_combo
         self.combo_skip = combo_skip
 
-        self.ht_enabled = False
-        self.dt_enabled = False
+        self.time_scale = 1.0
         self.hr_enabled = False
 
     def __repr__(self):
@@ -289,7 +288,15 @@ class HitObject:
             f' {self.time.total_seconds() * 1000:g}ms>'
         )
 
-    def _time_modify(self, coefficient):
+    @property
+    def ht_enabled(self):
+        return self.time_scale == 4 / 3
+
+    @property
+    def dt_enabled(self):
+        return self.time_scale == 2 / 3
+
+    def time_modify(self, coefficient):
         """Modify this ``HitObject`` by multiplying time related attributes
         by the ``coefficient``.
 
@@ -311,7 +318,9 @@ class HitObject:
                 value *= coefficient
             kwargs[name] = value
 
-        return type(self)(**kwargs)
+        modified = type(self)(**kwargs)
+        modified.time_scale = self.time_scale * coefficient
+        return modified
 
     def _get_type_bits(self):
         # bit numbers below are zero indexed.
@@ -332,8 +341,7 @@ class HitObject:
         if self.ht_enabled:
             return self
 
-        obj = self._time_modify(4 / 3)
-        obj.ht_enabled = True
+        obj = self.time_modify(4 / 3)
         return obj
 
     @lazyval
@@ -344,8 +352,7 @@ class HitObject:
         if self.dt_enabled:
             return self
 
-        obj = self._time_modify(2 / 3)
-        obj.dt_enabled = True
+        obj = self.time_modify(2 / 3)
         return obj
 
     @lazyval
@@ -1984,7 +1991,8 @@ class Beatmap:
                     easy=False,
                     hard_rock=False,
                     double_time=False,
-                    half_time=False):
+                    half_time=False,
+                    time_scale=1.0):
         """Retrieve hit_objects.
 
         Parameters
@@ -2008,6 +2016,9 @@ class Beatmap:
         double_time : bool, optional
             Get the effective position of the hit objects with double time
             enabled.
+        time_scale : float, optional
+            Modify the hit objects by multiplying time related attributes
+            by the ``coefficient``.
 
         Returns
         -------
@@ -2042,9 +2053,12 @@ class Beatmap:
                 self._hit_objects_with_stacking[stacking_key] = hit_objects
 
         if double_time:
-            hit_objects = [ob.double_time for ob in hit_objects]
+            time_scale = 2 / 3
         elif half_time:
-            hit_objects = [ob.half_time for ob in hit_objects]
+            time_scale = 4 / 3
+
+        if time_scale != 1.0:
+            hit_objects = [ob.time_modify(time_scale) for ob in hit_objects]
 
         keep_classes = []
         if spinners:

@@ -286,6 +286,30 @@ def test_od(beatmap):
     assert beatmap.od() == 9
 
 
+def test_double_time(beatmap):
+    hitobjects = beatmap.hit_objects(double_time=True)
+    for hitobject in hitobjects:
+        assert hitobject.dt_enabled
+        assert not hitobject.ht_enabled
+        assert hitobject.time_scale == 2 / 3
+
+
+def test_half_time(beatmap):
+    hitobjects = beatmap.hit_objects(half_time=True)
+    for hitobject in hitobjects:
+        assert not hitobject.dt_enabled
+        assert hitobject.ht_enabled
+        assert hitobject.time_scale == 4 / 3
+
+
+def test_time_scale(beatmap):
+    hitobjects = beatmap.hit_objects(time_scale=3.141592654)
+    for hitobject in hitobjects:
+        assert not hitobject.dt_enabled
+        assert not hitobject.ht_enabled
+        assert hitobject.time_scale == 3.141592654
+
+
 def test_pack(beatmap):
     # Pack the beatmap and parse it again to see if there is difference.
     packed_str = beatmap.pack()
