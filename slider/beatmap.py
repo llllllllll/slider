@@ -2579,7 +2579,7 @@ class Beatmap:
         video = None
         if 'Events' in groups:
             for line in groups['Events']:
-                if line.startswith('0'):
+                if line.startswith('0') and background is None:  # Only the first background is used
                     background = line.split('\"')[1]
                 elif line.startswith('Video') or line.startswith('1'):
                     video = line.split('\"')[1]
