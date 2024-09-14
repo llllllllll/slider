@@ -3065,8 +3065,7 @@ class Beatmap:
     def _calculate_stars(self,
                          easy,
                          hard_rock,
-                         double_time,
-                         half_time):
+                         time_scale):
         """Compute the stars and star components for this map.
 
         Parameters
@@ -3075,10 +3074,8 @@ class Beatmap:
             Compute stars with easy.
         hard_rock : bool
             Compute stars with hard rock.
-        double_time : bool
-            Compute stars with double time.
-        half_time : bool
-            Compute stars with half time.
+        time_scale : bool
+            Compute stars with a time scaling coefficient.
         """
         cs = self.cs(easy=easy, hard_rock=hard_rock)
         radius = circle_radius(cs)
@@ -3089,10 +3086,8 @@ class Beatmap:
         intervals = []
         append_interval = intervals.append
 
-        if double_time:
-            modify = op.attrgetter('double_time')
-        elif half_time:
-            modify = op.attrgetter('half_time')
+        if time_scale != 1:
+            modify = op.methodcaller('time_modify', time_scale)
         else:
             def modify(e):
                 return e
@@ -3149,7 +3144,7 @@ class Beatmap:
             difficulty_hit_objects,
         )
 
-        key = easy, hard_rock, double_time, half_time
+        key = easy, hard_rock, time_scale
         self._aim_stars_cache[key] = aim = (
             np.sqrt(aim) * self._star_scaling_factor
         )
@@ -3187,12 +3182,17 @@ class Beatmap:
                 easy=False,
                 hard_rock=False,
                 double_time=False,
-                half_time=False):
+                half_time=False,
+                time_scale=1.0):
+            if double_time:
+                time_scale = 2 / 3
+            elif half_time:
+                time_scale = 4 / 3
+
             key = (
                 bool(easy),
                 bool(hard_rock),
-                bool(double_time),
-                bool(half_time),
+                float(time_scale),
             )
             try:
                 return getattr(self, cache_name)[key]
@@ -3219,6 +3219,8 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
+        time_scale : float, optional
+            Stars with an arbitrary time scaling coefficient.
 
         Returns
         -------
@@ -3240,6 +3242,8 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
+        time_scale : float, optional
+            Stars with an arbitrary time scaling coefficient.
 
         Returns
         -------
@@ -3261,6 +3265,8 @@ class Beatmap:
             Stars with the double time mod applied.
         half_time : bool, optional
             Stars with the half time mod applied.
+        time_scale : float, optional
+            Stars with an arbitrary time scaling coefficient.
 
         Returns
         -------
@@ -3282,6 +3288,8 @@ class Beatmap:
             Rhythm awkwardness with the double time mod applied.
         half_time : bool, optional
             Rhythm awkwardness with the half time mod applied.
+        time_scale : float, optional
+            Rhythm awkwardness with an arbitrary time scaling coefficient.
 
         Returns
         -------
