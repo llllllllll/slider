@@ -286,6 +286,40 @@ def test_od(beatmap):
     assert beatmap.od() == 9
 
 
+def test_double_time(beatmap):
+    hitobjects = beatmap.hit_objects(double_time=True)
+    for hitobject in hitobjects:
+        assert hitobject.dt_enabled
+        assert not hitobject.ht_enabled
+        assert hitobject.speed_scale == 3 / 2
+
+
+def test_half_time(beatmap):
+    hitobjects = beatmap.hit_objects(half_time=True)
+    for hitobject in hitobjects:
+        assert not hitobject.dt_enabled
+        assert hitobject.ht_enabled
+        assert hitobject.speed_scale == 3 / 4
+
+
+def test_time_scale(beatmap):
+    hitobjects = beatmap.hit_objects(speed_scale=3.141592654)
+    for hitobject in hitobjects:
+        assert not hitobject.dt_enabled
+        assert not hitobject.ht_enabled
+        assert hitobject.speed_scale == 3.141592654
+
+
+def test_star_rating(beatmap):
+    assert abs(beatmap.stars() - 5.98) < 0.01
+    assert abs(beatmap.stars(double_time=True) - 8.37) < 0.01
+    assert abs(beatmap.stars(half_time=True) - 4.71) < 0.01
+    assert abs(beatmap.stars(speed_scale=3 / 2) - 8.37) < 0.01
+    assert abs(beatmap.stars(speed_scale=3 / 4) - 4.71) < 0.01
+    assert abs(beatmap.stars(speed_scale=2) - 10.53) < 0.01
+    assert abs(beatmap.stars(speed_scale=1 / 2) - 3.37) < 0.01
+
+
 def test_pack(beatmap):
     # Pack the beatmap and parse it again to see if there is difference.
     packed_str = beatmap.pack()
