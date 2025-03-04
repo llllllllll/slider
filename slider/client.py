@@ -10,8 +10,8 @@ from .utils import lazyval, accuracy
 
 @unique
 class ApprovedState(IntEnum):
-    """The state of a beatmap's approval.
-    """
+    """The state of a beatmap's approval."""
+
     loved = 4
     qualified = 3
     approved = 2
@@ -23,8 +23,8 @@ class ApprovedState(IntEnum):
 
 @unique
 class Genre(IntEnum):
-    """The genres that appear on the osu! website.
-    """
+    """The genres that appear on the osu! website."""
+
     any = 0
     unspecified = 1
     video_game = 2
@@ -40,8 +40,8 @@ class Genre(IntEnum):
 
 @unique
 class Language(IntEnum):
-    """The languages that appear on the osu! website.
-    """
+    """The languages that appear on the osu! website."""
+
     any = 0
     other = 1
     english = 2
@@ -81,7 +81,7 @@ def _beatmap(self, *, save=False):
     return beatmap
 
 
-_beatmap.__name__ = 'beatmap'
+_beatmap.__name__ = "beatmap"
 
 
 class BeatmapResult:
@@ -125,24 +125,27 @@ class BeatmapResult:
     max_combo : int
         The maximum combo that could be achieved on this beatmap.
     """
-    def __init__(self,
-                 library,
-                 title,
-                 version,
-                 beatmap_id,
-                 approved,
-                 approved_date,
-                 last_update,
-                 star_rating,
-                 hit_length,
-                 genre,
-                 language,
-                 total_length,
-                 beatmap_md5,
-                 favourite_count,
-                 play_count,
-                 pass_count,
-                 max_combo):
+
+    def __init__(
+        self,
+        library,
+        title,
+        version,
+        beatmap_id,
+        approved,
+        approved_date,
+        last_update,
+        star_rating,
+        hit_length,
+        genre,
+        language,
+        total_length,
+        beatmap_md5,
+        favourite_count,
+        play_count,
+        pass_count,
+        max_combo,
+    ):
         self._library = library
         self.title = title
         self.version = version
@@ -166,7 +169,7 @@ class BeatmapResult:
     beatmap = _beatmap
 
     def __repr__(self):
-        return f'<{type(self).__qualname__}: {self.title} [{self.version}]>'
+        return f"<{type(self).__qualname__}: {self.title} [{self.version}]>"
 
 
 class UserEvent:
@@ -187,13 +190,10 @@ class UserEvent:
     epic_factor : int
         How epic was this event.
     """
-    def __init__(self,
-                 library,
-                 display_html,
-                 beatmap_id,
-                 beatmapset_id,
-                 date,
-                 epic_factor):
+
+    def __init__(
+        self, library, display_html, beatmap_id, beatmapset_id, date, epic_factor
+    ):
         self._library = library
         self.display_html = display_html
         self.beatmap_id = beatmap_id
@@ -253,27 +253,30 @@ class User:
     game_mode : GameMode
         The game mode the user information is for.
     """
-    def __init__(self,
-                 client,
-                 user_id,
-                 user_name,
-                 count_300,
-                 count_100,
-                 count_50,
-                 play_count,
-                 ranked_score,
-                 total_score,
-                 pp_rank,
-                 level,
-                 pp_raw,
-                 accuracy,
-                 count_ss,
-                 count_s,
-                 count_a,
-                 country,
-                 pp_country_rank,
-                 events,
-                 game_mode):
+
+    def __init__(
+        self,
+        client,
+        user_id,
+        user_name,
+        count_300,
+        count_100,
+        count_50,
+        play_count,
+        ranked_score,
+        total_score,
+        pp_rank,
+        level,
+        pp_raw,
+        accuracy,
+        count_ss,
+        count_s,
+        count_a,
+        country,
+        pp_country_rank,
+        events,
+        game_mode,
+    ):
         self._client = client
         self.user_id = user_id
         self.user_name = user_name
@@ -297,8 +300,7 @@ class User:
 
     def __repr__(self):
         return (
-            f'<{type(self).__qualname__}: {self.user_name}'
-            f' ({self.game_mode.name})>'
+            f"<{type(self).__qualname__}: {self.user_name}" f" ({self.game_mode.name})>"
         )
 
     def high_scores(self, limit=10):
@@ -359,24 +361,27 @@ class HighScore:
     pp : float
         The unweighted PP earned for this high score.
     """
-    def __init__(self,
-                 client,
-                 beatmap_id,
-                 score,
-                 max_combo,
-                 count_300,
-                 count_100,
-                 count_50,
-                 count_miss,
-                 count_katu,
-                 count_geki,
-                 perfect,
-                 mods,
-                 user_id,
-                 date,
-                 rank,
-                 pp,
-                 _user=None):
+
+    def __init__(
+        self,
+        client,
+        beatmap_id,
+        score,
+        max_combo,
+        count_300,
+        count_100,
+        count_50,
+        count_miss,
+        count_katu,
+        count_geki,
+        perfect,
+        mods,
+        user_id,
+        date,
+        rank,
+        pp,
+        _user=None,
+    ):
 
         self._client = client
         self._library = client.library
@@ -418,8 +423,8 @@ class HighScore:
 
     def __repr__(self):
         return (
-            f'<{type(self).__qualname__} user_id={self.user_id};'
-            f' beatmap_id=self.beatmap_id>'
+            f"<{type(self).__qualname__} user_id={self.user_id};"
+            f" beatmap_id=self.beatmap_id>"
         )
 
 
@@ -433,12 +438,13 @@ class UnknownBeatmap(LookupError):
     id_ : str
         The unknown beatmap id.
     """
+
     def __init__(self, kind, id_):
         self.kind = kind
         self.id_ = id_
 
     def __str__(self):
-        return f'no beatmap found that matched {self.kind}: {self.id_}'
+        return f"no beatmap found that matched {self.kind}: {self.id_}"
 
 
 class Client:
@@ -451,7 +457,8 @@ class Client:
     api_key : str
         The api key to use.
     """
-    DEFAULT_API_URL = 'https://osu.ppy.sh/api'
+
+    DEFAULT_API_URL = "https://osu.ppy.sh/api"
 
     def __init__(self, library, api_key, api_url=DEFAULT_API_URL):
         self.library = library
@@ -492,16 +499,16 @@ class Client:
             is False.
         """
         if user_name is not None and user_id is not None:
-            raise ValueError('only one of user_name or user_id can be passed')
+            raise ValueError("only one of user_name or user_id can be passed")
 
         if user_name is not None:
             user = user_name
-            type_ = 'string'
+            type_ = "string"
         elif user_id is not None:
             user = user_id
-            type_ = 'id'
+            type_ = "id"
         elif required:
-            raise ValueError('one of user_name or user_id must be passed')
+            raise ValueError("one of user_name or user_id must be passed")
         else:
             return None
 
@@ -509,21 +516,21 @@ class Client:
 
     # differences in the osu! api names and slider's names
     _beatmap_aliases = {
-        'beatmapset_id': 'beatmap_set_id',
-        'difficultyrating': 'star_rating',
-        'diff_size': 'circle_size',
-        'diff_overall': 'overall_difficulty',
-        'diff_approach': 'approach_rate',
-        'diff_drain': 'health_drain',
-        'genre_id': 'genre',
-        'language_id': 'language',
-        'file_md5': 'beatmap_md5',
-        'playcount': 'play_count',
-        'passcount': 'pass_count',
+        "beatmapset_id": "beatmap_set_id",
+        "difficultyrating": "star_rating",
+        "diff_size": "circle_size",
+        "diff_overall": "overall_difficulty",
+        "diff_approach": "approach_rate",
+        "diff_drain": "health_drain",
+        "genre_id": "genre",
+        "language_id": "language",
+        "file_md5": "beatmap_md5",
+        "playcount": "play_count",
+        "passcount": "pass_count",
     }
 
     def _parse_date(cs):
-        return datetime.datetime.strptime(cs, '%Y-%m-%f %H:%M:%S')
+        return datetime.datetime.strptime(cs, "%Y-%m-%f %H:%M:%S")
 
     def _parse_timedelta(cs):
         return datetime.timedelta(seconds=int(cs))
@@ -533,41 +540,44 @@ class Client:
             if cs is None:
                 return cs
             return class_(cs)
+
         return func
 
     def _identity(cs):
         return cs
 
     _beatmap_conversions = {
-        'approved': lambda cs: ApprovedState(int(cs)),
-        'approved_date': _parse_date,
-        'last_update': _parse_date,
-        'beatmap_id': int,
-        'star_rating': float,
-        'hit_length': _parse_timedelta,
-        'genre': lambda cs: Genre(int(cs)),
-        'language': lambda cs: Language(int(cs)),
-        'total_length': _parse_timedelta,
-        'beatmap_md5': _identity,
-        'favourite_count': int,
-        'play_count': int,
-        'pass_count': int,
-        'max_combo': _parse_optional(int),
-        'title': _identity,
-        'version': _identity,
+        "approved": lambda cs: ApprovedState(int(cs)),
+        "approved_date": _parse_date,
+        "last_update": _parse_date,
+        "beatmap_id": int,
+        "star_rating": float,
+        "hit_length": _parse_timedelta,
+        "genre": lambda cs: Genre(int(cs)),
+        "language": lambda cs: Language(int(cs)),
+        "total_length": _parse_timedelta,
+        "beatmap_md5": _identity,
+        "favourite_count": int,
+        "play_count": int,
+        "pass_count": int,
+        "max_combo": _parse_optional(int),
+        "title": _identity,
+        "version": _identity,
     }
 
-    def beatmap(self,
-                *,
-                since=None,
-                beatmap_set_id=None,
-                beatmap_id=None,
-                beatmap_md5=None,
-                user_id=None,
-                user_name=None,
-                game_mode=None,
-                include_converted_beatmaps=False,
-                limit=500):
+    def beatmap(
+        self,
+        *,
+        since=None,
+        beatmap_set_id=None,
+        beatmap_id=None,
+        beatmap_md5=None,
+        user_id=None,
+        user_name=None,
+        game_mode=None,
+        include_converted_beatmaps=False,
+        limit=500,
+    ):
         """Retrieve information about a beatmap or set of beatmaps from the
         osu! API.
 
@@ -595,47 +605,48 @@ class Client:
             500.
         """
         beatmap_identifiers = {
-            k: v for k, v in {
-                'beatmap_set_id': beatmap_set_id,
-                'beatmap_id': beatmap_id,
-                'beatmap_md5': beatmap_md5,
+            k: v
+            for k, v in {
+                "beatmap_set_id": beatmap_set_id,
+                "beatmap_id": beatmap_id,
+                "beatmap_md5": beatmap_md5,
             }.items()
             if v is not None
         }
         if len(beatmap_identifiers) > 1:
             raise ValueError(
-                f'only one of beatmap_set_id, beatmap_id, or beatmap_md5 can'
-                f' be passed, got {beatmap_identifiers!r}',
+                f"only one of beatmap_set_id, beatmap_id, or beatmap_md5 can"
+                f" be passed, got {beatmap_identifiers!r}",
             )
 
         if limit > 500:
-            raise ValueError('only 500 beatmaps can be requested at one time')
+            raise ValueError("only 500 beatmaps can be requested at one time")
 
         parameters = {
-            'k': self.api_key,
-            'a': int(bool(include_converted_beatmaps)),
-            'limit': limit,
+            "k": self.api_key,
+            "a": int(bool(include_converted_beatmaps)),
+            "limit": limit,
         }
 
         if since is not None:
-            parameters['since'] = since.isoformat()
+            parameters["since"] = since.isoformat()
 
         if beatmap_set_id is not None:
-            parameters['s'] = beatmap_set_id
+            parameters["s"] = beatmap_set_id
         elif beatmap_id is not None:
-            parameters['b'] = beatmap_id
+            parameters["b"] = beatmap_id
         elif beatmap_md5 is not None:
-            parameters['h'] = beatmap_md5
+            parameters["h"] = beatmap_md5
 
         user_info = self._user_and_type(user_name, user_id, required=False)
         if user_info is not None:
-            parameters['u'], parameters['t'] = user_info
+            parameters["u"], parameters["t"] = user_info
 
         if game_mode is not None:
-            parameters['m'] = int(game_mode)
+            parameters["m"] = int(game_mode)
 
         response = requests.get(
-            f'{self.api_url}/get_beatmaps',
+            f"{self.api_url}/get_beatmaps",
             params=parameters,
         )
         response.raise_for_status()
@@ -658,13 +669,13 @@ class Client:
 
         if beatmap_id is not None or beatmap_md5 is not None:
             try:
-                converted, = converted
+                (converted,) = converted
             except ValueError:
                 if beatmap_id is not None:
-                    kind = 'id'
+                    kind = "id"
                     id_ = beatmap_id
                 else:
-                    kind = 'md5'
+                    kind = "md5"
                     id_ = beatmap_md5
 
                 raise UnknownBeatmap(kind, id_)
@@ -672,57 +683,54 @@ class Client:
         return converted
 
     _user_aliases = {
-        'username': 'user_name',
-        'count300': 'count_300',
-        'count100': 'count_100',
-        'count50': 'count_50',
-        'playcount': 'play_count',
-        'count_rank_ss': 'count_ss',
-        'count_rank_s': 'count_s',
-        'count_rank_a': 'count_a',
+        "username": "user_name",
+        "count300": "count_300",
+        "count100": "count_100",
+        "count50": "count_50",
+        "playcount": "play_count",
+        "count_rank_ss": "count_ss",
+        "count_rank_s": "count_s",
+        "count_rank_a": "count_a",
     }
 
     def _parse_user_events(events, _parse_date=_parse_date):
         out = []
         for event in events:
             # beatmap id can be null if the event is a supporter gift
-            if event['beatmap_id'] is not None:
-                event['beatmap_id'] = int(event['beatmap_id'])
-            event['date'] = _parse_date(event['date'])
-            event['epic_factor'] = event.pop('epicfactor')
+            if event["beatmap_id"] is not None:
+                event["beatmap_id"] = int(event["beatmap_id"])
+            event["date"] = _parse_date(event["date"])
+            event["epic_factor"] = event.pop("epicfactor")
             out.append(event)
 
         return out
 
     _user_conversions = {
-        'user_id': int,
-        'user_name': _identity,
+        "user_id": int,
+        "user_name": _identity,
         # these attributes can be null for users that have never played before,
         # see user 17906393 / #97 on github
-        'count_300': _parse_optional(int),
-        'count_100': _parse_optional(int),
-        'count_50': _parse_optional(int),
-        'play_count': _parse_optional(int),
-        'ranked_score': _parse_optional(int),
-        'total_score': _parse_optional(int),
-        'pp_rank': _parse_optional(int),
-        'level': _parse_optional(float),
-        'pp_raw': _parse_optional(float),
-        'accuracy': _parse_optional(float),
-        'count_ss': _parse_optional(int),
-        'count_s': _parse_optional(int),
-        'count_a': _parse_optional(int),
-        'country': _identity,
-        'pp_country_rank': _parse_optional(int),
-        'events': _parse_user_events,
+        "count_300": _parse_optional(int),
+        "count_100": _parse_optional(int),
+        "count_50": _parse_optional(int),
+        "play_count": _parse_optional(int),
+        "ranked_score": _parse_optional(int),
+        "total_score": _parse_optional(int),
+        "pp_rank": _parse_optional(int),
+        "level": _parse_optional(float),
+        "pp_raw": _parse_optional(float),
+        "accuracy": _parse_optional(float),
+        "count_ss": _parse_optional(int),
+        "count_s": _parse_optional(int),
+        "count_a": _parse_optional(int),
+        "country": _identity,
+        "pp_country_rank": _parse_optional(int),
+        "events": _parse_user_events,
     }
 
-    def user(self,
-             *,
-             user_name=None,
-             user_id=None,
-             game_mode=GameMode.standard,
-             event_days=1):
+    def user(
+        self, *, user_name=None, user_id=None, game_mode=GameMode.standard, event_days=1
+    ):
         """Retrieve information about a user.
 
         Parameters
@@ -745,37 +753,37 @@ class Client:
             The requested user.
         """
         if user_name is not None and user_id is not None:
-            raise ValueError('only one of user_name or user_id can be passed')
+            raise ValueError("only one of user_name or user_id can be passed")
 
         user, type_ = self._user_and_type(user_name, user_id, required=True)
 
         if not (1 <= event_days <= 31):
             raise ValueError(
-                f'event_days must be in range [1, 31], got {event_days!r}',
+                f"event_days must be in range [1, 31], got {event_days!r}",
             )
 
         response = requests.get(
-            self.api_url + '/get_user',
+            self.api_url + "/get_user",
             params={
-                'k': self.api_key,
-                'u': user,
-                't': type_,
-                'm': int(game_mode),
-                'event_days': event_days,
+                "k": self.api_key,
+                "u": user,
+                "t": type_,
+                "m": int(game_mode),
+                "event_days": event_days,
             },
         )
         response.raise_for_status()
 
-        dict_, = (
+        (dict_,) = (
             {self._user_aliases.get(k, k): v for k, v in beatmap.items()}
             for beatmap in response.json()
         )
 
         library = self.library
-        events = dict_['events']
+        events = dict_["events"]
 
         for event in events:
-            event['library'] = library
+            event["library"] = library
 
         return User(
             client=self,
@@ -789,43 +797,45 @@ class Client:
         return user
 
     _user_best_aliases = {
-        'username': 'user_name',
-        'maxcombo': 'max_combo',
-        'count300': 'count_300',
-        'count100': 'count_100',
-        'count50': 'count_50',
-        'countmiss': 'count_miss',
-        'countkatu': 'count_katu',
-        'countgeki': 'count_geki',
-        'enabled_mods': 'mods',
+        "username": "user_name",
+        "maxcombo": "max_combo",
+        "count300": "count_300",
+        "count100": "count_100",
+        "count50": "count_50",
+        "countmiss": "count_miss",
+        "countkatu": "count_katu",
+        "countgeki": "count_geki",
+        "enabled_mods": "mods",
     }
 
     _user_best_conversions = {
-        'beatmap_id': int,
-        'score': int,
-        'user_name': _identity,
-        'max_combo': int,
-        'count_300': int,
-        'count_100': int,
-        'count_50': int,
-        'count_miss': int,
-        'count_katu': int,
-        'count_geki': int,
-        'perfect': lambda m: bool(int(m)),
-        'mods': lambda m: {v for v in Mod.unpack(int(m)).values() if v},
-        'user_id': int,
-        'date': _parse_date,
-        'rank': _identity,
-        'pp': float,
+        "beatmap_id": int,
+        "score": int,
+        "user_name": _identity,
+        "max_combo": int,
+        "count_300": int,
+        "count_100": int,
+        "count_50": int,
+        "count_miss": int,
+        "count_katu": int,
+        "count_geki": int,
+        "perfect": lambda m: bool(int(m)),
+        "mods": lambda m: {v for v in Mod.unpack(int(m)).values() if v},
+        "user_id": int,
+        "date": _parse_date,
+        "rank": _identity,
+        "pp": float,
     }
 
-    def user_best(self,
-                  *,
-                  user_name=None,
-                  user_id=None,
-                  game_mode=GameMode.standard,
-                  limit=10,
-                  _user_ob=None):
+    def user_best(
+        self,
+        *,
+        user_name=None,
+        user_id=None,
+        game_mode=GameMode.standard,
+        limit=10,
+        _user_ob=None,
+    ):
         """Retrieve information about a user's best scores.
 
         Parameters
@@ -850,17 +860,17 @@ class Client:
 
         if not (1 <= limit <= 100):
             raise ValueError(
-                f'limit must be in the range [1, 100], got: {limit!r}',
+                f"limit must be in the range [1, 100], got: {limit!r}",
             )
 
         response = requests.get(
-            self.api_url + '/get_user_best',
+            self.api_url + "/get_user_best",
             params={
-                'k': self.api_key,
-                'u': user,
-                't': type_,
-                'm': int(game_mode),
-                'limit': limit,
+                "k": self.api_key,
+                "u": user,
+                "t": type_,
+                "m": int(game_mode),
+                "limit": limit,
             },
         )
         response.raise_for_status()

@@ -13,6 +13,7 @@ class CollectionDB:
     collections : list[Collection]
         List of :class:`~slider.collection.Collection` s
     """
+
     def __init__(self, version, num_collections, collections):
         self.version = version
         self.num_collections = num_collections
@@ -27,7 +28,7 @@ class CollectionDB:
         path : str or pathlib.Path
             The path to the file to read from.
         """
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             return cls.from_file(f)
 
     @classmethod
@@ -74,6 +75,7 @@ class Collection:
     md5_hashes : list[str]
         List of MD5 hashes of each beatmap
     """
+
     def __init__(self, name, num_beatmaps, md5_hashes):
         self.name = name
         self.num_beatmaps = num_beatmaps

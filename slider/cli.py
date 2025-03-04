@@ -30,9 +30,7 @@ def maybe_show_progress(it, show_progress, **kwargs):
         try:
             import click
         except ImportError as e:
-            raise ImportError(
-                "click must be installed to show a progressbar"
-            ) from e
+            raise ImportError("click must be installed to show a progressbar") from e
         return click.progressbar(it, **kwargs)
 
     @contextmanager

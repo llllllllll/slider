@@ -14,14 +14,16 @@ def example_beatmap(name):
     return Beatmap.from_path(Path(__file__).parent / name)
 
 
-_sendan_life_versions = frozenset({
-    "Easy",
-    "Normal",
-    "Little's Hard",
-    "Little's Insane",
-    "Extra",
-    "Crystal's Garakowa",
-})
+_sendan_life_versions = frozenset(
+    {
+        "Easy",
+        "Normal",
+        "Little's Hard",
+        "Little's Insane",
+        "Extra",
+        "Crystal's Garakowa",
+    }
+)
 
 
 def sendan_life(version="Crystal's Garakowa"):
@@ -39,37 +41,39 @@ def sendan_life(version="Crystal's Garakowa"):
     """
     if version not in _sendan_life_versions:
         raise ValueError(
-            f'unknown version {version}, options: {set(_sendan_life_versions)}'
+            f"unknown version {version}, options: {set(_sendan_life_versions)}"
         )
 
     return example_beatmap(
-        f'Remo Prototype[CV Hanamori Yumiri] - Sendan Life (Narcissu)'
-        f' [{version}].osu'
+        f"Remo Prototype[CV Hanamori Yumiri] - Sendan Life (Narcissu)"
+        f" [{version}].osu"
     )
 
 
-_ai_no_scenario_versions = frozenset({
-    "Beginner",
-    "Extra",
-    "Hard",
-    "ktgster's Insane",
-    "Kyshiro's Extra",
-    "Nathan's Insane",
-    "Normal",
-    "pishi's Extra",
-    "Sharkie's Insane",
-    "sheela's Very Hard",
-    "Smoothie World's Extra",
-    "Super Beginner",
-    "Tatoe",
-    "toybot's Insane",
-    "Ultra Beginner",
-    "Walao's Advanced",
-    "Yuistrata's Easy",
-})
+_ai_no_scenario_versions = frozenset(
+    {
+        "Beginner",
+        "Extra",
+        "Hard",
+        "ktgster's Insane",
+        "Kyshiro's Extra",
+        "Nathan's Insane",
+        "Normal",
+        "pishi's Extra",
+        "Sharkie's Insane",
+        "sheela's Very Hard",
+        "Smoothie World's Extra",
+        "Super Beginner",
+        "Tatoe",
+        "toybot's Insane",
+        "Ultra Beginner",
+        "Walao's Advanced",
+        "Yuistrata's Easy",
+    }
+)
 
 
-def miiro_vs_ai_no_scenario(version='Tatoe'):
+def miiro_vs_ai_no_scenario(version="Tatoe"):
     """Load a version of the MIIRO vs. Ai no Scenario beatmap.
 
     Parameters
@@ -84,11 +88,10 @@ def miiro_vs_ai_no_scenario(version='Tatoe'):
     """
     if version not in _ai_no_scenario_versions:
         raise ValueError(
-            f'unknown version {version}, options:'
-            f' {set(_ai_no_scenario_versions)}'
+            f"unknown version {version}, options:" f" {set(_ai_no_scenario_versions)}"
         )
 
     return example_beatmap(
-        f'AKINO from bless4 & CHiCO with HoneyWorks - MIIRO vs. Ai no Scenario'
-        f' (monstrata) [{version}].osu'
+        f"AKINO from bless4 & CHiCO with HoneyWorks - MIIRO vs. Ai no Scenario"
+        f" (monstrata) [{version}].osu"
     )

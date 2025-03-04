@@ -9,14 +9,22 @@ from .bit_enum import BitEnum
 from .game_mode import GameMode
 from .mod import Mod, od_to_ms, circle_radius
 from .position import Position
-from .utils import (accuracy, lazyval, orange, consume_byte, consume_short,
-                    consume_int, consume_string, consume_datetime)
+from .utils import (
+    accuracy,
+    lazyval,
+    orange,
+    consume_byte,
+    consume_short,
+    consume_int,
+    consume_string,
+    consume_datetime,
+)
 
 
 @unique
 class ActionBitMask(BitEnum):
-    """The bitmask values for the action type.
-    """
+    """The bitmask values for the action type."""
+
     m1 = 1
     m2 = 2
     k1 = 5
@@ -41,6 +49,7 @@ class Action:
     mouse2 : bool
         is the second mouse button pressed?
     """
+
     def __init__(self, offset, position, key1, key2, mouse1, mouse2):
         self.offset = offset
         self.position = position
@@ -51,8 +60,7 @@ class Action:
 
     @property
     def action_bitmask(self):
-        """Get the action bitmask from an action.
-        """
+        """Get the action bitmask from an action."""
         return ActionBitMask.pack(
             m1=self.mouse1,
             m2=self.mouse2,
@@ -70,8 +78,10 @@ class Action:
             actions.append("M1")
         if self.mouse2:
             actions.append("M2")
-        return (f"<{type(self).__qualname__}: {self.offset}, {self.position}, "
-                f"{' + '.join(actions) or 'No Keypresses'}>")
+        return (
+            f"<{type(self).__qualname__}: {self.offset}, {self.position}, "
+            f"{' + '.join(actions) or 'No Keypresses'}>"
+        )
 
 
 def _consume_life_bar_graph(buffer):
@@ -79,7 +89,7 @@ def _consume_life_bar_graph(buffer):
     return [
         (datetime.timedelta(milliseconds=int(offset)), float(value))
         for offset, value in (
-            pair.split('|') for pair in life_bar_graph_raw.split(',') if pair
+            pair.split("|") for pair in life_bar_graph_raw.split(",") if pair
         )
     ]
 
@@ -92,20 +102,22 @@ def _consume_actions(buffer):
 
     out = []
     offset = 0
-    for raw_action in decompressed_data.split(b','):
+    for raw_action in decompressed_data.split(b","):
         if not raw_action:
             continue
-        raw_offset, x, y, raw_action_mask = raw_action.split(b'|')
+        raw_offset, x, y, raw_action_mask = raw_action.split(b"|")
         action_mask = ActionBitMask.unpack(int(raw_action_mask))
         offset += int(raw_offset)
-        out.append(Action(
-            datetime.timedelta(milliseconds=offset),
-            Position(float(x), float(y)),
-            action_mask['m1'],
-            action_mask['m2'],
-            action_mask['k1'],
-            action_mask['k2'],
-        ))
+        out.append(
+            Action(
+                datetime.timedelta(milliseconds=offset),
+                Position(float(x), float(y)),
+                action_mask["m1"],
+                action_mask["m2"],
+                action_mask["k1"],
+                action_mask["k2"],
+            )
+        )
     return out
 
 
@@ -126,7 +138,7 @@ def _within(p1, p2, d):
     bool
         Whether the distance between the points is less than d
     """
-    return (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 < d ** 2
+    return (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 < d**2
 
 
 def _pressed(datum):
@@ -160,14 +172,14 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
         t = (datum.offset - obj.time) / duration
         if 0 <= t <= 1:
             nearest_pos = obj.curve(t)
-            if (on and
-                not (_pressed(datum)
-                     and _within(nearest_pos, datum.position, rad * 2.4))):
+            if on and not (
+                _pressed(datum) and _within(nearest_pos, datum.position, rad * 2.4)
+            ):
                 t_changes_append(t)
                 on = False
-            elif (not on and
-                  (_pressed(datum) and
-                   _within(nearest_pos, datum.position, rad))):
+            elif not on and (
+                _pressed(datum) and _within(nearest_pos, datum.position, rad)
+            ):
                 t_changes_append(t)
                 on = True
 
@@ -178,9 +190,11 @@ def _process_slider(obj, rdata, head_hit, rad, scores):
         if bi % 2 == 0:
             # missed a tick
             if tick is tick_ts[-1]:
-                if (len(t_changes) > 0 and
-                        len(t_changes) == bi and
-                        abs(tick_ts[-1] - t_changes[-1]) < 0.1):
+                if (
+                    len(t_changes) > 0
+                    and len(t_changes) == bi
+                    and abs(tick_ts[-1] - t_changes[-1]) < 0.1
+                ):
                     # held close enough to last tick
                     continue
                 # end tick doesn't cause sliderbreak
@@ -306,55 +320,58 @@ class Replay:
     beatmap : Beatmap or None
         The beatmap played in this replay if known, otherwise None.
     """
-    def __init__(self,
-                 mode,
-                 version,
-                 beatmap_md5,
-                 player_name,
-                 replay_md5,
-                 count_300,
-                 count_100,
-                 count_50,
-                 count_geki,
-                 count_katu,
-                 count_miss,
-                 score,
-                 max_combo,
-                 full_combo,
-                 no_fail,
-                 easy,
-                 no_video,
-                 hidden,
-                 hard_rock,
-                 sudden_death,
-                 double_time,
-                 relax,
-                 half_time,
-                 nightcore,
-                 flashlight,
-                 autoplay,
-                 spun_out,
-                 auto_pilot,
-                 perfect,
-                 key4,
-                 key5,
-                 key6,
-                 key7,
-                 key8,
-                 fade_in,
-                 random,
-                 cinema,
-                 target_practice,
-                 key9,
-                 coop,
-                 key1,
-                 key3,
-                 key2,
-                 scoreV2,
-                 life_bar_graph,
-                 timestamp,
-                 actions,
-                 beatmap):
+
+    def __init__(
+        self,
+        mode,
+        version,
+        beatmap_md5,
+        player_name,
+        replay_md5,
+        count_300,
+        count_100,
+        count_50,
+        count_geki,
+        count_katu,
+        count_miss,
+        score,
+        max_combo,
+        full_combo,
+        no_fail,
+        easy,
+        no_video,
+        hidden,
+        hard_rock,
+        sudden_death,
+        double_time,
+        relax,
+        half_time,
+        nightcore,
+        flashlight,
+        autoplay,
+        spun_out,
+        auto_pilot,
+        perfect,
+        key4,
+        key5,
+        key6,
+        key7,
+        key8,
+        fade_in,
+        random,
+        cinema,
+        target_practice,
+        key9,
+        coop,
+        key1,
+        key3,
+        key2,
+        scoreV2,
+        life_bar_graph,
+        timestamp,
+        actions,
+        beatmap,
+    ):
         self.mode = mode
         self.version = version
         self.beatmap_md5 = beatmap_md5
@@ -406,11 +423,10 @@ class Replay:
 
     @lazyval
     def accuracy(self):
-        """The accuracy achieved in the replay in the range [0, 1].
-        """
+        """The accuracy achieved in the replay in the range [0, 1]."""
         if self.mode != GameMode.standard:
             raise NotImplementedError(
-                'accuracy for non osu!standard replays is not yet supported',
+                "accuracy for non osu!standard replays is not yet supported",
             )
 
         return accuracy(
@@ -438,8 +454,7 @@ class Replay:
 
     @lazyval
     def failed(self):
-        """Did the user fail this attempt?
-        """
+        """Did the user fail this attempt?"""
         for _, value in self.life_bar_graph:
             if not value:
                 return True
@@ -447,13 +462,9 @@ class Replay:
         return False
 
     @classmethod
-    def from_path(cls,
-                  path,
-                  *,
-                  library=None,
-                  client=None,
-                  save=False,
-                  retrieve_beatmap=True):
+    def from_path(
+        cls, path, *, library=None, client=None, save=False, retrieve_beatmap=True
+    ):
         """Read in a ``Replay`` object from a ``.osr`` file on disk.
 
         Parameters
@@ -480,7 +491,7 @@ class Replay:
         ValueError
             Raised when the file cannot be parsed as an ``.osr`` file.
         """
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             return cls.from_file(
                 f,
                 library=library,
@@ -490,13 +501,9 @@ class Replay:
             )
 
     @classmethod
-    def from_directory(cls,
-                       path,
-                       *,
-                       library=None,
-                       client=None,
-                       save=False,
-                       retrieve_beatmap=True):
+    def from_directory(
+        cls, path, *, library=None, client=None, save=False, retrieve_beatmap=True
+    ):
         """Read in a list of ``Replay`` objects from a directory of ``.osr``
         files.
 
@@ -533,17 +540,13 @@ class Replay:
                 retrieve_beatmap=retrieve_beatmap,
             )
             for p in os.scandir(path)
-            if p.name.endswith('.osr')
+            if p.name.endswith(".osr")
         ]
 
     @classmethod
-    def from_file(cls,
-                  file,
-                  *,
-                  library=None,
-                  client=None,
-                  save=False,
-                  retrieve_beatmap=True):
+    def from_file(
+        cls, file, *, library=None, client=None, save=False, retrieve_beatmap=True
+    ):
         """Read in a ``Replay`` object from an open file object.
 
         Parameters
@@ -575,17 +578,13 @@ class Replay:
             library=library,
             client=client,
             save=save,
-            retrieve_beatmap=retrieve_beatmap
+            retrieve_beatmap=retrieve_beatmap,
         )
 
     @classmethod
-    def parse(cls,
-              data,
-              *,
-              library=None,
-              client=None,
-              save=False,
-              retrieve_beatmap=True):
+    def parse(
+        cls, data, *, library=None, client=None, save=False, retrieve_beatmap=True
+    ):
         """Parse a replay from ``.osr`` file data.
 
         Parameters
@@ -615,16 +614,14 @@ class Replay:
         if retrieve_beatmap:
             if library is None and client is None:
                 raise ValueError(
-                    'one of library or client must be passed if you wish the'
-                    ' beatmap to be retrieved',
+                    "one of library or client must be passed if you wish the"
+                    " beatmap to be retrieved",
                 )
 
             use_client = client is not None
             if use_client:
                 if library is not None:
-                    raise ValueError(
-                        'only one of library or client can be passed'
-                    )
+                    raise ValueError("only one of library or client can be passed")
                 library = client.library
 
         buffer = bytearray(data)
@@ -650,8 +647,8 @@ class Replay:
 
         mod_kwargs = Mod.unpack(mod_mask)
         # delete the alias field names
-        del mod_kwargs['relax2']
-        del mod_kwargs['last_mod']
+        del mod_kwargs["relax2"]
+        del mod_kwargs["last_mod"]
 
         if retrieve_beatmap:
             try:
@@ -701,12 +698,13 @@ class Replay:
         """
         beatmap = self.beatmap
         actions = self.actions
-        scores = {"300s": [],
-                  "100s": [],
-                  "50s": [],
-                  "misses": [],
-                  "slider_breaks": [],
-                  }
+        scores = {
+            "300s": [],
+            "100s": [],
+            "50s": [],
+            "misses": [],
+            "slider_breaks": [],
+        }
         hw = od_to_ms(beatmap.od(easy=self.easy, hard_rock=self.hard_rock))
         rad = circle_radius(
             beatmap.cs(easy=self.easy, hard_rock=self.hard_rock),
@@ -718,7 +716,7 @@ class Replay:
                 obj = obj.hard_rock
             if isinstance(obj, Spinner):
                 # spinners are hard
-                scores['300s'].append(obj)
+                scores["300s"].append(obj)
                 continue
             # we can ignore events before the hit window so iterate
             # until we get past the beginning of the hit window
@@ -726,9 +724,10 @@ class Replay:
                 i += 1
             starti = i
             while actions[i].offset < obj.time + hit_50_threshold:
-                if (((actions[i].key1 and not actions[i - 1].key1)
-                        or (actions[i].key2 and not actions[i - 1].key2))
-                        and _within(actions[i].position, obj.position, rad)):
+                if (
+                    (actions[i].key1 and not actions[i - 1].key1)
+                    or (actions[i].key2 and not actions[i - 1].key2)
+                ) and _within(actions[i].position, obj.position, rad):
                     # key pressed that wasn't before and
                     # event is in hit window and correct location
                     if isinstance(obj, Circle):
@@ -738,9 +737,7 @@ class Replay:
                         starti = i
                         while actions[i].offset <= obj.end_time:
                             i += 1
-                        _process_slider(
-                            obj, actions[starti:i + 1], True, rad, scores
-                        )
+                        _process_slider(obj, actions[starti : i + 1], True, rad, scores)
                     break
                 i += 1
             else:
@@ -749,9 +746,7 @@ class Replay:
                     # Slider ticks might still be hit
                     while actions[i].offset <= obj.end_time:
                         i += 1
-                    _process_slider(
-                        obj, actions[starti:i + 1], False, rad, scores
-                    )
+                    _process_slider(obj, actions[starti : i + 1], False, rad, scores)
                 else:
                     scores["misses"].append(obj)
             i += 1
@@ -759,16 +754,16 @@ class Replay:
 
     def __repr__(self):
         try:
-            accuracy = f'{self.accuracy * 100:.2f}'
+            accuracy = f"{self.accuracy * 100:.2f}"
         except NotImplementedError:
-            accuracy = '<unknown>'
+            accuracy = "<unknown>"
 
         beatmap = self.beatmap
         if beatmap is None:
-            beatmap = '<unknown>'
+            beatmap = "<unknown>"
 
         return (
-            f'<{type(self).__qualname__}: {accuracy}% ('
-            f'{self.count_300}/{self.count_100}/'
-            f'{self.count_50}/{self.count_miss}) on {beatmap}>'
+            f"<{type(self).__qualname__}: {accuracy}% ("
+            f"{self.count_300}/{self.count_100}/"
+            f"{self.count_50}/{self.count_miss}) on {beatmap}>"
         )

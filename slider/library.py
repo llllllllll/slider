@@ -12,14 +12,18 @@ from .beatmap import Beatmap
 from .cli import maybe_show_progress
 
 
-if sys.platform.startswith('win'):
+if sys.platform.startswith("win"):
+
     def sanitize_filename(name):
         for invalid_character in r':*?"\/|<>':
-            name = name.replace(invalid_character, '')
+            name = name.replace(invalid_character, "")
         return name
+
 else:
+
     def sanitize_filename(name):
-        return name.replace('/', '')
+        return name.replace("/", "")
+
 
 sanitize_filename.__doc__ = """\
 Sanitize a filename so that it is safe to write to the filesystem.
@@ -49,19 +53,18 @@ class Library:
     download_url : str, optional
         The default location to download beatmaps from.
     """
-    DEFAULT_DOWNLOAD_URL = 'https://osu.ppy.sh/osu'
+
+    DEFAULT_DOWNLOAD_URL = "https://osu.ppy.sh/osu"
     DEFAULT_CACHE_SIZE = 2048
 
-    def __init__(self,
-                 path,
-                 *,
-                 cache=DEFAULT_CACHE_SIZE,
-                 download_url=DEFAULT_DOWNLOAD_URL):
+    def __init__(
+        self, path, *, cache=DEFAULT_CACHE_SIZE, download_url=DEFAULT_DOWNLOAD_URL
+    ):
         self.path = path = pathlib.Path(path)
 
         self._cache_size = cache
         self._read_beatmap = lru_cache(cache)(self._raw_read_beatmap)
-        self._db = db = sqlite3.connect(str(path / '.slider.db'))
+        self._db = db = sqlite3.connect(str(path / ".slider.db"))
         with db:
             db.execute(
                 """\
@@ -89,8 +92,7 @@ class Library:
         )
 
     def close(self):
-        """Close any resources used by this library.
-        """
+        """Close any resources used by this library."""
         self._read_beatmap.cache_clear()
         self._db.close()
 
@@ -126,23 +128,25 @@ class Library:
         if recurse:
             for directory, _, filenames in os.walk(path):
                 for filename in filenames:
-                    if filename.endswith('.osu'):
+                    if filename.endswith(".osu"):
                         yield pathlib.Path(os.path.join(directory, filename))
         else:
             for entry in os.scandir(directory):
                 path = entry.path
-                if path.endswith('.osu'):
+                if path.endswith(".osu"):
                     yield pathlib.Path(path)
 
     @classmethod
-    def create_db(cls,
-                  path,
-                  *,
-                  recurse=True,
-                  cache=DEFAULT_CACHE_SIZE,
-                  download_url=DEFAULT_DOWNLOAD_URL,
-                  show_progress=False,
-                  skip_exceptions=False):
+    def create_db(
+        cls,
+        path,
+        *,
+        recurse=True,
+        cache=DEFAULT_CACHE_SIZE,
+        download_url=DEFAULT_DOWNLOAD_URL,
+        show_progress=False,
+        skip_exceptions=False,
+    ):
         """Create a Library from a directory of ``.osu`` files.
 
         Parameters
@@ -166,7 +170,7 @@ class Library:
         happens, just re-run ``create_db`` again.
         """
         path = pathlib.Path(path)
-        db_path = path / '.slider.db'
+        db_path = path / ".slider.db"
         try:
             # ensure the db is cleared
             os.remove(db_path)
@@ -179,23 +183,23 @@ class Library:
         progress = maybe_show_progress(
             self._osu_files(path, recurse=recurse),
             show_progress,
-            label='Processing beatmaps: ',
-            item_show_func=lambda p: 'Done!' if p is None else str(p.stem),
+            label="Processing beatmaps: ",
+            item_show_func=lambda p: "Done!" if p is None else str(p.stem),
         )
         with self._db, progress as it:
             for path in it:
-                with open(path, 'rb') as f:
+                with open(path, "rb") as f:
                     data = f.read()
 
                 try:
-                    beatmap = Beatmap.parse(data.decode('utf-8-sig'))
+                    beatmap = Beatmap.parse(data.decode("utf-8-sig"))
                 except Exception as e:
                     if skip_exceptions:
                         logging.exception(f'Failed to parse "{path}"')
                         continue
                     raise ValueError(
                         f'Failed to parse "{path}". '
-                        'Use --skip-exceptions to skip this file and continue.'
+                        "Use --skip-exceptions to skip this file and continue."
                     ) from e
 
                 write_to_db(beatmap, data, path)
@@ -220,12 +224,12 @@ class Library:
         with self._db:
             if beatmap_id is not None:
                 path_query = self._db.execute(
-                    'SELECT 1 FROM beatmaps WHERE id = ? LIMIT 1',
+                    "SELECT 1 FROM beatmaps WHERE id = ? LIMIT 1",
                     (beatmap_id,),
                 )
             else:
                 path_query = self._db.execute(
-                    'SELECT 1 FROM beatmaps WHERE md5 = ? LIMIT 1',
+                    "SELECT 1 FROM beatmaps WHERE md5 = ? LIMIT 1",
                     (beatmap_md5,),
                 )
 
@@ -247,13 +251,13 @@ class Library:
             if beatmap_id is not None:
                 key = beatmap_id
                 path_query = self._db.execute(
-                    'SELECT path FROM beatmaps WHERE id = ?',
+                    "SELECT path FROM beatmaps WHERE id = ?",
                     (beatmap_id,),
                 )
             else:
                 key = beatmap_md5
                 path_query = self._db.execute(
-                    'SELECT path FROM beatmaps WHERE md5 = ?',
+                    "SELECT path FROM beatmaps WHERE md5 = ?",
                     (beatmap_md5,),
                 )
 
@@ -261,7 +265,7 @@ class Library:
         if path is None:
             raise KeyError(key)
 
-        path, = path
+        (path,) = path
         # Make path relative to the root path. We save paths relative to
         # ``self.path`` so a library can be relocated without requiring a
         # rebuild
@@ -331,8 +335,8 @@ class Library:
         beatmap : Beatmap
             The beatmap represented by the given file.
         """
-        data_bytes = open(path, 'rb').read()
-        data = data_bytes.decode('utf-8-sig')
+        data_bytes = open(path, "rb").read()
+        data = data_bytes.decode("utf-8-sig")
         beatmap = Beatmap.parse(data)
 
         if copy:
@@ -356,16 +360,16 @@ class Library:
             The parsed beatmap.
         """
         if beatmap is None:
-            beatmap = Beatmap.parse(data.decode('utf-8-sig'))
+            beatmap = Beatmap.parse(data.decode("utf-8-sig"))
 
         path = self.path / sanitize_filename(
-            f'{beatmap.artist} - '
-            f'{beatmap.title} '
-            f'({beatmap.creator})'
-            f'[{beatmap.version}]'
-            f'.osu'
+            f"{beatmap.artist} - "
+            f"{beatmap.title} "
+            f"({beatmap.creator})"
+            f"[{beatmap.version}]"
+            f".osu"
         )
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             f.write(data)
 
         with self._db:
@@ -385,14 +389,14 @@ class Library:
         with self._db:
             if remove_file:
                 paths = self._db.execute(
-                    'SELECT path FROM beatmaps WHERE id = ?',
+                    "SELECT path FROM beatmaps WHERE id = ?",
                     (beatmap.beatmap_id,),
                 )
-                for path, in paths:
+                for (path,) in paths:
                     os.unlink(path)
 
             self._db.execute(
-                'DELETE FROM beatmaps WHERE id = ?',
+                "DELETE FROM beatmaps WHERE id = ?",
                 (beatmap.beatmap_id,),
             )
 
@@ -416,7 +420,7 @@ class Library:
 
         try:
             self._db.execute(
-                'INSERT INTO beatmaps VALUES (?,?,?)',
+                "INSERT INTO beatmaps VALUES (?,?,?)",
                 (beatmap_md5, beatmap_id, str(path)),
             )
         except sqlite3.IntegrityError:
@@ -438,11 +442,11 @@ class Library:
         beatmap : Beatmap
             The downloaded beatmap.
         """
-        beatmap_response = requests.get(f'{self._download_url}/{beatmap_id}')
+        beatmap_response = requests.get(f"{self._download_url}/{beatmap_id}")
         beatmap_response.raise_for_status()
 
         data = beatmap_response.content
-        beatmap = Beatmap.parse(data.decode('utf-8-sig'))
+        beatmap = Beatmap.parse(data.decode("utf-8-sig"))
 
         if save:
             self.save(data, beatmap=beatmap)
@@ -451,18 +455,14 @@ class Library:
 
     @property
     def md5s(self):
-        """All of the beatmap hashes that this has downloaded.
-        """
-        return tuple(
-            md5 for md5, in self._db.execute('SELECT md5 FROM beatmaps')
-        )
+        """All of the beatmap hashes that this has downloaded."""
+        return tuple(md5 for md5, in self._db.execute("SELECT md5 FROM beatmaps"))
 
     @property
     def ids(self):
-        """All of the beatmap ids that this has downloaded.
-        """
+        """All of the beatmap ids that this has downloaded."""
         return tuple(
             int(id_)
-            for id_, in self._db.execute('SELECT id FROM beatmaps')
+            for id_, in self._db.execute("SELECT id FROM beatmaps")
             if id_ is not None
         )

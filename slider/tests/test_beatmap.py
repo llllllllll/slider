@@ -10,7 +10,7 @@ from math import isclose
 
 @pytest.fixture
 def beatmap():
-    return slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Tatoe')
+    return slider.example_data.beatmaps.miiro_vs_ai_no_scenario("Tatoe")
 
 
 def test_parse_beatmap_format_v3():
@@ -28,8 +28,8 @@ def test_version(beatmap):
 
 def test_display_name(beatmap):
     assert beatmap.display_name == (
-        'AKINO from bless4 & CHiCO with HoneyWorks - MIIRO '
-        'vs. Ai no Scenario [Tatoe]'
+        "AKINO from bless4 & CHiCO with HoneyWorks - MIIRO "
+        "vs. Ai no Scenario [Tatoe]"
     )
 
 
@@ -56,39 +56,37 @@ def test_parse_section_metadata(beatmap):
     assert beatmap.title == "MIIRO vs. Ai no Scenario"
     assert beatmap.title_unicode == "海色 vs. アイのシナリオ"
     assert beatmap.artist == "AKINO from bless4 & CHiCO with HoneyWorks"
-    assert beatmap.artist_unicode == (
-        "AKINO from bless4 & CHiCO with HoneyWorks"
-    )
+    assert beatmap.artist_unicode == ("AKINO from bless4 & CHiCO with HoneyWorks")
     assert beatmap.creator == "monstrata"
     assert beatmap.version == "Tatoe"
     assert beatmap.source == ""
     assert beatmap.tags == [
-        'kyshiro',
-        'sukinathan',
-        'ktgster',
-        'pishifat',
-        'smoothie',
-        'world',
-        'walaowey',
-        'toybot',
-        'sheela901',
-        'yuii-',
-        'Sharkie',
-        'みいろ',
-        'tv',
-        'size',
-        'opening',
-        'kantai',
-        'collection',
-        'kancolle',
-        'fleet',
-        'girls',
-        'magic',
-        'kaito',
-        '1412',
-        'まじっく快斗1412',
-        '艦隊これくしょん',
-        '-艦これ-'
+        "kyshiro",
+        "sukinathan",
+        "ktgster",
+        "pishifat",
+        "smoothie",
+        "world",
+        "walaowey",
+        "toybot",
+        "sheela901",
+        "yuii-",
+        "Sharkie",
+        "みいろ",
+        "tv",
+        "size",
+        "opening",
+        "kantai",
+        "collection",
+        "kancolle",
+        "fleet",
+        "girls",
+        "magic",
+        "kaito",
+        "1412",
+        "まじっく快斗1412",
+        "艦隊これくしょん",
+        "-艦これ-",
     ]
     assert beatmap.beatmap_id == 735272
     assert beatmap.beatmap_set_id == 325158
@@ -128,8 +126,10 @@ def test_parse_section_hit_objects(beatmap):
     assert hit_objects_0.end_time == timedelta(milliseconds=1178)
     assert hit_objects_0.hitsound == 0
     assert isinstance(hit_objects_0.curve, slider.curve.Linear)
-    assert hit_objects_0.curve.points == [Position(x=243, y=164),
-                                          Position(x=301, y=175)]
+    assert hit_objects_0.curve.points == [
+        Position(x=243, y=164),
+        Position(x=301, y=175),
+    ]
     assert round(hit_objects_0.curve.req_length) == 45
     assert isclose(hit_objects_0.length, 45.0000017166138)
     assert hit_objects_0.ticks == 2
@@ -137,14 +137,17 @@ def test_parse_section_hit_objects(beatmap):
     assert hit_objects_0.tick_rate == 1.0
     assert isclose(hit_objects_0.ms_per_beat, 307.692307692308)
     assert hit_objects_0.edge_sounds == [2, 0]
-    assert hit_objects_0.edge_additions == ['0:0', '0:0']
+    assert hit_objects_0.edge_additions == ["0:0", "0:0"]
     assert hit_objects_0.addition == "0:0:0:0:"
 
 
 def test_hit_objects_stacking():
-    hit_objects = [slider.beatmap.Circle(Position(128, 128),
-                                         timedelta(milliseconds=x*10),
-                                         hitsound=1) for x in range(10)]
+    hit_objects = [
+        slider.beatmap.Circle(
+            Position(128, 128), timedelta(milliseconds=x * 10), hitsound=1
+        )
+        for x in range(10)
+    ]
 
     beatmap = slider.Beatmap(
         format_version=14,
@@ -179,22 +182,23 @@ def test_hit_objects_stacking():
         slider_multiplier=1,
         slider_tick_rate=1,
         timing_points=[],
-        hit_objects=hit_objects
+        hit_objects=hit_objects,
     )
     radius = slider.beatmap.circle_radius(5)
     stack_offset = radius / 10
 
     for i, ob in enumerate(reversed(beatmap.hit_objects(stacking=True))):
-        assert ob.position.y == 128-(i*stack_offset)
+        assert ob.position.y == 128 - (i * stack_offset)
 
 
 def test_hit_objects_hard_rock(beatmap):
     # Only hit object 0 tested for now
-    hit_objects_hard_rock_0 = beatmap.hit_objects(hard_rock=True,
-                                                  stacking=False)[0]
+    hit_objects_hard_rock_0 = beatmap.hit_objects(hard_rock=True, stacking=False)[0]
     assert hit_objects_hard_rock_0.position == Position(x=243, y=220)
-    assert hit_objects_hard_rock_0.curve.points == [Position(x=243, y=220),
-                                                    Position(x=301, y=209)]
+    assert hit_objects_hard_rock_0.curve.points == [
+        Position(x=243, y=220),
+        Position(x=301, y=209),
+    ]
 
 
 def test_legacy_slider_end():
@@ -243,7 +247,7 @@ def test_legacy_slider_end():
 
 
 def test_closest_hitobject():
-    beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario('Beginner')
+    beatmap = slider.example_data.beatmaps.miiro_vs_ai_no_scenario("Beginner")
     hit_object1 = beatmap.hit_objects()[4]
     hit_object2 = beatmap.hit_objects()[5]
     hit_object3 = beatmap.hit_objects()[6]
@@ -254,10 +258,8 @@ def test_closest_hitobject():
     assert hit_object2.time == timedelta(milliseconds=9692)
     assert hit_object3.time == timedelta(milliseconds=11076)
 
-    assert beatmap.closest_hitobject(timedelta(milliseconds=8615)) == \
-        hit_object1
-    assert beatmap.closest_hitobject(timedelta(milliseconds=(8615 - 30))) == \
-        hit_object1
+    assert beatmap.closest_hitobject(timedelta(milliseconds=8615)) == hit_object1
+    assert beatmap.closest_hitobject(timedelta(milliseconds=(8615 - 30))) == hit_object1
     assert beatmap.closest_hitobject(middle_t) == hit_object2
     assert beatmap.closest_hitobject(middle_t, side="right") == hit_object3
 
@@ -296,29 +298,69 @@ def test_pack(beatmap):
     # sections, rewritten .osu can still be recognized by osu! client.
     beatmap_attrs = [
         # General section fields
-        'audio_filename', 'audio_lead_in', 'preview_time', 'countdown',
-        'sample_set', 'stack_leniency', 'mode', 'letterbox_in_breaks',
-        'widescreen_storyboard',
+        "audio_filename",
+        "audio_lead_in",
+        "preview_time",
+        "countdown",
+        "sample_set",
+        "stack_leniency",
+        "mode",
+        "letterbox_in_breaks",
+        "widescreen_storyboard",
         # Editor section fields
-        'distance_spacing', 'beat_divisor', 'grid_size', 'timeline_zoom',
-        'bookmarks',
+        "distance_spacing",
+        "beat_divisor",
+        "grid_size",
+        "timeline_zoom",
+        "bookmarks",
         # Metadata section fields
-        'title', 'title_unicode', 'artist', 'artist_unicode', 'creator',
-        'version', 'source', 'tags', 'beatmap_id', 'beatmap_set_id',
+        "title",
+        "title_unicode",
+        "artist",
+        "artist_unicode",
+        "creator",
+        "version",
+        "source",
+        "tags",
+        "beatmap_id",
+        "beatmap_set_id",
         # Difficulty section fields
-        'hp_drain_rate', 'circle_size', 'overall_difficulty', 'approach_rate',
-        'slider_multiplier', 'slider_tick_rate',
+        "hp_drain_rate",
+        "circle_size",
+        "overall_difficulty",
+        "approach_rate",
+        "slider_multiplier",
+        "slider_tick_rate",
     ]
     hitobj_attrs = [
-        'position', 'time', 'new_combo', 'combo_skip', 'hitsound', 'addition'
+        "position",
+        "time",
+        "new_combo",
+        "combo_skip",
+        "hitsound",
+        "addition",
     ]
     slider_attrs = [
-        'end_time', 'hitsound', 'repeat', 'length', 'ticks', 'num_beats',
-        'tick_rate', 'ms_per_beat', 'edge_sounds', 'edge_additions', 'addition'
+        "end_time",
+        "hitsound",
+        "repeat",
+        "length",
+        "ticks",
+        "num_beats",
+        "tick_rate",
+        "ms_per_beat",
+        "edge_sounds",
+        "edge_additions",
+        "addition",
     ]
     timing_point_attrs = [
-        'offset', 'ms_per_beat', 'meter', 'sample_type', 'sample_set',
-        'volume', 'kiai_mode'
+        "offset",
+        "ms_per_beat",
+        "meter",
+        "sample_type",
+        "sample_set",
+        "volume",
+        "kiai_mode",
     ]
 
     def check_attrs(object1, object2, attr_list):
@@ -342,8 +384,7 @@ def test_pack(beatmap):
         if isinstance(hitobj1, slider.beatmap.Slider):
             check_attrs(hitobj1, hitobj2, slider_attrs)
             check_curve(hitobj1.curve, hitobj2.curve)
-        elif isinstance(hitobj1, (slider.beatmap.Spinner,
-                                  slider.beatmap.HoldNote)):
+        elif isinstance(hitobj1, (slider.beatmap.Spinner, slider.beatmap.HoldNote)):
             # spinners / hold notes have an additional attribute `end_time`
             assert hitobj1.end_time == hitobj2.end_time
         # circles has no additional attributes beyond `hitobj_attrs`

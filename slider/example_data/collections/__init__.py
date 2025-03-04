@@ -22,4 +22,4 @@ def test_db():
     test_db : CollectionDB
         The collection db object.
     """
-    return example_collection('test.db')
+    return example_collection("test.db")
