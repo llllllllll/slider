@@ -96,13 +96,6 @@ class Library:
         self._read_beatmap.cache_clear()
         self._db.close()
 
-    def __del__(self):
-        try:
-            self.close()
-        except AttributeError:
-            # if an error is raised in the constructor
-            pass
-
     def __enter__(self):
         return self
 
