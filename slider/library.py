@@ -1,16 +1,15 @@
-from functools import lru_cache
-from hashlib import md5
+import logging
 import os
 import pathlib
 import sqlite3
 import sys
-import logging
+from functools import lru_cache
+from hashlib import md5
 
 import requests
 
 from .beatmap import Beatmap
 from .cli import maybe_show_progress
-
 
 if sys.platform.startswith("win"):
 

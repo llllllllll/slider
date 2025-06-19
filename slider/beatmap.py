@@ -1,18 +1,19 @@
-from datetime import timedelta
-from enum import unique, IntEnum
-from functools import partial
 import inspect
-from itertools import chain, islice, cycle
 import operator as op
 import re
+from datetime import timedelta
+from enum import IntEnum, unique
+from functools import partial
+from itertools import chain, cycle, islice
 from zipfile import ZipFile
 
 import numpy as np
 
 from .abc import abstractmethod
+from .curve import Curve
 from .game_mode import GameMode
-from .mod import ar_to_ms, ms_to_ar, circle_radius, od_to_ms_300, ms_300_to_od
-from .position import Position, Point, distance
+from .mod import ar_to_ms, circle_radius, ms_300_to_od, ms_to_ar, od_to_ms_300
+from .position import Point, Position, distance
 from .utils import (
     accuracy as calculate_accuracy,
     lazyval,
@@ -20,7 +21,6 @@ from .utils import (
     no_default,
     orange,
 )
-from .curve import Curve
 
 
 def _get(cs, ix, default=no_default):
@@ -1480,7 +1480,7 @@ def _pack_timedelta_list(field: str, list_td: list, sep: str = ",", default=no_d
         and default is not available.
     """
     list_td = _invalid_to_default(field, list_td, list, default)
-    return sep.join((str(td // timedelta(milliseconds=1)) for td in list_td))
+    return sep.join(str(td // timedelta(milliseconds=1)) for td in list_td)
 
 
 def _moving_average_by_time(times, data, delta, num):
@@ -2437,7 +2437,7 @@ class Beatmap:
             Raised when the ``Beatmap`` object is invalid to be
             written to a ``.osu`` file.
         """
-        with open(path, mode="wt", encoding="utf-8-sig") as file:
+        with open(path, mode="w", encoding="utf-8-sig") as file:
             self.write_file(file)
 
     def write_file(self, file):
