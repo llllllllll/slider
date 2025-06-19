@@ -5,7 +5,7 @@ import requests
 
 from .game_mode import GameMode
 from .mod import Mod
-from .utils import lazyval, accuracy
+from .utils import accuracy, lazyval
 
 
 @unique

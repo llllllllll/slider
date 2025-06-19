@@ -1,13 +1,13 @@
-from .beatmap import Beatmap, Circle, Slider, Spinner, TimingPoint, HitObject, HoldNote
+from .beatmap import Beatmap, Circle, HitObject, HoldNote, Slider, Spinner, TimingPoint
 from .client import Client
+from .collection import CollectionDB
 from .game_mode import GameMode
+from .library import Library
 from .mod import Mod
 from .position import Position
 from .replay import Replay
-from .library import Library
-from .collection import CollectionDB
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 
 __all__ = [

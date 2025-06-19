@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages
 import sys
+
+from setuptools import find_packages, setup
 
 long_description = ""
 
@@ -11,7 +12,7 @@ if "sdist" in sys.argv:
 
 setup(
     name="slider",
-    version="0.8.2",
+    version="0.8.3",
     description="Utilities for working with osu! files and data",
     author="Joe Jevnik",
     author_email="joejev@gmail.com",
@@ -34,10 +35,9 @@ setup(
     ],
     extras_require={
         "dev": [
-            "flake8==3.7.9",
-            "mccabe==0.6.1",
-            "pyflakes==2.1.1",
-            "pytest==5.4.1",
+            "ruff",
+            "shed",
+            "pytest",
         ],
         "cli": [
             "click",
