@@ -25,7 +25,7 @@ jobs:
         pip install -e .[dev]
     - name: Format
       run: |
-        shed slider
+        shed
         ruff check slider
         git diff --exit-code
     - name: Test with pytest
