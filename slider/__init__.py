@@ -7,7 +7,7 @@ from .mod import Mod
 from .position import Position
 from .replay import Replay
 
-__version__ = "0.8.3"
+__version__ = "0.8.4"
 
 
 __all__ = [
