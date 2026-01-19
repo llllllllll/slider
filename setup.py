@@ -11,7 +11,7 @@ if "sdist" in sys.argv:
 
 setup(
     name="slider",
-    version="0.8.2",
+    version="0.8.3",
     description="Utilities for working with osu! files and data",
     author="Joe Jevnik",
     author_email="joejev@gmail.com",
