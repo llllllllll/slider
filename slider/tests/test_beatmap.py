@@ -1,11 +1,12 @@
-import pytest
-
-import slider.example_data.beatmaps
-import slider.beatmap
-import slider.curve
-from slider.position import Position
 from datetime import timedelta
 from math import isclose
+
+import pytest
+
+import slider.beatmap
+import slider.curve
+import slider.example_data.beatmaps
+from slider.position import Position
 
 
 @pytest.fixture

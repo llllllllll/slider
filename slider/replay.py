@@ -1,23 +1,23 @@
 import bisect
 import datetime
-from enum import unique
-import os
 import lzma
+import os
+from enum import unique
 
 from .beatmap import Circle, Slider, Spinner
 from .bit_enum import BitEnum
 from .game_mode import GameMode
-from .mod import Mod, od_to_ms, circle_radius
+from .mod import Mod, circle_radius, od_to_ms
 from .position import Position
 from .utils import (
     accuracy,
+    consume_byte,
+    consume_datetime,
+    consume_int,
+    consume_short,
+    consume_string,
     lazyval,
     orange,
-    consume_byte,
-    consume_short,
-    consume_int,
-    consume_string,
-    consume_datetime,
 )
 
 

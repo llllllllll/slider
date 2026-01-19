@@ -15,9 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from contextlib import contextmanager
 from glob import glob
-import os
 from os.path import abspath, basename, dirname, exists, isfile
 from shutil import move, rmtree
 from subprocess import check_call
@@ -47,21 +47,21 @@ def ensure_not_exists(path):
 
 def main():
     old_dir = os.getcwd()
-    print("Moving to %s." % HERE)
+    print(f"Moving to {HERE}.")
     os.chdir(HERE)
 
     try:
         print("Building docs with 'make html'")
         check_call(["make", "html"])
 
-        print("Clearing temp location '%s'" % TEMP_LOCATION)
+        print(f"Clearing temp location '{TEMP_LOCATION}'")
         rmtree(TEMP_LOCATION, ignore_errors=True)
 
         with removing(TEMP_LOCATION):
             print("Copying built files to temp location.")
             move("build/html", TEMP_LOCATION)
 
-            print("Moving to '%s'" % SLIDER_ROOT)
+            print(f"Moving to '{SLIDER_ROOT}'")
             os.chdir(SLIDER_ROOT)
 
             print("Checking out gh-pages branch.")
@@ -75,14 +75,14 @@ def main():
             for file_ in glob(TEMP_LOCATION_GLOB):
                 base = basename(file_)
 
-                print("%s -> %s" % (file_, base))
+                print(f"{file_} -> {base}")
                 ensure_not_exists(base)
                 move(file_, ".")
     finally:
         os.chdir(old_dir)
 
     print()
-    print("Updated documentation branch in directory %s" % SLIDER_ROOT)
+    print(f"Updated documentation branch in directory {SLIDER_ROOT}")
     print("If you are happy with these changes, commit and push to gh-pages.")
 
 
