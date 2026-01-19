@@ -530,7 +530,7 @@ class Client:
     }
 
     def _parse_date(cs):
-        return datetime.datetime.strptime(cs, "%Y-%m-%f %H:%M:%S")
+        return datetime.datetime.strptime(cs, "%Y-%m-%d %H:%M:%S")
 
     def _parse_timedelta(cs):
         return datetime.timedelta(seconds=int(cs))
@@ -548,7 +548,7 @@ class Client:
 
     _beatmap_conversions = {
         "approved": lambda cs: ApprovedState(int(cs)),
-        "approved_date": _parse_date,
+        "approved_date": _parse_optional(_parse_date),
         "last_update": _parse_date,
         "beatmap_id": int,
         "star_rating": float,
