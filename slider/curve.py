@@ -442,8 +442,8 @@ class Catmull(Curve):
         #
         # P = (S * h) * C = (1x4 * 4x4) * 4x1 = 1x4 * 4x1 = 1x1
         # Result of multiplication is a 1x1 ndarray so get the only value.
-        px = px[0]
-        py = py[0]
+        px = float(px[0])
+        py = float(py[0])
         return Position(px, py)
 
 
